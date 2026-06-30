@@ -123,8 +123,11 @@ window.changeMode = function()
         }
 
         $('.team-group').removeClass('hidden');
-        $('#estimate').attr('readonly', 'readonly');
-        $('#left').attr('readonly', 'readonly');
+        if(!isAdmin)
+        {
+            $('#estimate').attr('readonly', 'readonly');
+            $('#left').attr('readonly', 'readonly');
+        }
         $('[name=parent]').zui('picker').$.setValue('');
         $('[name=parent]').zui('picker').render({disabled: true});
     }
@@ -284,8 +287,11 @@ window.renderRowData = function($row, index, row)
         {
             info[0].render({disabled: true});
         })
-        $row.find('#teamEstimate').attr('readonly', 'readonly');
-        $row.find('#teamLeft').attr('readonly', 'readonly');
+        if(!isAdmin)
+        {
+            $row.find('#teamEstimate').attr('readonly', 'readonly');
+            $row.find('#teamLeft').attr('readonly', 'readonly');
+        }
     }
 
     /* 复制上一行的人员下拉。*/

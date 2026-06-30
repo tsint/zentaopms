@@ -25,6 +25,17 @@
 
 在运行耗时命令前先确认本地环境是否已配置数据库、PHP 扩展和 Web 服务。
 
+本分支本地开发默认使用 phpbrew 安装的 PHP：
+
+```bash
+bin/dev-php -v                 # 使用 ~/.phpbrew/php/php-8.2.31/bin/php
+bin/dev-doctor                 # 检查 PHP 扩展、MySQL、测试工具
+bin/dev-server                 # 启动内置开发服务：http://127.0.0.1:8080/
+bin/dev-test path/to/test.php  # 使用 phpbrew PHP 运行单个测试文件
+```
+
+可通过环境变量覆盖默认值：`PHP_BIN`、`ZT_DEV_HOST`、`ZT_DEV_PORT`、`ZT_DB_HOST`、`ZT_DB_PORT`、`ZT_DB_NAME`、`ZT_DB_USER`、`ZT_DB_PASSWORD`。运行 API 测试前必须显式设置 `ZT_TEST_ACCOUNT`、`ZT_TEST_PASSWORD` 和 `ZT_TEST_BASE`。
+
 ```bash
 make all       # 完整构建
 make clean     # 清理构建产物

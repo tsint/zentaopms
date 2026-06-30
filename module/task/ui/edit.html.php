@@ -24,6 +24,7 @@ jsVar('oldConsumed', $task->consumed);
 jsVar('objectID', $execution->multiple ? $execution->id : $execution->project);
 jsVar('taskStatus', $taskStatus);
 jsVar('currentUser', $app->user->account);
+jsVar('isAdmin', $app->user->admin);
 jsVar('team', array_values($task->members));
 jsVar('members', $members);
 jsVar('page', 'edit');
@@ -105,7 +106,7 @@ if(!empty($task->team))
             $member->memberDisabled = true;
         }
 
-        $member->hourDisabled = $member->memberDisabled;
+        $member->hourDisabled = !$app->user->admin && $member->memberDisabled;
     }
 }
 
@@ -524,7 +525,7 @@ detailBody
                         (
                             set::name('estimate'),
                             set::value(helper::formatHours($task->estimate)),
-                            !empty($task->team) || !empty($task->children) ? set::readonly(true) : null
+                            (!empty($task->team) || !empty($task->children)) && !$app->user->admin ? set::readonly(true) : null
                         ),
                         to::suffix($lang->task->suffixHour),
                         set::suffixWidth(20)
@@ -564,7 +565,7 @@ detailBody
                         (
                             set::name('left'),
                             set::value(helper::formatHours($task->left)),
-                            !empty($task->team) || !empty($task->children) ? set::readonly(true) : null
+                            (!empty($task->team) || !empty($task->children)) && !$app->user->admin ? set::readonly(true) : null
                         ),
                         to::suffix($lang->task->suffixHour),
                         set::suffixWidth(20)

@@ -345,6 +345,13 @@ class bug extends control
         $this->bugZen->checkBugExecutionPriv($oldBug);
         $this->bugZen->setEditMenu($oldBug);
         $this->bugZen->buildEditForm($oldBug);
+
+        $this->loadModel('objecteffort');
+        $this->view->effortSummary     = $this->objecteffort->getSummary('bug', $oldBug->id);
+        $this->view->canRecordEffort   = $this->objecteffort->canRecord('bug', $oldBug->id);
+        $this->view->effortExecutions  = $this->objecteffort->getExecutionPairs('bug', $oldBug->id);
+        $this->view->effortProjects    = $this->objecteffort->getProjectPairs('bug', $oldBug->id);
+
         $this->display();
     }
 

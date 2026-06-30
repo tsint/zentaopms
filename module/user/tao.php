@@ -149,9 +149,22 @@ class userTao extends userModel
      */
     public function deleteImUserDevice(int $userID): void
     {
-        try
-        {
-            $this->dao->delete()->from(TABLE_IM_USERDEVICE)->where('user')->eq($userID)->exec();
-        } catch (Exception $e) {}
+        if(!$this->hasImUserDeviceTable()) return;
+
+        $this->dao->delete()->from(TABLE_IM_USERDEVICE)->where('user')->eq($userID)->exec();
+    }
+
+    /**
+     * Check whether the optional IM user device table is installed.
+     *
+     * @access protected
+     * @return bool
+     */
+    protected function hasImUserDeviceTable(): bool
+    {
+        $table = trim(TABLE_IM_USERDEVICE, '`');
+        $sql   = 'SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ' . $this->dbh->quote($table) . ' LIMIT 1';
+
+        return (bool)$this->dbh->query($sql)->fetchColumn();
     }
 }

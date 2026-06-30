@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PHP_BIN="${PHP_BIN:-$HOME/.phpbrew/php/php-8.2.31/bin/php}"
+HOST="${ZT_DEV_HOST:-127.0.0.1}"
+PORT="${ZT_DEV_PORT:-8080}"
+
+if [[ ! -x "$PHP_BIN" ]]; then
+  echo "PHP not found or not executable: $PHP_BIN" >&2
+  exit 127
+fi
+
+echo "Serving ZenTao from $ROOT/www at http://$HOST:$PORT/"
+cd "$ROOT/www"
+exec "$PHP_BIN" -S "$HOST:$PORT" -t "$ROOT/www"

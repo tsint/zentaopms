@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PHP_BIN="${PHP_BIN:-$HOME/.phpbrew/php/php-8.2.31/bin/php}"
+
+ok() { printf '[OK] %s\n' "$*"; }
+warn() { printf '[WARN] %s\n' "$*" >&2; }
+fail() { printf '[FAIL] %s\n' "$*" >&2; exit 1; }
+
+[[ -x "$PHP_BIN" ]] || fail "PHP not found: $PHP_BIN"
+ok "$("$PHP_BIN" -r 'echo PHP_VERSION;') at $PHP_BIN"
+
+phpModules="$("$PHP_BIN" -m)"
+for ext in mysqli pdo_mysql curl mbstring json dom SimpleXML zip; do
+  grep -qi "^${ext}$" <<<"$phpModules" && ok "PHP extension: $ext" || fail "Missing PHP extension: $ext"
+done
+
+if grep -qi '^yaml$' <<<"$phpModules"; then
+  ok 'PHP extension: yaml'
+else
+  ok 'PHP extension: yaml not installed; bin/dev-test will use bin/dev-yaml-polyfill.php'
+fi
+
+"$PHP_BIN" -r '
+$dbName = getenv("ZT_DB_NAME") ?: "zentao";
+$prefix = getenv("ZT_DB_PREFIX") ?: "zt_";
+$mysqli = @new mysqli(getenv("ZT_DB_HOST") ?: "127.0.0.1", getenv("ZT_DB_USER") ?: "zentao", getenv("ZT_DB_PASSWORD") ?: "zentao123456", $dbName, (int)(getenv("ZT_DB_PORT") ?: 3306));
+if($mysqli->connect_errno) { fwrite(STDERR, $mysqli->connect_error . PHP_EOL); exit(1); }
+echo "MySQL: " . $mysqli->host_info . PHP_EOL;
+$stmt = $mysqli->prepare("SELECT 1 FROM information_schema.tables WHERE table_schema = ? AND table_name = ? LIMIT 1");
+$table = $prefix . "im_userdevice";
+$stmt->bind_param("ss", $dbName, $table);
+$stmt->execute();
+$hasIMTable = (bool)$stmt->get_result()->fetch_row();
+
+$version = "unknown";
+$configTable = str_replace("`", "``", $prefix . "config");
+$result = $mysqli->query("SELECT `value` FROM `{$configTable}` WHERE `owner` = \"system\" AND `module` = \"common\" AND `section` = \"global\" AND `key` = \"version\" LIMIT 1");
+if($result && $row = $result->fetch_row()) $version = $row[0];
+echo "ZenTao schema version: {$version}" . PHP_EOL;
+echo "Optional IM table {$table}: " . ($hasIMTable ? "present" : "not installed") . PHP_EOL;
+' || fail 'MySQL connection failed'
+ok 'MySQL connection'
+
+[[ -x "$ROOT/test/runtime/zd" ]] && ok 'test/runtime/zd' || warn 'Missing test/runtime/zd; model tests that generate data will fail'
+[[ -x "$ROOT/test/runtime/ztf" ]] && ok 'test/runtime/ztf' || warn 'Missing test/runtime/ztf; batch ztf runs will fail'
+[[ -f "$ROOT/test/config/my.php" ]] && ok 'test/config/my.php' || warn 'Missing test/config/my.php'
+[[ -f "$ROOT/config/my.php" ]] && ok 'config/my.php' || warn 'Missing config/my.php'

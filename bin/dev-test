@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PHP_BIN="${PHP_BIN:-$HOME/.phpbrew/php/php-8.2.31/bin/php}"
+TEST_FILE="${1:-}"
+
+if [[ ! -x "$PHP_BIN" ]]; then
+  echo "PHP not found or not executable: $PHP_BIN" >&2
+  exit 127
+fi
+
+if [[ -z "$TEST_FILE" ]]; then
+  echo "Usage: bin/dev-test path/to/test.php" >&2
+  echo "Example: bin/dev-test test/api/products/getlist.php" >&2
+  exit 2
+fi
+
+shift
+cd "$ROOT"
+
+case "$TEST_FILE" in
+  test/api/*|./test/api/*)
+    missing=()
+    [[ -n "${ZT_TEST_ACCOUNT:-}" ]] || missing+=(ZT_TEST_ACCOUNT)
+    [[ -n "${ZT_TEST_PASSWORD:-}" ]] || missing+=(ZT_TEST_PASSWORD)
+    [[ -n "${ZT_TEST_BASE:-}" ]] || missing+=(ZT_TEST_BASE)
+    if ((${#missing[@]})); then
+      printf 'Missing required API test environment variable: %s\n' "${missing[@]}" >&2
+      exit 2
+    fi
+    ;;
+esac
+
+exec "$PHP_BIN" -d auto_prepend_file="$ROOT/bin/dev-yaml-polyfill.php" "$TEST_FILE" "$@"

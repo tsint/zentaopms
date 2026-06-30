@@ -78,7 +78,6 @@ $config->bug->form->edit['lastEditedDate'] = array('required' => false, 'type' =
 $config->bug->form->edit['comment']        = array('required' => false, 'type' => 'string', 'default' => '', 'control' => 'editor');
 $config->bug->form->edit['deleteFiles']    = array('required' => false, 'type' => 'array',  'default' => array());
 $config->bug->form->edit['renameFiles']    = array('required' => false, 'type' => 'array',  'default' => array());
-
 global $app;
 $config->bug->form->close = array();
 $config->bug->form->close['status']         = array('required' => false, 'type' => 'string', 'default' => 'closed');

@@ -15,7 +15,7 @@ $config->bug->resolve->requiredFields     = 'resolution';
 
 $config->bug->actions = new stdclass();
 $config->bug->actions->view = array();
-$config->bug->actions->view['mainActions']   = array('confirm', 'assignTo', 'createBranch', 'resolve', 'close', 'activate', 'toStory', 'toTask', 'createCase');
+$config->bug->actions->view['mainActions']   = array('confirm', 'assignTo', 'createBranch', 'resolve', 'close', 'activate', 'toStory', 'toTask', 'createCase', 'recordWorkhour');
 $config->bug->actions->view['suffixActions'] = array('edit', 'copy', 'delete');
 
 $config->bug->browseTypeList = array('all', 'bymodule', 'assigntome', 'openedbyme', 'resolvedbyme', 'assigntonull', 'unconfirmed', 'unresolved', 'unclosed', 'toclosed', 'longlifebugs', 'postponedbugs', 'overduebugs', 'assignedbyme', 'review', 'needconfirm', 'bysearch');
@@ -172,3 +172,11 @@ $config->bug->actionList['createBranch']['hint']        = $lang->bug->codeBranch
 $config->bug->actionList['createBranch']['text']        = $lang->bug->codeBranch;
 $config->bug->actionList['createBranch']['url']         = helper::createLink('bug', 'createBranch', 'bugID={id}');
 $config->bug->actionList['createBranch']['data-toggle'] = 'modal';
+
+global $app;
+$app->loadLang('objecteffort');
+$config->bug->actionList['recordWorkhour']['icon']        = 'time';
+$config->bug->actionList['recordWorkhour']['text']        = $lang->objecteffort->record;
+$config->bug->actionList['recordWorkhour']['hint']        = $lang->objecteffort->record;
+$config->bug->actionList['recordWorkhour']['url']         = array('module' => 'objecteffort', 'method' => 'record', 'params' => 'objectType=bug&objectID={id}');
+$config->bug->actionList['recordWorkhour']['data-toggle'] = 'modal';

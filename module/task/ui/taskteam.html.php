@@ -33,7 +33,7 @@ if(!empty($task->team))
             $sortDisabled   = true;
         }
 
-        $hourDisabled = $memberDisabled;
+        $hourDisabled = !$app->user->admin && $memberDisabled;
 
         $teamForm[] = h::tr
         (

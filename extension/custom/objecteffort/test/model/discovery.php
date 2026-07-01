@@ -137,6 +137,14 @@ $bugEstimateAtomic = strpos($bugCreateCode, '$this->dao->begin()') !== false
     && strpos($bugCreateCode, '$this->objecteffort->initializeEstimate(') !== false;
 r($bugEstimateAtomic) && p() && e('1'); // Bug 创建初始工时登记与 Bug 创建原子化，estimate=0 时不写工时记录
 
+$storyConfigCode = file_get_contents(dirname(__FILE__, 6) . DS . 'module' . DS . 'story' . DS . 'config.php');
+$bugConfigCode   = file_get_contents(dirname(__FILE__, 6) . DS . 'module' . DS . 'bug' . DS . 'config.php');
+$detailEffortSingleSource = strpos($storyConfigCode, "actionList['recordWorkhour']") !== false
+    && strpos($bugConfigCode, "actionList['recordWorkhour']") !== false
+    && !file_exists($customRoot . DS . 'story' . DS . 'ext' . DS . 'view' . DS . 'view.objecteffort.html.hook.php')
+    && !file_exists($customRoot . DS . 'bug' . DS . 'ext' . DS . 'view' . DS . 'view.objecteffort.html.hook.php');
+r($detailEffortSingleSource) && p() && e('1'); // 详情工时按钮仅由核心动作渲染，不再由 Hook 重复注入
+
 $objectEffortControlCode = file_get_contents($customRoot . DS . 'objecteffort' . DS . 'control.php');
 $objectEffortModelCode   = file_get_contents($customRoot . DS . 'objecteffort' . DS . 'model.php');
 $taskRecordViewCode      = file_get_contents(dirname(__FILE__, 6) . DS . 'module' . DS . 'task' . DS . 'ui' . DS . 'recordworkhour.html.php');

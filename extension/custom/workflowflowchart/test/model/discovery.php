@@ -12,7 +12,7 @@ cid=0
 - 业务需求/用户需求/研发需求/Bug/任务详情页直接渲染可见流程图 @1
 - 任务七个流转动作均被Hook保护 @1
 - 管理权限入口方法存在 @1
-- 配置页使用六类对象 Mermaid 状态机且保留规则编辑列表 @1
+- 配置页使用可用对象 Mermaid 状态机并支持状态节点和规则编辑 @1
 - 配置页作为ZIN内容片段渲染且不重复输出页面外壳 @1
 - 配置页对象Tab使用整页跳转避免ZIN局部加载失效 @1
 - 需求提交评审按HTTP方法识别POST，避免空POST返回HTML @1
@@ -84,6 +84,11 @@ $configBoardReady = strpos($configCode, "'epic'") !== false
     && strpos($viewCode, 'workflow-node-section') !== false
     && strpos($viewCode, 'workflow-rule-section') !== false
     && strpos($viewCode, 'toggleRuleEdge') !== false
+    && strpos($viewCode, 'id="addNode"') !== false
+    && strpos($viewCode, 'id="newTransitionLabel"') !== false
+    && strpos($viewCode, 'function deleteNode') !== false
+    && strpos($viewCode, 'function refreshNodeOptions') !== false
+    && strpos($viewCode, 'getAvailableObjectTypes') === false
     && strpos($viewCode, 'workflow-board') !== false
     && strpos($viewCode, 'workflow-column') !== false
     && strpos($viewCode, 'body > #main:has(#mainContent:empty)') !== false

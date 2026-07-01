@@ -11,6 +11,19 @@ class workflowflowchartModel extends model
         return in_array(strtolower($objectType), $this->config->workflowflowchart->objectTypes, true);
     }
 
+    public function getAvailableObjectTypes(): array
+    {
+        $types = $this->config->workflowflowchart->objectTypes;
+        if(empty($this->config->enableER)) $types = array_values(array_diff($types, array('epic')));
+        if(empty($this->config->URAndSR))  $types = array_values(array_diff($types, array('requirement')));
+        return $types;
+    }
+
+    public function isAvailableObjectType(string $objectType): bool
+    {
+        return in_array(strtolower($objectType), $this->getAvailableObjectTypes(), true);
+    }
+
     public function getStatusList(string $objectType): array
     {
         $objectType = strtolower($objectType);
@@ -51,6 +64,16 @@ class workflowflowchartModel extends model
         $list = array();
         foreach($actions as $action) $list[$action] = isset($this->lang->workflowflowchart->actionList[$action]) ? $this->lang->workflowflowchart->actionList[$action] : $action;
         return $list;
+    }
+
+    public function getEntryStates(string $objectType): array
+    {
+        $objectType = strtolower($objectType);
+        if(in_array($objectType, array('epic', 'requirement', 'story'), true)) return array('draft');
+        if($objectType == 'bug') return array('active');
+        if($objectType == 'task') return array('wait');
+        if($objectType == 'testcase') return array('normal');
+        return array();
     }
 
     public function getDefaultDefinition(string $objectType): array
@@ -168,7 +191,7 @@ class workflowflowchartModel extends model
             $lines[] = '    state "' . $this->escapeMermaidLabel($label) . '" as ' . $id;
         }
 
-        foreach($this->getMermaidEntryStates($objectType, $definition) as $status)
+        foreach($this->getEntryStates($objectType) as $status)
         {
             if(isset($stateIDs[$status])) $lines[] = '    [*] --> ' . $stateIDs[$status];
         }
@@ -194,15 +217,6 @@ class workflowflowchartModel extends model
         }
 
         return implode("\n", $lines);
-    }
-
-    protected function getMermaidEntryStates(string $objectType, array $definition): array
-    {
-        if($objectType == 'bug') return array('active');
-        if($objectType == 'task') return array('wait');
-        if($objectType == 'testcase') return array('wait', 'normal');
-
-        return array('draft', 'reviewing', 'active');
     }
 
     protected function getMermaidStateID(string $status): string
@@ -233,10 +247,14 @@ class workflowflowchartModel extends model
         {
             if(!is_array($node) || empty($node['id']) || empty($node['status'])) return 'invalidNode';
             if(isset($nodeIDs[$node['id']])) return 'duplicateNode';
-            if(!in_array($node['status'], $validStatuses, true)) return 'invalidStatus';
+            if(!in_array($node['status'], $validStatuses, true) && !preg_match('/^[a-z][a-z0-9_]{1,29}$/', (string)$node['status'])) return 'invalidStatus';
             if($node['id'] !== $node['status'] || isset($nodeStatuses[$node['status']])) return 'invalidNode';
             $nodeIDs[$node['id']] = true;
             $nodeStatuses[$node['status']] = true;
+        }
+        foreach($this->getEntryStates($objectType) as $entryState)
+        {
+            if(!isset($nodeStatuses[$entryState])) return 'missingEntryState';
         }
 
         $edgeIDs = array();
@@ -426,6 +444,35 @@ class workflowflowchartModel extends model
     }
 
     public function renderFlowHtml(string $objectType, string $currentStatus = '', bool $showManageLink = true): string
+    {
+        $objectType = strtolower($objectType);
+        if(!$this->isAvailableObjectType($objectType)) return '';
+
+        $this->app->loadLang('workflowflowchart');
+        $definition    = $this->getDefinition($objectType);
+        $statusList    = $this->getStatusList($objectType);
+        $mermaidSource = $this->renderMermaid($objectType, $definition);
+        if($mermaidSource === '') return '';
+
+        $escape = function($value): string {return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');};
+        $currentLabel = isset($statusList[$currentStatus]) ? $statusList[$currentStatus] : $currentStatus;
+        $webRoot      = $this->app->getWebRoot();
+        $html  = '<section class="workflowflowchart-detail" data-current-status="' . $escape($currentStatus) . '">';
+        $html .= '<style>.workflowflowchart-detail{margin-top:16px;padding:16px;border:1px solid #d8dee8;border-radius:6px;background:#fff}.workflowflowchart-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.workflowflowchart-title{font-size:16px;font-weight:600;color:#1f2d3d}.workflowflowchart-current{color:#5f6f86}.workflowflowchart-mermaid{min-height:220px;overflow:auto;text-align:center}.workflowflowchart-mermaid svg{max-width:100%;height:auto}.workflowflowchart-manage{white-space:nowrap}</style>';
+        $html .= '<div class="workflowflowchart-head"><div><div class="workflowflowchart-title">' . $escape($this->lang->workflowflowchart->common) . '</div>';
+        if($currentStatus !== '') $html .= '<div class="workflowflowchart-current">' . $escape($this->lang->workflowflowchart->currentStatus) . ': ' . $escape($currentLabel) . '</div>';
+        $html .= '</div>';
+        if($showManageLink && $this->app->user->admin)
+        {
+            $link = helper::createLink('workflowflowchart', 'browse', "objectType={$objectType}&mode=edit");
+            $html .= '<a class="btn ghost workflowflowchart-manage" href="' . $escape($link) . '"><i class="icon icon-flow"></i> ' . $escape($this->lang->workflowflowchart->configure) . '</a>';
+        }
+        $html .= '</div><div class="workflowflowchart-mermaid"><pre class="mermaid">' . $escape($mermaidSource) . '</pre></div>';
+        $html .= '<script>(function(){function draw(){if(!window.mermaid)return;var nodes=Array.prototype.filter.call(document.querySelectorAll(".workflowflowchart-mermaid pre.mermaid"),function(node){return node.getAttribute("data-processed")!=="true"&&node.getAttribute("data-rendering")!=="1";});if(!nodes.length)return;nodes.forEach(function(node){node.setAttribute("data-rendering","1");});window.mermaid.initialize({startOnLoad:false,securityLevel:"loose"});Promise.resolve(window.mermaid.run({nodes:nodes})).catch(function(){nodes.forEach(function(node){node.removeAttribute("data-rendering");});});}function schedule(){draw();window.setTimeout(draw,100);window.setTimeout(draw,400);}if(window.mermaid){schedule();return;}var script=document.getElementById("workflowflowchart-mermaid-js");if(!script){script=document.createElement("script");script.id="workflowflowchart-mermaid-js";script.src="' . $escape($webRoot) . 'js/zui3/mermaid/mermaid.min.js";document.head.appendChild(script);}script.addEventListener("load",function(){script.dataset.loaded="1";schedule();},{once:true});if(script.dataset.loaded==="1")schedule();})();</script></section>';
+        return $html;
+    }
+
+    protected function renderLegacyFlowHtml(string $objectType, string $currentStatus = '', bool $showManageLink = true): string
     {
         $objectType = strtolower($objectType);
         if(!$this->isValidObjectType($objectType)) return '';

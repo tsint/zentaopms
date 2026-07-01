@@ -3,7 +3,7 @@ $definitionJSON = json_encode($definition, JSON_UNESCAPED_UNICODE | JSON_UNESCAP
 $defaultsJSON   = json_encode($this->workflowflowchart->getDefaultDefinition($objectType), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 $statusJSON     = json_encode($statusList, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
 $actionJSON     = json_encode($actionList, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
-$entryJSON      = json_encode($objectType == 'bug' ? array('active') : ($objectType == 'task' ? array('wait') : ($objectType == 'testcase' ? array('wait', 'normal') : array('draft', 'reviewing', 'active'))), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
+$entryJSON      = json_encode($this->workflowflowchart->getEntryStates($objectType), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
 $escape         = function($value){return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');};
 $mermaidSource  = $this->workflowflowchart->renderMermaid($objectType, $definition);
 $nodes          = array();
@@ -38,6 +38,7 @@ body > #main:has(#mainContent:empty) {display:none; min-height:0;}
 .workflow-mermaid {min-height:280px; padding:16px; text-align:center;}
 .workflow-mermaid svg {max-width:100%; height:auto;}
 .workflow-mermaid [data-edge-id] {cursor:pointer; transition:opacity .16s ease, stroke-width .16s ease;}
+.workflow-mermaid path.workflow-mermaid-edge-hit {fill:none !important;stroke:transparent !important;stroke-width:16px !important;vector-effect:non-scaling-stroke;pointer-events:stroke;opacity:1 !important;marker-start:none !important;marker-end:none !important;}
 .workflow-mermaid .workflow-mermaid-dimmed {opacity:.22;}
 .workflow-mermaid .workflow-mermaid-edge-active {outline:none;}
 .workflow-mermaid .workflow-mermaid-state-active {opacity:1;}
@@ -55,7 +56,7 @@ body > #main:has(#mainContent:empty) {display:none; min-height:0;}
 .workflow-rule-section .workflow-section-head {background:#f7f8fa;}
 .workflow-board {display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; padding:10px;}
 .workflow-column {border:1px solid #cfd8e6; border-radius:6px; background:#fbfdff; min-width:0;}
-.workflow-node {padding:9px 10px; border-bottom:1px solid #e7ebf2; color:#24364f; font-size:14px; font-weight:600;}
+.workflow-node {display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border-bottom:1px solid #e7ebf2;color:#24364f;font-size:14px;font-weight:600;}
 .workflow-route {display:flex; align-items:center; justify-content:space-between; gap:8px; width:calc(100% - 16px); margin:8px; padding:8px; border:1px solid #e2e7f0; border-radius:4px; background:#fff; color:#26364d; text-align:left; cursor:pointer;}
 .workflow-route.active {border-color:#2468f2; box-shadow:0 0 0 2px rgba(36,104,242,.12);}
 .workflow-target {font-weight:600;}
@@ -83,7 +84,7 @@ body > #main:has(#mainContent:empty) {display:none; min-height:0;}
 <div class="workflow-page">
   <div class="workflow-header">
     <div class="workflow-tabs">
-      <?php foreach($this->lang->workflowflowchart->objectTypeList as $type => $label):?>
+      <?php foreach($objectTypes as $type): $label = $this->lang->workflowflowchart->objectTypeList[$type];?>
       <a class="workflow-tab <?php if($type == $objectType) echo 'active';?>" href="<?php echo $this->createLink('workflowflowchart', 'browse', "objectType=$type&mode=" . ($editable ? 'edit' : 'view') . '&_single=1&zin=1');?>" onclick="window.location.href=this.href; return false;"><?php echo $escape($label);?></a>
       <?php endforeach;?>
     </div>
@@ -100,7 +101,7 @@ body > #main:has(#mainContent:empty) {display:none; min-height:0;}
   <div class="workflow-body">
     <main class="workflow-main">
       <section class="workflow-mermaid-panel" aria-label="<?php echo $escape($this->lang->workflowflowchart->common);?>">
-        <div class="workflow-mermaid mermaid" id="workflowMermaid"><?php echo $escape($mermaidSource);?></div>
+        <div class="workflow-mermaid mermaid" id="workflowMermaid" data-entry-states="<?php echo $escape(implode(',', $this->workflowflowchart->getEntryStates($objectType)));?>"><?php echo $escape($mermaidSource);?></div>
       </section>
       <section class="workflow-section workflow-node-section">
         <div class="workflow-section-head"><?php echo $escape($this->lang->workflowflowchart->nodeMatrix);?></div>
@@ -114,7 +115,7 @@ body > #main:has(#mainContent:empty) {display:none; min-height:0;}
             <button type="button" class="workflow-route" data-edge="<?php echo $escape($edge['id']);?>">
               <span class="workflow-action-label"><?php echo $escape($label);?></span>
               <span class="workflow-arrow">→</span>
-              <span class="workflow-target"><?php echo $escape(isset($statusList[$edge['target']]) ? $statusList[$edge['target']] : $edge['target']);?></span>
+              <span class="workflow-target"><?php echo $escape(isset($nodes[$edge['target']]) ? $nodes[$edge['target']]['label'] : $edge['target']);?></span>
             </button>
             <?php endforeach;?>
           </section>
@@ -126,11 +127,11 @@ body > #main:has(#mainContent:empty) {display:none; min-height:0;}
         <div class="workflow-list" id="workflowList" aria-label="<?php echo $escape($this->lang->workflowflowchart->ruleMatrix);?>">
           <?php foreach($definition['edges'] as $edge): $label = $edge['label'] ?: (isset($actionList[$edge['action']]) ? $actionList[$edge['action']] : $edge['action']);?>
           <button type="button" class="workflow-transition <?php if(isset($edge['enabled']) && !$edge['enabled']) echo 'disabled';?>" data-edge="<?php echo $escape($edge['id']);?>">
-            <span class="workflow-state"><?php echo $escape(isset($statusList[$edge['source']]) ? $statusList[$edge['source']] : $edge['source']);?></span>
+            <span class="workflow-state"><?php echo $escape(isset($nodes[$edge['source']]) ? $nodes[$edge['source']]['label'] : $edge['source']);?></span>
             <span class="workflow-arrow">→</span>
             <span class="workflow-action-label"><?php echo $escape($label);?></span>
             <span class="workflow-arrow">→</span>
-            <span class="workflow-state"><?php echo $escape(isset($statusList[$edge['target']]) ? $statusList[$edge['target']] : $edge['target']);?></span>
+            <span class="workflow-state"><?php echo $escape(isset($nodes[$edge['target']]) ? $nodes[$edge['target']]['label'] : $edge['target']);?></span>
           </button>
           <?php endforeach;?>
         </div>
@@ -139,11 +140,21 @@ body > #main:has(#mainContent:empty) {display:none; min-height:0;}
     <aside class="workflow-panel">
       <?php if($editable):?>
       <section>
+        <h3><?php echo $escape($this->lang->workflowflowchart->addNode);?></h3>
+        <div class="workflow-add-grid">
+          <input id="newNodeID" placeholder="<?php echo $escape($this->lang->workflowflowchart->nodeID);?>">
+          <input id="newNodeLabel" placeholder="<?php echo $escape($this->lang->workflowflowchart->nodeLabel);?>">
+          <button type="button" class="btn full" id="addNode"><i class="icon icon-plus"></i> <?php echo $escape($this->lang->workflowflowchart->addNode);?></button>
+        </div>
+      </section>
+      <hr>
+      <section>
         <h3><?php echo $escape($this->lang->workflowflowchart->addTransition);?></h3>
         <div class="workflow-add-grid">
           <select id="newSource"><?php foreach($statusList as $key => $label) echo '<option value="' . $escape($key) . '">' . $escape($label) . '</option>';?></select>
           <select id="newTarget"><?php foreach($statusList as $key => $label) echo '<option value="' . $escape($key) . '">' . $escape($label) . '</option>';?></select>
           <select class="full" id="newAction"><?php foreach($actionList as $key => $label) echo '<option value="' . $escape($key) . '">' . $escape($label) . '</option>';?></select>
+          <input class="full" id="newTransitionLabel" maxlength="100" placeholder="<?php echo $escape($this->lang->workflowflowchart->transitionName);?>">
           <button type="button" class="btn full" id="addTransition"><i class="icon icon-plus"></i> <?php echo $escape($this->lang->workflowflowchart->addTransition);?></button>
         </div>
       </section>
@@ -248,14 +259,25 @@ function bindMermaidEdges(root, transitions){
     if(!node || !transition || !transition.edgeIDs.length) return;
     var edgeID = transition.edgeIDs[0];
     node.setAttribute('data-edge-id', edgeID);
+    node.setAttribute('data-edge-ids', transition.edgeIDs.join(' '));
     node.setAttribute('data-source', transition.source);
     node.setAttribute('data-target', transition.target);
     node.setAttribute('role', 'button');
     node.setAttribute('tabindex', '0');
-    node.onclick = function(event){event.preventDefault();event.stopPropagation();toggleMermaidEdge(edgeID);};
-    node.onkeydown = function(event){if(event.key === 'Enter' || event.key === ' '){event.preventDefault();toggleMermaidEdge(edgeID);}};
+    node.onclick = function(event){event.preventDefault();event.stopPropagation();toggleMermaidTransition(transition, node);};
+    node.onkeydown = function(event){if(event.key === 'Enter' || event.key === ' '){event.preventDefault();toggleMermaidTransition(transition, node);}};
   }
-  assigned.forEach(function(item){bind(item.path, item.transition);});
+  assigned.forEach(function(item){
+    bind(item.path, item.transition);
+    var hitPath=item.path.cloneNode(false);
+    hitPath.removeAttribute('id');
+    hitPath.removeAttribute('class');
+    hitPath.setAttribute('class','workflow-mermaid-edge-hit');
+    hitPath.removeAttribute('marker-start');
+    hitPath.removeAttribute('marker-end');
+    item.path.parentNode.insertBefore(hitPath,item.path.nextSibling);
+    bind(hitPath,item.transition);
+  });
   mapMermaidLabels(labels, assigned).forEach(function(item){
     bind(item.label, item.transition);
   });
@@ -291,9 +313,7 @@ function pathToTransitionDistance(path, transition, stateBoxes){
   {
     var start = pathPointToScreen(path, path.getPointAtLength(0));
     var end   = pathPointToScreen(path, path.getPointAtLength(path.getTotalLength()));
-    var direct = pointToBoxDistance(start, stateBoxes[transition.source]) + pointToBoxDistance(end, stateBoxes[transition.target]);
-    var reverse = pointToBoxDistance(start, stateBoxes[transition.target]) + pointToBoxDistance(end, stateBoxes[transition.source]);
-    return Math.min(direct, reverse);
+    return pointToBoxDistance(start, stateBoxes[transition.source]) + pointToBoxDistance(end, stateBoxes[transition.target]);
   }
   catch(error)
   {
@@ -363,8 +383,13 @@ function bindMermaidStates(root){
     if(match) match.setAttribute('data-state-id', status);
   });
 }
-function toggleMermaidEdge(edgeID){
-  selectEdge(selectedEdge === edgeID ? null : edgeID);
+function toggleMermaidTransition(transition, node){
+  var edgeIDs=transition.edgeIDs.filter(function(edgeID){return definition.edges.some(function(edge){return edge.id===edgeID;});});
+  if(!edgeIDs.length)return;
+  if(edgeIDs.indexOf(selectedEdge)!==-1){selectEdge(null);return;}
+  var edgeID=edgeIDs[0];
+  Array.prototype.forEach.call(document.querySelectorAll('.workflow-mermaid [data-source="'+transition.source+'"][data-target="'+transition.target+'"]'),function(item){item.setAttribute('data-edge-id',edgeID);item.setAttribute('data-edge-ids',edgeIDs.join(' '));});
+  selectEdge(edgeID);
 }
 function toggleRuleEdge(edgeID){
   selectEdge(selectedEdge === edgeID ? null : edgeID);
@@ -388,6 +413,9 @@ function nodeLayout(){
   definition.nodes.forEach(function(n){nodes[n.id] = {id:n.id,label:statusLabels[n.status] || n.label || n.status};});
   return nodes;
 }
+function nodeLabel(id){var node=definition.nodes.find(function(item){return item.id===id;});return node ? (statusLabels[node.status] || node.label || node.status) : id;}
+function refreshNodeOptions(){if(!editable)return;['newSource','newTarget'].forEach(function(selectID){var select=document.getElementById(selectID),value=select.value;select.innerHTML='';definition.nodes.forEach(function(node){var option=document.createElement('option');option.value=node.id;option.textContent=nodeLabel(node.id);select.appendChild(option);});if(Array.from(select.options).some(function(option){return option.value===value;}))select.value=value;});}
+function deleteNode(id){if(entryStates.indexOf(id)!==-1){zui.Modal.alert({message:<?php echo json_encode($this->lang->workflowflowchart->error->deleteEntryNode);?>});return;}definition.nodes=definition.nodes.filter(function(node){return node.id!==id;});definition.edges=definition.edges.filter(function(edge){return edge.source!==id&&edge.target!==id;});if(selectedEdge&&!definition.edges.some(function(edge){return edge.id===selectedEdge;}))selectEdge(null);render();}
 function renderBoard(){
   var nodes = nodeLayout();
   var root = document.getElementById('workflowBoard');
@@ -397,7 +425,8 @@ function renderBoard(){
     var column = document.createElement('section');
     column.className = 'workflow-column';
     column.setAttribute('data-status', id);
-    column.innerHTML = '<div class="workflow-node '+escapeHtml(id)+'">'+escapeHtml(n.label)+'</div>';
+    column.innerHTML = '<div class="workflow-node '+escapeHtml(id)+'"><span>'+escapeHtml(n.label)+'</span>'+(editable&&entryStates.indexOf(id)===-1?'<button type="button" class="btn ghost square size-sm workflow-delete-node" title="<?php echo $escape($this->lang->workflowflowchart->deleteNode);?>"><i class="icon icon-trash"></i></button>':'')+'</div>';
+    var deleteButton=column.querySelector('.workflow-delete-node');if(deleteButton)deleteButton.onclick=function(){deleteNode(id);};
     var sourceEdges = definition.edges.filter(function(e){return e.enabled !== false && e.source === id;});
     if(!sourceEdges.length)
     {
@@ -411,7 +440,7 @@ function renderBoard(){
       button.type = 'button';
       button.className = 'workflow-route' + (e.id === selectedEdge ? ' active' : '');
       button.setAttribute('data-edge', e.id);
-      button.innerHTML = '<span class="workflow-action-label">'+escapeHtml(e.label || actionLabels[e.action] || e.action)+'</span><span class="workflow-arrow">→</span><span class="workflow-target">'+escapeHtml(statusLabels[e.target] || e.target)+'</span>';
+      button.innerHTML = '<span class="workflow-action-label">'+escapeHtml(e.label || actionLabels[e.action] || e.action)+'</span><span class="workflow-arrow">→</span><span class="workflow-target">'+escapeHtml(nodeLabel(e.target))+'</span>';
       button.onclick = function(){toggleRuleEdge(e.id);};
       column.appendChild(button);
     });
@@ -426,20 +455,21 @@ function renderList(){
     button.type = 'button';
     button.className = 'workflow-transition' + (e.enabled === false ? ' disabled' : '') + (e.id === selectedEdge ? ' active' : '');
     button.setAttribute('data-edge', e.id);
-    button.innerHTML = '<span class="workflow-state">'+escapeHtml(statusLabels[e.source] || e.source)+'</span><span class="workflow-arrow">→</span><span class="workflow-action-label">'+escapeHtml(e.label || actionLabels[e.action] || e.action)+'</span><span class="workflow-arrow">→</span><span class="workflow-state">'+escapeHtml(statusLabels[e.target] || e.target)+'</span>';
+    button.innerHTML = '<span class="workflow-state">'+escapeHtml(nodeLabel(e.source))+'</span><span class="workflow-arrow">→</span><span class="workflow-action-label">'+escapeHtml(e.label || actionLabels[e.action] || e.action)+'</span><span class="workflow-arrow">→</span><span class="workflow-state">'+escapeHtml(nodeLabel(e.target))+'</span>';
     button.onclick = function(){toggleRuleEdge(e.id);};
     root.appendChild(button);
   });
   renderReadonlyRules();
 }
-function render(){renderMermaid();renderBoard();renderList();}
+function render(){refreshNodeOptions();renderMermaid();renderBoard();renderList();}
 function selectEdge(id){selectedEdge=id;if(!editable){renderBoard();renderList();updateMermaidSelection();return;}var edge=definition.edges.find(function(e){return e.id===id;});document.getElementById('ruleEditor').classList.toggle('hidden',!edge);document.getElementById('ruleEmpty').classList.toggle('hidden',!!edge);if(!edge){renderBoard();renderList();updateMermaidSelection();return;}setValue('edgeLabel',edge.label||'');setMulti('edgeRoles',edge.roles||[]);setMulti('edgeAccounts',edge.accounts||[]);setChecked('edgeRequireComment',!!edge.requireComment);setValue('edgeDescription',edge.description||'');setChecked('edgeEnabled',edge.enabled!==false);renderBoard();renderList();updateMermaidSelection();}
 function setValue(id,value){document.getElementById(id).value=value;} function setChecked(id,value){document.getElementById(id).checked=value;} function setMulti(id,values){Array.prototype.forEach.call(document.getElementById(id).options,function(o){o.selected=values.indexOf(o.value)!==-1;});} function getMulti(id){return Array.prototype.filter.call(document.getElementById(id).options,function(o){return o.selected;}).map(function(o){return o.value;});}
 function updateEdge(){var edge=definition.edges.find(function(e){return e.id===selectedEdge;});if(!edge)return;edge.label=document.getElementById('edgeLabel').value.trim()||actionLabels[edge.action]||edge.action;edge.roles=getMulti('edgeRoles');edge.accounts=getMulti('edgeAccounts');edge.requireComment=document.getElementById('edgeRequireComment').checked;edge.enabled=document.getElementById('edgeEnabled').checked;edge.description=document.getElementById('edgeDescription').value.trim();render();}
-function renderReadonlyRules(){if(editable)return;var root=document.getElementById('readonlyRules');root.innerHTML='';definition.edges.filter(function(e){return e.enabled!==false;}).forEach(function(e){var item=document.createElement('div');item.className='workflow-field';var actors=[];if(e.roles&&e.roles.length)actors.push(e.roles.join(', '));if(e.accounts&&e.accounts.length)actors.push(e.accounts.join(', '));item.innerHTML='<strong>'+escapeHtml(statusLabels[e.source]||e.source)+' → '+escapeHtml(statusLabels[e.target]||e.target)+'</strong><div class="workflow-hint">'+escapeHtml(e.label||actionLabels[e.action]||e.action)+(actors.length?' · '+escapeHtml(actors.join(' / ')):'')+(e.requireComment?' · <?php echo addslashes($this->lang->workflowflowchart->requireComment);?>':'')+'</div>';root.appendChild(item);});}
+function renderReadonlyRules(){if(editable)return;var root=document.getElementById('readonlyRules');root.innerHTML='';definition.edges.filter(function(e){return e.enabled!==false;}).forEach(function(e){var item=document.createElement('div');item.className='workflow-field';var actors=[];if(e.roles&&e.roles.length)actors.push(e.roles.join(', '));if(e.accounts&&e.accounts.length)actors.push(e.accounts.join(', '));item.innerHTML='<strong>'+escapeHtml(nodeLabel(e.source))+' → '+escapeHtml(nodeLabel(e.target))+'</strong><div class="workflow-hint">'+escapeHtml(e.label||actionLabels[e.action]||e.action)+(actors.length?' · '+escapeHtml(actors.join(' / ')):'')+(e.requireComment?' · <?php echo addslashes($this->lang->workflowflowchart->requireComment);?>':'')+'</div>';root.appendChild(item);});}
 if(editable){
   ['edgeLabel','edgeRoles','edgeAccounts','edgeRequireComment','edgeEnabled','edgeDescription'].forEach(function(id){document.getElementById(id).addEventListener('change',updateEdge);});
-  document.getElementById('addTransition').onclick=function(){var source=document.getElementById('newSource').value,target=document.getElementById('newTarget').value,action=document.getElementById('newAction').value,id=source+'-'+target+'-'+action+'-'+Date.now();definition.edges.push({id:id,source:source,target:target,action:action,label:actionLabels[action]||action,roles:[],accounts:[],requireComment:false,enabled:true,description:''});render();selectEdge(id);};
+  document.getElementById('addNode').onclick=function(){var id=document.getElementById('newNodeID').value.trim(),label=document.getElementById('newNodeLabel').value.trim();if(!/^[a-z][a-z0-9_]{1,29}$/.test(id)||!label){zui.Modal.alert({message:<?php echo json_encode($this->lang->workflowflowchart->error->invalidNewNode);?>});return;}if(definition.nodes.some(function(node){return node.id===id;})){zui.Modal.alert({message:<?php echo json_encode($this->lang->workflowflowchart->error->duplicateNode);?>});return;}definition.nodes.push({id:id,status:id,label:label,x:0,y:0});document.getElementById('newNodeID').value='';document.getElementById('newNodeLabel').value='';render();};
+  document.getElementById('addTransition').onclick=function(){var source=document.getElementById('newSource').value,target=document.getElementById('newTarget').value,action=document.getElementById('newAction').value,label=document.getElementById('newTransitionLabel').value.trim()||actionLabels[action]||action,id=source+'-'+target+'-'+action+'-'+Date.now();definition.edges.push({id:id,source:source,target:target,action:action,label:label,roles:[],accounts:[],requireComment:false,enabled:true,description:''});document.getElementById('newTransitionLabel').value='';render();selectEdge(id);};
   document.getElementById('deleteTransition').onclick=function(){definition.edges=definition.edges.filter(function(e){return e.id!==selectedEdge;});selectEdge(null);render();};
   document.getElementById('resetWorkflow').onclick=function(){definition=JSON.parse(JSON.stringify(defaults));document.getElementById('workflowEnabled').checked=definition.enabled;selectEdge(null);render();};
   document.getElementById('saveWorkflow').onclick=function(){definition.enabled=document.getElementById('workflowEnabled').checked;var button=this;button.disabled=true;$.post(window.location.href,{definition:JSON.stringify(definition)},function(response){var data=typeof response==='string'?JSON.parse(response):response;if(data.result==='success'){window.location.reload();return;}button.disabled=false;zui.Modal.alert({message:typeof data.message==='string'?data.message:JSON.stringify(data.message)});}).fail(function(xhr){button.disabled=false;zui.Modal.alert({message:xhr.responseText||'Save failed'});});};

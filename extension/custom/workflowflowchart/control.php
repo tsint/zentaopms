@@ -12,7 +12,7 @@ class workflowflowchart extends control
     {
         $this->loadModel('workflowflowchart');
         $objectType = strtolower($objectType);
-        if(!$this->workflowflowchart->isValidObjectType($objectType)) $objectType = 'story';
+        if(!$this->workflowflowchart->isAvailableObjectType($objectType)) $objectType = 'story';
         $editable = $mode != 'view' && $this->app->user->admin;
         if(!$editable && !$this->app->user->admin && !common::hasPriv('workflowflowchart', 'browse')) return $this->deny();
 
@@ -29,6 +29,7 @@ class workflowflowchart extends control
         $this->app->loadLang('user');
         $this->view->title       = $this->lang->workflowflowchart->common;
         $this->view->objectType  = $objectType;
+        $this->view->objectTypes = $this->workflowflowchart->getAvailableObjectTypes();
         $this->view->editable    = $editable;
         $this->view->definition  = $this->workflowflowchart->getDefinition($objectType);
         $this->view->statusList  = $this->workflowflowchart->getStatusList($objectType);

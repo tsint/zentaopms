@@ -1482,6 +1482,8 @@ class storyModel extends model
     public function submitReview(int $storyID, object $story): array|false
     {
         $oldStory     = $this->dao->findById($storyID)->from(TABLE_STORY)->fetch();
+        if(!$oldStory) return false;
+
         $reviewerList = $this->getReviewerPairs($oldStory->id, $oldStory->version);
         $oldStory->reviewer = implode(',', array_keys($reviewerList));
 

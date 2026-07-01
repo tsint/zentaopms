@@ -162,7 +162,7 @@ window.saveTeam = function()
 
         let estimate = parseFloat($tr.find('[name^=teamEstimate]').val());
         if(!isNaN(estimate)) totalEstimate += estimate;
-        if(isNaN(estimate) || estimate <= 0)
+        if(isNaN(estimate) || estimate < 0)
         {
             zui.Modal.alert(realname + ' ' + estimateNotEmpty);
             error = true;
@@ -175,14 +175,20 @@ window.saveTeam = function()
         let $left = $tr.find('[name^=teamLeft]');
         let left  = parseFloat($left.val());
         if(!isNaN(left)) totalLeft += left;
-        if($left.length > 0 && !$left.prop('readonly') && (isNaN(left) || left <= 0) && team.length > 0)
+        if($left.length > 0 && !$left.prop('readonly') && isNaN(left) && team.length > 0)
         {
               zui.Modal.alert(realname + ' ' + leftNotEmpty);
               error = true;
               return false;
         }
+        if($left.length > 0 && !$left.prop('readonly') && estimate === 0 && left < 0)
+        {
+            zui.Modal.alert(realname + ' ' + leftZeroEstimate);
+            error = true;
+            return false;
+        }
 
-        if(estimate == 0 || isNaN(estimate))
+        if(estimate < 0 || isNaN(estimate))
         {
             $(this).val('');
             zui.Modal.alert(estimateNotEmpty);

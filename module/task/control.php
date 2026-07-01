@@ -497,11 +497,15 @@ class task extends control
      * @param  int    $taskID
      * @param  string $from
      * @param  string $orderBy
+     * @param  int    $recTotal
+     * @param  int    $recPerPage
+     * @param  int    $pageID
      * @access public
      * @return void
      */
-    public function recordWorkhour(int $taskID, string $from = '', string $orderBy = '')
+    public function recordWorkhour(int $taskID, string $from = '_', string $orderBy = 'id_desc', int $recTotal = 0, int $recPerPage = 10, int $pageID = 1)
     {
+        if($from == '_') $from = '';
         $this->taskZen->commonAction($taskID);
 
         if(!empty($_POST))
@@ -518,7 +522,7 @@ class task extends control
             return $this->send($response);
         }
 
-        $this->taskZen->buildRecordForm($taskID, $from, $orderBy);
+        $this->taskZen->buildRecordForm($taskID, $from, $orderBy, $recTotal, $recPerPage, $pageID);
     }
 
     /**

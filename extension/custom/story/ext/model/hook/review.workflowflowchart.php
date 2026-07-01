@@ -1,5 +1,6 @@
 <?php
 $workflowOldStory = $this->dao->findById($storyID)->from(TABLE_STORY)->fetch();
+if(!$workflowOldStory) return false;
 $workflowResult = isset($story->result) ? $story->result : '';
 $workflowTarget = $workflowOldStory->status;
 if($workflowResult == 'pass' || $workflowResult == 'revert') $workflowTarget = 'active';

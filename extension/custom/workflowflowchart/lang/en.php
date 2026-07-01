@@ -25,6 +25,8 @@ $lang->workflowflowchart->readonly       = 'Read-only Flowchart';
 $lang->workflowflowchart->currentStatus  = 'Current Status';
 $lang->workflowflowchart->configure      = 'Configure Flow';
 $lang->workflowflowchart->transitionList = 'Transitions';
+$lang->workflowflowchart->nodeMatrix     = 'State Nodes';
+$lang->workflowflowchart->ruleMatrix     = 'Transition Rules';
 $lang->workflowflowchart->flowEmpty      = 'No enabled transitions.';
 
 $lang->workflowflowchart->objectTypeList = array('epic' => 'Epic', 'requirement' => 'Requirement', 'story' => 'Story', 'bug' => 'Bug', 'task' => 'Task', 'testcase' => 'Test Case');

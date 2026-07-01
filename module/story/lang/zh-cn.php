@@ -371,6 +371,7 @@ $lang->story->errorCannotSplit       = "该需求已拆分此类型的子需求�
 $lang->story->errorParentSplitTask   = "父需求不能转任务，本次操作已过滤。";
 $lang->story->errorERURSplitTask     = "父需求、{$lang->ERCommon}、{$lang->URCommon}不能转任务，本次操作已过滤。";
 $lang->story->errorEmptyReviewedBy   = "『{$lang->story->reviewers}』不能为空。";
+$lang->story->errorBlockedByWorkflow = "当前状态流转规则不允许此操作，请先在后台配置对应流转。";
 $lang->story->errorEmptyStory        = "已有相同标题的需求或标题为空，请检查输入。";
 $lang->story->mustChooseResult       = '必须选择评审意见';
 $lang->story->mustChoosePreVersion   = '必须选择回溯的版本';

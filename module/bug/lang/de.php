@@ -35,6 +35,7 @@ $lang->bug->lines            = 'Lines';
 $lang->bug->v1               = 'Version A';
 $lang->bug->v2               = 'Version B';
 $lang->bug->issueKey         = 'Sonarqube Issue Key';
+$lang->bug->estimate         = 'Schätzung';
 $lang->bug->repoType         = 'Repo Type';
 $lang->bug->steps            = 'Reproduktionsschritte';
 $lang->bug->status           = 'Status';

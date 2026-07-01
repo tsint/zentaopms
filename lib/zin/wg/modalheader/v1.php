@@ -47,7 +47,7 @@ class modalHeader extends wg
             $title ? div
             (
                 $title,
-                set::className($this->prop('titleClass'), 'whitespace-nowrap')
+                set::className($this->prop('titleClass'), 'whitespace-nowrap flex-shrink-0')
             ) : null,
             ($entityText || $entityID) ? entityLabel
             (

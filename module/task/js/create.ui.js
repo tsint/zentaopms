@@ -476,9 +476,9 @@ window.checkTeamMember = function()
         if(!team.includes(realname)) team.push(realname);
 
         let estimate = parseFloat($(this).closest('tr').find('[name^=teamEstimate]').val());
-        if(!isNaN(estimate) && estimate > 0) totalEstimate += estimate;
+        if(!isNaN(estimate) && estimate >= 0) totalEstimate += estimate;
 
-        if(realname != '' && (isNaN(estimate) || estimate <= 0))
+        if(realname != '' && (isNaN(estimate) || estimate < 0))
         {
             zui.Modal.alert(realname + ' ' + estimateNotEmpty);
             error = true;
@@ -555,7 +555,7 @@ window.removeTeamMember = function()
     $('#teamTable').find('[name^=teamEstimate]').each(function(index)
     {
         let estimate = parseFloat($(this).val());
-        if(!isNaN(estimate) && estimate > 0) totalEstimate += estimate;
+        if(!isNaN(estimate) && estimate >= 0) totalEstimate += estimate;
     })
 
     $("[name='estimate']").val(totalEstimate);

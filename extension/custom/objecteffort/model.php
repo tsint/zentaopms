@@ -37,7 +37,7 @@ class objecteffortModel extends model
             return $this->dao->select('id, product, project, execution, status, deleted')->from(TABLE_BUG)->where('id')->eq($objectID)->fetch();
         }
 
-        $story = $this->dao->select('id, product, branch, status, deleted, type')->from(TABLE_STORY)->where('id')->eq($objectID)->fetch();
+        $story = $this->dao->select('id, product, branch, status, deleted, type, estimate')->from(TABLE_STORY)->where('id')->eq($objectID)->fetch();
         if(!$story) return false;
         if($objectType == 'requirement' && $story->type != 'requirement') return false;
         if($objectType == 'story' && $story->type == 'requirement') $objectType = 'requirement';
@@ -124,7 +124,7 @@ class objecteffortModel extends model
         return $effort->account == $this->app->user->account || $effort->createdBy == $this->app->user->account;
     }
 
-    public function buildEffort(string $objectType, int $objectID, object $data): false|object
+    public function buildEffort(string $objectType, int $objectID, object $data, bool $allowZeroConsumed = false): false|object
     {
         $objectType = $this->normalizeObjectType($objectType);
         if(!$this->isValidObjectType($objectType))
@@ -203,17 +203,27 @@ class objecteffortModel extends model
         $consumed = isset($data->consumed) ? $data->consumed : '';
         $left     = isset($data->left) ? $data->left : '';
         $estimate = isset($data->estimate) ? $data->estimate : 0;
-        if(!is_numeric($consumed) || $consumed <= 0)
+        if(!is_numeric($consumed) || $consumed < 0 || (!$allowZeroConsumed && $consumed == 0))
         {
             dao::$errors['consumed'] = $this->lang->objecteffort->error->consumed;
             return false;
         }
-        if($left !== '' && (!is_numeric($left) || $left < 0))
+        if($left !== '' && !is_numeric($left))
         {
             dao::$errors['left'] = $this->lang->objecteffort->error->left;
             return false;
         }
         if(!is_numeric($estimate) || $estimate < 0) $estimate = 0;
+        if($left !== '' && (float)$left < 0)
+        {
+            $effectiveEstimate = (float)$estimate;
+            if($effectiveEstimate == 0) $effectiveEstimate = (float)$this->getSummary($objectType, $objectID)->estimate;
+            if($effectiveEstimate == 0)
+            {
+                dao::$errors['left'] = $this->lang->objecteffort->error->leftZeroEstimate;
+                return false;
+            }
+        }
 
         if($objectType == 'story' && isset($object->type) && $object->type == 'requirement') $objectType = 'requirement';
 
@@ -241,10 +251,30 @@ class objecteffortModel extends model
         $estimate = $effort->estimate > 0 ? (float)$effort->estimate : (float)$summary->estimate;
         $consumed = (float)$summary->consumed + $consumedOffset + (float)$effort->consumed;
 
-        return round(max(0, $estimate - $consumed), 2);
+        $left = $estimate - $consumed;
+        return round($estimate == 0 ? max(0, $left) : $left, 2);
     }
 
     public function record(string $objectType, int $objectID, object $data): int|false
+    {
+        return $this->recordEffort($objectType, $objectID, $data, false);
+    }
+
+    public function initializeEstimate(string $objectType, int $objectID, float $estimate): int|false
+    {
+        if($estimate <= 0) return false;
+
+        $data = new stdclass();
+        $data->date     = helper::today();
+        $data->estimate = $estimate;
+        $data->consumed = 0;
+        $data->left     = $estimate;
+        $data->work     = '';
+
+        return $this->recordEffort($objectType, $objectID, $data, true);
+    }
+
+    protected function recordEffort(string $objectType, int $objectID, object $data, bool $allowZeroConsumed): int|false
     {
         if(!$this->app->user->admin && !common::hasPriv('objecteffort', 'record'))
         {
@@ -252,8 +282,9 @@ class objecteffortModel extends model
             return false;
         }
 
-        $effort = $this->buildEffort($objectType, $objectID, $data);
+        $effort = $this->buildEffort($objectType, $objectID, $data, $allowZeroConsumed);
         if(!$effort || dao::isError()) return false;
+        if((float)$effort->estimate == 0) $effort->estimate = (float)$this->getSummary($objectType, $objectID)->estimate;
         $effort->left = $this->computeAutoLeft($objectType, $objectID, $effort);
 
         $effort->createdBy   = $this->app->user->account;
@@ -297,10 +328,12 @@ class objecteffortModel extends model
         $consumedTotal = 0.0;
         foreach($records as $effort)
         {
+            if((float)$effort->estimate == 0) $effort->estimate = $baseEstimate;
             if($effort->left === null)
             {
                 $estimate = $effort->estimate > 0 ? (float)$effort->estimate : $baseEstimate;
-                $effort->left = round(max(0, $estimate - ($baseConsumed + $consumedTotal + (float)$effort->consumed)), 2);
+                $left = $estimate - ($baseConsumed + $consumedTotal + (float)$effort->consumed);
+                $effort->left = round($estimate == 0 ? max(0, $left) : $left, 2);
             }
             $effort->createdBy   = $this->app->user->account;
             $effort->createdDate = helper::now();
@@ -335,7 +368,8 @@ class objecteffortModel extends model
             $summary = $this->getSummary($oldEffort->objectType, (int)$oldEffort->objectID);
             $offset  = 0 - (float)$oldEffort->consumed;
             $estimate = $effort->estimate > 0 ? (float)$effort->estimate : (float)$summary->estimate;
-            $effort->left = round(max(0, $estimate - ((float)$summary->consumed + $offset + (float)$effort->consumed)), 2);
+            $left = $estimate - ((float)$summary->consumed + $offset + (float)$effort->consumed);
+            $effort->left = round($estimate == 0 ? max(0, $left) : $left, 2);
         }
         $effort->editedBy   = $this->app->user->account;
         $effort->editedDate = helper::now();
@@ -412,14 +446,16 @@ class objecteffortModel extends model
         foreach($scopes as $scope) $this->refreshStatistics($scope, null);
     }
 
-    public function getList(string $objectType, int $objectID): array
+    public function getList(string $objectType, int $objectID, int $limit = 0, ?object $pager = null): array
     {
         $objectType = $this->getStoredObjectType($objectType, $objectID);
-        return $this->dao->select('*')->from(TABLE_OBJECTEFFORT)
+        return $this->dao->select('*, work AS content')->from(TABLE_OBJECTEFFORT)
             ->where('objectType')->eq($objectType)
             ->andWhere('objectID')->eq($objectID)
             ->andWhere('deleted')->eq('0')
             ->orderBy('date_desc,id_desc')
+            ->beginIF($limit)->limit($limit)->fi()
+            ->beginIF($pager)->page($pager)->fi()
             ->fetchAll('id');
     }
 
@@ -438,6 +474,11 @@ class objecteffortModel extends model
         {
             $result->estimate = (float)$row->estimate;
             $result->consumed = (float)$row->consumed;
+        }
+
+        if($result->estimate == 0 && in_array($objectType, array('story', 'requirement')))
+        {
+            $result->estimate = (float)$this->dao->select('estimate')->from(TABLE_STORY)->where('id')->eq($objectID)->andWhere('deleted')->eq('0')->fetch('estimate');
         }
 
         $lastRow = $this->dao->select('`left`')

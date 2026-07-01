@@ -124,6 +124,7 @@ try
     const editorState = await evaluate(`(() => {const page=document.querySelector('.workflow-page');const diagram=document.querySelector('.workflow-mermaid');const svg=document.querySelector('.workflow-mermaid svg');const board=document.querySelector('#workflowBoard');return {url:location.href,title:document.title,text:document.body.innerText.slice(0,300),pageTop:page?Math.round(page.getBoundingClientRect().top):null,diagramTop:diagram?Math.round(diagram.getBoundingClientRect().top):null,boardTop:board?Math.round(board.getBoundingClientRect().top):null,hasDiagram:!!svg,columns:document.querySelectorAll('#workflowBoard .workflow-column').length,transitions:document.querySelectorAll('.workflow-transition').length,hasDraft:document.body.innerText.includes('草稿') || document.body.innerText.includes('Draft'),oldSvg:!!document.querySelector('#workflowBoard svg,#workflowBoard .workflow-edge')};})()`);
     assert(editorState.hasDiagram && editorState.transitions > 0 && editorState.hasDraft, `Mermaid state machine was not rendered: ${JSON.stringify(editorState)} errors=${JSON.stringify(browserErrors)}`);
     assert(editorState.pageTop <= 90 && editorState.diagramTop <= 180 && !editorState.oldSvg, `Workflow editor first viewport is invalid: ${JSON.stringify(editorState)}`);
+    assert(await evaluate(`!!document.querySelector('.workflow-node-section #workflowBoard') && !!document.querySelector('.workflow-rule-section #workflowList') && document.querySelector('.workflow-node-section .workflow-section-head').textContent.trim() !== document.querySelector('.workflow-rule-section .workflow-section-head').textContent.trim()`), 'State node section and transition rule section are not visually separated');
     assert(await evaluate(`document.querySelectorAll('.workflow-tab').length === 6`), 'Object type tabs are incomplete');
     assert(await evaluate(`!!document.querySelector('#saveWorkflow')`), 'Admin editor controls are missing');
     await evaluate(`Array.from(document.querySelectorAll('.workflow-tab')).find(tab => tab.textContent.trim() === '业务需求' || tab.textContent.trim() === 'Epic').click(); true`);
@@ -262,6 +263,18 @@ try
         };
     })()`);
     assert(ruleSelection.rule && ruleSelection.activeRule === 'active-changing-change' && ruleSelection.activeGraphEdge === 'active-changing-change' && ruleSelection.dimmed > 0 && ruleSelection.editorVisible, `Clicking a rule did not select and emphasize its Mermaid edge: ${JSON.stringify(ruleSelection)}`);
+
+    const ruleToggleOff = await evaluate(`(() => {
+        const rule = document.querySelector('.workflow-transition[data-edge="active-changing-change"]');
+        rule.click();
+        return {
+            activeRule:!!document.querySelector('.workflow-transition.active'),
+            activeRoute:!!document.querySelector('.workflow-route.active'),
+            activeGraphEdge:!!document.querySelector('.workflow-mermaid .workflow-mermaid-edge-active'),
+            editorHidden:document.querySelector('#ruleEditor').classList.contains('hidden')
+        };
+    })()`);
+    assert(!ruleToggleOff.activeRule && !ruleToggleOff.activeRoute && !ruleToggleOff.activeGraphEdge && ruleToggleOff.editorHidden, `Clicking the selected rule again did not clear selection: ${JSON.stringify(ruleToggleOff)}`);
 
     await evaluate(`document.querySelector('#newSource').value='draft';document.querySelector('#newTarget').value='active';document.querySelector('#newAction').value='close';document.querySelector('#addTransition').click();document.querySelector('#edgeLabel').value='E2E Rule';document.querySelector('#edgeLabel').dispatchEvent(new Event('change'));document.querySelector('#saveWorkflow').click();true`);
     await sleep(1600);

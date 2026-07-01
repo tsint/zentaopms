@@ -722,21 +722,31 @@ class story extends control
      */
     public function review(int $storyID, string $from = 'product', string $storyType = 'story')
     {
-        if(!empty($_POST))
+        if($this->server->request_method == 'POST')
         {
             $storyData = $this->storyZen->buildStoryForReview($storyID);
             if(dao::isError()) return $this->send(array('result' => 'fail', 'message' => dao::getError()));
 
-            $this->story->review($storyID, $storyData, (string)$this->post->comment);
+            $reviewResult = $this->story->review($storyID, $storyData, (string)$this->post->comment);
             if(dao::isError()) return $this->send(array('result' => 'fail', 'message' => dao::getError()));
+            if($reviewResult === false) return $this->send(array('result' => 'fail', 'message' => $this->lang->story->errorBlockedByWorkflow));
 
             $message = $this->executeHooks($storyID);
             if(empty($message)) $message = $this->lang->saveSuccess;
 
             if(isInModal())
             {
-                if($this->app->tab == 'execution') $this->loadModel('kanban')->updateLane($this->session->execution, 'story', $storyID);
-                return $this->send($this->storyZen->getResponseInModal($message));
+                /* 保留原 getResponseInModal 的 kanban 刷新逻辑：execution tab 下看板类型时改用 callback 刷新看板。 */
+                if($this->app->tab == 'execution')
+                {
+                    $this->loadModel('kanban')->updateLane($this->session->execution, 'story', $storyID);
+                    $execution = $this->execution->getByID((int)$this->session->execution);
+                    if($execution && $execution->type == 'kanban')
+                    {
+                        return $this->send(array('result' => 'success', 'message' => $message, 'closeModal' => true, 'callback' => 'refreshKanban()'));
+                    }
+                }
+                return $this->send(array('result' => 'success', 'message' => $message, 'load' => true, 'closeModal' => true));
             }
             if(defined('RUN_MODE') and RUN_MODE == 'api') return $this->send(array('status' => 'success', 'data' => $storyID));
 
@@ -857,13 +867,14 @@ class story extends control
      */
     public function submitReview(int $storyID, string $storyType = 'story')
     {
-        if($_POST)
+        if($this->server->request_method == 'POST')
         {
             $storyData = $this->storyZen->buildStoryForSubmitReview($storyID);
             if(!$storyData) return $this->send(array('result' => 'fail', 'message' => dao::getError()));
 
             $changes = $this->story->submitReview($storyID, $storyData);
-            if(dao::isError()) return print(js::error(dao::getError()));
+            if(dao::isError()) return $this->send(array('result' => 'fail', 'message' => dao::getError()));
+            if($changes === false) return $this->send(array('result' => 'fail', 'message' => dao::getError() ?: $this->lang->story->errorBlockedByWorkflow));
 
             if($changes)
             {
@@ -871,7 +882,7 @@ class story extends control
                 $this->action->logHistory($actionID, $changes);
             }
 
-            if(isInModal()) return $this->send(array('result' => 'success', 'message' => $this->lang->saveSuccess, 'closeModal' => true, 'callback' => 'loadCurrentPage()'));
+            if(isInModal()) return $this->send(array('result' => 'success', 'message' => $this->lang->saveSuccess, 'closeModal' => true, 'load' => true));
 
             $module = $this->app->tab == 'project' ? 'projectstory' : 'story';
             $params = $this->app->tab == 'project' ? "storyID=$storyID&project={$this->session->project}" : "storyID=$storyID&version=0&param=0&storyType=$storyType";
@@ -880,7 +891,10 @@ class story extends control
 
         /* Get story and product. */
         $story   = $this->story->fetchById($storyID);
+        if(!$story) return $this->send(array('result' => 'fail', 'message' => $this->lang->notFound, 'closeModal' => true));
+
         $product = $this->product->getById($story->product);
+        if(!$product) return $this->send(array('result' => 'fail', 'message' => $this->lang->notFound, 'closeModal' => true));
 
         /* Get reviewers. */
         $reviewers = $product->reviewer;

@@ -21,6 +21,8 @@ cid=objecteffort
 - 登记工时弹窗使用批量录入样式，默认3行最多10行，无预计录入列，剩余工时可选填 @1
 - 任务登记工时也支持一次最多10条记录 @1
 - 管理员编辑任务时可修改团队或父任务的最初预计工时 @1
+- Bug 创建初始预计工时时使用事务且预估为0不写工时记录 @1
+- 对象和任务工时历史每页最多10条并支持分页，且工作内容不丢失 @1
 
 */
 
@@ -113,3 +115,54 @@ $adminEstimateEditable = strpos($taskEditCode, "jsVar('isAdmin'") !== false
     && strpos($taskEditJS, 'if(!isAdmin)') !== false
     && strpos($taskTeamCode, '!$app->user->admin && $memberDisabled') !== false;
 r($adminEstimateEditable) && p() && e('1'); // 管理员编辑任务时预计工时不因团队或父任务被只读
+
+$recordViewFix = file_get_contents($customRoot . DS . 'objecteffort' . DS . 'view' . DS . 'record.html.php');
+$usesZinRows   = strpos($recordViewFix, 'h::tr') !== false
+    && strpos($recordViewFix, 'h::td') !== false
+    && strpos($recordViewFix, 'h::th') !== false
+    && strpos($recordViewFix, "\$rows .= '<tr>'") === false;
+r($usesZinRows) && p() && e('1'); // 登记工时弹窗已有工时列表使用 Zin 组件渲染而非拼接 HTML 字符串
+
+$bugFormCreate = file_get_contents(dirname(__FILE__, 6) . DS . 'module' . DS . 'bug' . DS . 'config' . DS . 'form.php');
+$hasEstimate   = strpos($bugFormCreate, "form->create['estimate']") !== false;
+r($hasEstimate) && p() && e('1'); // Bug 创建表单包含工时预计字段
+
+$bugControlCode = file_get_contents(dirname(__FILE__, 6) . DS . 'module' . DS . 'bug' . DS . 'control.php');
+$bugCreatePos   = strpos($bugControlCode, 'public function create');
+$bugCreateCode  = substr($bugControlCode, $bugCreatePos, strpos($bugControlCode, '$productID = $this->product->checkAccess', $bugCreatePos) - $bugCreatePos);
+$bugEstimateAtomic = strpos($bugCreateCode, '$this->dao->begin()') !== false
+    && strpos($bugCreateCode, '$this->dao->rollBack()') !== false
+    && strpos($bugCreateCode, '$this->dao->commit()') !== false
+    && strpos($bugCreateCode, 'if($estimate > 0)') !== false
+    && strpos($bugCreateCode, '$this->objecteffort->initializeEstimate(') !== false;
+r($bugEstimateAtomic) && p() && e('1'); // Bug 创建初始工时登记与 Bug 创建原子化，estimate=0 时不写工时记录
+
+$objectEffortControlCode = file_get_contents($customRoot . DS . 'objecteffort' . DS . 'control.php');
+$objectEffortModelCode   = file_get_contents($customRoot . DS . 'objecteffort' . DS . 'model.php');
+$taskRecordViewCode      = file_get_contents(dirname(__FILE__, 6) . DS . 'module' . DS . 'task' . DS . 'ui' . DS . 'recordworkhour.html.php');
+$taskZenCode             = file_get_contents(dirname(__FILE__, 6) . DS . 'module' . DS . 'task' . DS . 'zen.php');
+$recentEffortsSafe = strpos($objectEffortControlCode, "new pager(\$recTotal, 10, \$pageID, 'objectEffort')") !== false
+    && strpos($objectEffortControlCode, 'getList($objectType, $objectID, 0, $pager)') !== false
+    && strpos($objectEffortModelCode, 'int $limit = 0') !== false
+    && strpos($objectEffortModelCode, 'work AS content') !== false
+    && strpos($objectEffortModelCode, 'beginIF($pager)->page($pager)->fi()') !== false
+    && strpos($recordViewCode, 'isset($effort->content) ? $effort->content : $effort->work') !== false
+    && strpos($recordViewCode, "usePager") !== false
+    && strpos($recordViewCode, 'recPerPage=10&pageID={page}') !== false
+    && strpos($recordViewCode, '$isModalBody = isAjaxRequest(\'modal\') || isonlybody();') !== false
+    && strpos($recordViewCode, 'set::title($isModalBody ? \'\'') !== false
+    && strpos($taskZenCode, '$_SERVER[\'HTTP_REFERER\'] ?? \'\'') !== false
+    && strpos($taskZenCode, "new pager(\$recTotal, 10, \$pageID, 'taskEffort')") !== false
+    && strpos($taskZenCode, '$pager->recPerPage = 10') !== false
+    && strpos($taskZenCode, "getTaskEfforts(\$task->id, '', 0, \$orderBy, \$pager)") !== false
+    && strpos(file_get_contents(dirname(__FILE__, 6) . DS . 'module' . DS . 'task' . DS . 'control.php'), "string \$from = '_', string \$orderBy = 'id_desc'") !== false
+    && strpos($taskRecordViewCode, 'htmlSpecialString($effort->work)') !== false
+    && strpos($taskRecordViewCode, "'linkCreator' => createLink") !== false
+    && strpos($taskRecordViewCode, 'from=_&orderBy=id_desc') !== false
+    && strpos($taskRecordViewCode, 'recPerPage=10&pageID={page}') !== false
+    && strpos($taskRecordViewCode, "pageID={page}") !== false
+    && strpos($taskRecordViewCode, '$isModalBody = isAjaxRequest(\'modal\') || isonlybody();') !== false
+    && strpos($taskRecordViewCode, 'set::title($isModalBody ? \'\'') !== false
+    && strpos($taskRecordViewCode, 'toggleFoldIcon') === false
+    && strpos($taskRecordViewCode, '$taskEffortFold and $i > 3') === false;
+r($recentEffortsSafe) && p() && e('1'); // 对象和任务工时按 10 条分页，工作内容安全输出且弹窗内不重复标题

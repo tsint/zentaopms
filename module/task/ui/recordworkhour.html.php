@@ -15,7 +15,8 @@ jsVar('foldEffort', $lang->task->foldEffort);
 jsVar('unfoldEffort', $lang->task->unfoldEffort);
 
 if(isInModal()) set::id("modal-record-hours-task-{$task->id}");
-$isEn = $app->getClientLang() == 'en';
+$isEn        = $app->getClientLang() == 'en';
+$isModalBody = isAjaxRequest('modal') || isonlybody();
 
 modalHeader
 (
@@ -60,7 +61,6 @@ if($efforts)
     }
     else
     {
-        $i          = 1;
         $effortRows = '';
         foreach($efforts as $effort)
         {
@@ -69,19 +69,18 @@ if($efforts)
 
             $canOperateEffort = $this->task->canOperateEffort($task, $effort);
             $operateTips      = $canOperateEffort ? '' : $lang->task->effortOperateTips;
-            $hidden           = ($taskEffortFold and $i > 3) ? 'hidden' : '';
-            $effortRows .= "<tr class='{$hidden}'>";
+            $work             = htmlSpecialString($effort->work);
+            $effortRows .= '<tr>';
             $effortRows .= "<td>{$effort->id}</td>";
             $effortRows .= "<td>{$effort->date}</td>";
             $effortRows .= "<td>" . zget($users, $effort->account) . "</td>";
-            $effortRows .= "<td>{$effort->work}</td>";
+            $effortRows .= "<td>{$work}</td>";
             $effortRows .= "<td>{$effort->consumed} {$lang->task->suffixHour}</td>";
             $effortRows .= "<td>{$effort->left} {$lang->task->suffixHour}</td>";
             $effortRows .= "<td>";
             if(common::hasPriv($app->rawModule, 'editEffort'))     $effortRows .= "<a class='btn ghost toolbar-item square size-sm text-primary edit-effort' data-on='click' " . ($canOperateEffort ? "data-call='loadModal($.createLink(\"$app->rawModule\", \"editEffort\", \"id={$effort->id}\"))' " : '') . (!$canOperateEffort ? 'disabled ' : '') . ($operateTips ? "title='" . sprintf($operateTips, $lang->task->update) . "' " : '') . "><i class='icon icon-edit'></i></a>";
             if(common::hasPriv($app->rawModule, 'deleteWorkhour')) $effortRows .= "<a class='btn ghost toolbar-item square size-sm ajax-submit text-primary' data-confirm='{$lang->task->confirmDeleteEffort}' href='" . createLink($app->rawModule, 'deleteWorkhour', "id={$effort->id}") ."' ". (!$canOperateEffort ? 'disabled ' : '') . ($operateTips ? "title='" . sprintf($operateTips, $lang->delete) . "' " : '') . "'><i class='icon icon-trash'/></a></td>";
             $effortRows .= "</tr>";
-            $i ++;
         }
         div
         (
@@ -127,17 +126,31 @@ if($efforts)
             ),
             html($effortRows)
         );
-        if(count($efforts) > 3)
+        if($pager && $pager->recTotal > $pager->recPerPage)
         {
-            $iconClass = $taskEffortFold ? 'angle-down' : 'angle-top';
-            $iconText  = $taskEffortFold ? $lang->task->unfoldEffort : $lang->task->foldEffort;
-            div
+            pager
             (
-                setID('toggleFoldIcon'),
-                on::click('toggleFold'),
-                setClass('text-primary'),
-                span(setClass($iconClass . ' mr-1 icon-toggle'), icon('back-circle')),
-                span(setClass('text'), $iconText)
+                setClass('justify-end mt-2'),
+                set
+                (
+                    array
+                    (
+                        'page'        => $pager->pageID,
+                        'recTotal'    => $pager->recTotal,
+                        'recPerPage'  => 10,
+                        'linkCreator' => createLink($app->rawModule, 'recordWorkhour', "taskID={$task->id}&from=_&orderBy=id_desc&recTotal={$pager->recTotal}&recPerPage=10&pageID={page}"),
+                        'items'       => array
+                        (
+                            array('type' => 'info', 'text' => $lang->pager->totalCountAB),
+                            array('type' => 'link', 'page' => 'first', 'hint' => $lang->pager->firstPage, 'icon' => 'icon-first-page'),
+                            array('type' => 'link', 'page' => 'prev', 'hint' => $lang->pager->previousPage, 'icon' => 'icon-angle-left'),
+                            array('type' => 'info', 'text' => '{page}/{pageTotal}'),
+                            array('type' => 'link', 'page' => 'next', 'hint' => $lang->pager->nextPage, 'icon' => 'icon-angle-right'),
+                            array('type' => 'link', 'page' => 'last', 'hint' => $lang->pager->lastPage, 'icon' => 'icon-last-page')
+                        ),
+                        'gap' => 0
+                    )
+                )
             );
         }
     }
@@ -173,8 +186,8 @@ else
 {
     formBatchPanel
     (
-        set::title($lang->task->addEffort),
-        set::shadow(!isAjaxRequest('modal')),
+        set::title($isModalBody ? '' : $lang->task->addEffort),
+        set::shadow(!$isModalBody),
         set::actions(array('submit')),
         set::actionsClass('btn-actions'),
         set::maxRows(10),
@@ -219,7 +232,7 @@ else
         ),
         formBatchItem
         (
-            set::required(true),
+            set::required(false),
             set::name('left'),
             set::label($lang->task->leftAB . ($isEn ? $lang->task->labelSuffixHour : '')),
             set::width('80px'),

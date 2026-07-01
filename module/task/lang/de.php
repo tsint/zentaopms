@@ -331,6 +331,7 @@ $lang->task->error->consumedNumber    = '"Verbraucht" muss eine Zahl sein.';
 $lang->task->error->estimateNumber    = '"Schätzungen" müssen immer eine positive Zahl sein.';
 $lang->task->error->leftNumber        = '"Left" must be numbers.';
 $lang->task->error->recordMinus       = '%s should not be negative number.';
+$lang->task->error->leftZeroEstimate  = 'Remaining hours cannot be negative when the estimate is 0.';
 $lang->task->error->consumedSmall     = '"Genutzt" muss larger than before.';
 $lang->task->error->dateEmpty         = 'Please enter "Date"';
 $lang->task->error->consumedThisTime  = 'Bitte geben Sie die Stunden an';

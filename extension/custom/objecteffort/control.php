@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 class objecteffort extends control
 {
-    public function record(string $objectType, int $objectID)
+    public function record(string $objectType, int $objectID, int $recTotal = 0, int $recPerPage = 10, int $pageID = 1)
     {
         $this->loadModel('objecteffort');
         if(!$this->objecteffort->canRecord($objectType, $objectID)) return $this->send(array('result' => 'fail', 'message' => $this->lang->objecteffort->error->denied));
@@ -31,11 +31,21 @@ class objecteffort extends control
             return $this->send(array('result' => 'success', 'message' => $this->lang->saveSuccess, 'load' => true));
         }
 
+        $this->app->loadClass('pager', true);
+        $pager = new pager($recTotal, 10, $pageID, 'objectEffort');
+        if($pager->recPerPage != 10)
+        {
+            $pager->recPerPage = 10;
+            $pager->setPageTotal();
+            $pager->setPageID($pageID);
+        }
+
         $this->view->objectType = $objectType;
         $this->view->objectID   = $objectID;
         $this->view->object     = $this->objecteffort->getObject($objectType, $objectID);
         $this->view->summary    = $this->objecteffort->getSummary($objectType, $objectID);
-        $this->view->efforts    = $this->objecteffort->getList($objectType, $objectID);
+        $this->view->efforts    = $this->objecteffort->getList($objectType, $objectID, 0, $pager);
+        $this->view->pager      = $pager;
         $this->view->executions = $this->objecteffort->getExecutionPairs($objectType, $objectID);
         $this->view->projects   = $this->objecteffort->getProjectPairs($objectType, $objectID);
         $this->view->users      = $this->loadModel('user')->getPairs('noletter');

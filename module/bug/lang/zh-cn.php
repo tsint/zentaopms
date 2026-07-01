@@ -35,6 +35,7 @@ $lang->bug->lines            = '代码行';
 $lang->bug->v1               = '版本1';
 $lang->bug->v2               = '版本2';
 $lang->bug->issueKey         = 'Sonarqube问题键值';
+$lang->bug->estimate         = '工时预计';
 $lang->bug->repoType         = '版本库类型';
 $lang->bug->steps            = '重现步骤';
 $lang->bug->status           = 'Bug状态';

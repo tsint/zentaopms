@@ -2,7 +2,8 @@
 declare(strict_types=1);
 namespace zin;
 
-$isEn = $app->getClientLang() == 'en';
+$isEn        = $app->getClientLang() == 'en';
+$isModalBody = isAjaxRequest('modal') || isonlybody();
 modalHeader
 (
     set::title($lang->objecteffort->record),
@@ -45,21 +46,24 @@ for($i = 0; $i < 3; $i ++)
 
 if($efforts)
 {
-    $rows = '';
+    $rows = array();
     foreach($efforts as $effort)
     {
         $canOperate = $this->objecteffort->canOperate($effort);
-        $rows .= '<tr>';
-        $rows .= '<td>' . (int)$effort->id . '</td>';
-        $rows .= '<td>' . $effort->date . '</td>';
-        $rows .= '<td>' . zget($users, $effort->account, $effort->account) . '</td>';
-        $rows .= '<td>' . htmlSpecialString($effort->work) . '</td>';
-        $rows .= '<td>' . helper::formatHours($effort->consumed) . '</td>';
-        $rows .= '<td>' . helper::formatHours($effort->left) . '</td>';
-        $rows .= '<td>';
-        if(common::hasPriv('objecteffort', 'edit') && $canOperate) $rows .= "<a class='btn ghost square size-sm' data-toggle='modal' href='" . createLink('objecteffort', 'edit', "effortID={$effort->id}") . "'><i class='icon icon-edit'></i></a>";
-        if(common::hasPriv('objecteffort', 'delete') && $canOperate) $rows .= "<a class='btn ghost square size-sm ajax-submit' data-confirm='{$lang->objecteffort->confirmDelete}' href='" . createLink('objecteffort', 'delete', "effortID={$effort->id}") . "'><i class='icon icon-trash'></i></a>";
-        $rows .= '</td></tr>';
+        $actions = '';
+        if(common::hasPriv('objecteffort', 'edit') && $canOperate) $actions .= "<a class='btn ghost square size-sm' data-toggle='modal' href='" . createLink('objecteffort', 'edit', "effortID={$effort->id}") . "'><i class='icon icon-edit'></i></a>";
+        if(common::hasPriv('objecteffort', 'delete') && $canOperate) $actions .= "<a class='btn ghost square size-sm ajax-submit' data-confirm='{$lang->objecteffort->confirmDelete}' href='" . createLink('objecteffort', 'delete', "effortID={$effort->id}") . "'><i class='icon icon-trash'></i></a>";
+
+        $rows[] = h::tr
+        (
+            h::td((int)$effort->id),
+            h::td($effort->date),
+            h::td(zget($users, $effort->account, $effort->account)),
+            h::td(isset($effort->content) ? $effort->content : $effort->work),
+            h::td(helper::formatHours($effort->consumed)),
+            h::td(helper::formatHours($effort->left)),
+            h::td(html($actions))
+        );
     }
 
     h::table
@@ -75,15 +79,33 @@ if($efforts)
             h::th(width('70px'), $lang->objecteffort->left),
             h::th(width('80px'), $lang->objecteffort->actions)
         ),
-        $rows
+        ...$rows
     );
+    if($pager->recTotal > $pager->recPerPage)
+    {
+        pager
+        (
+            setClass('justify-end mb-4'),
+            set
+            (
+                usePager
+                (
+                    array
+                    (
+                        'linkCreator' => createLink('objecteffort', 'record', "objectType={$objectType}&objectID={$objectID}&recTotal={$pager->recTotal}&recPerPage=10&pageID={page}")
+                    ),
+                    'short'
+                )
+            )
+        );
+    }
 }
 
 formBatchPanel
 (
     setID('objecteffortBatchForm'),
-    set::title($lang->objecteffort->record),
-    set::shadow(!isAjaxRequest('modal')),
+    set::title($isModalBody ? '' : $lang->objecteffort->record),
+    set::shadow(!$isModalBody),
     set::actions(array('submit')),
     set::data($defaultRows),
     set::maxRows(10),

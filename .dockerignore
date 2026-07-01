@@ -2,3 +2,7 @@
 ./build
 ./Jenkinsfile
 ./Makefile
+./config/my.php
+./tmp
+./test/tmp
+./data/upload

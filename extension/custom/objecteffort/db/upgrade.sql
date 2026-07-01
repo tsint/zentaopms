@@ -1,0 +1,6 @@
+ALTER TABLE `zt_task` MODIFY `left` decimal(10,2) NOT NULL DEFAULT 0.00;
+ALTER TABLE `zt_effort` MODIFY `left` decimal(10,2) NOT NULL DEFAULT 0.00;
+ALTER TABLE `zt_taskestimate` MODIFY `left` decimal(10,2) NOT NULL DEFAULT 0.00;
+ALTER TABLE `zt_taskteam` MODIFY `left` decimal(10,2) NOT NULL DEFAULT 0.00;
+ALTER TABLE `zt_burn` MODIFY `left` decimal(10,2) NOT NULL DEFAULT 0.00;
+ALTER TABLE `zt_objecteffort` MODIFY `left` decimal(12,2) NOT NULL DEFAULT 0.00;

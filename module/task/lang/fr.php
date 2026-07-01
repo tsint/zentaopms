@@ -331,6 +331,7 @@ $lang->task->error->consumedNumber    = '"Coût" doit être numérique.';
 $lang->task->error->estimateNumber    = '"Les estimations" doivent toujours être un nombre positif.';
 $lang->task->error->leftNumber        = '"Entrez" doit être numérique.';
 $lang->task->error->recordMinus       = '%s should not be negative number.';
+$lang->task->error->leftZeroEstimate  = 'Remaining hours cannot be negative when the estimate is 0.';
 $lang->task->error->consumedSmall     = '"Coût Total" doit être > au dernier chiffre.';
 $lang->task->error->dateEmpty         = 'Please enter "Date"';
 $lang->task->error->consumedThisTime  = 'Entrez le "Coût en Heures"';

@@ -499,10 +499,13 @@ class taskZen extends task
      * @param  int       $taskID
      * @param  string    $from
      * @param  string    $orderBy
+     * @param  int       $recTotal
+     * @param  int       $recPerPage
+     * @param  int       $pageID
      * @access protected
      * @return void
      */
-    protected function buildRecordForm(int $taskID, string $from, string $orderBy): void
+    protected function buildRecordForm(int $taskID, string $from, string $orderBy, int $recTotal = 0, int $recPerPage = 10, int $pageID = 1): void
     {
         $task = $this->task->getById($taskID);
         if(!empty($task->team) and $task->mode == 'linear')
@@ -521,7 +524,7 @@ class taskZen extends task
         if(!$orderBy) $orderBy = 'id_desc';
 
         /* Set the fold state of the current task. */
-        $referer = strtolower($_SERVER['HTTP_REFERER']);
+        $referer = strtolower($_SERVER['HTTP_REFERER'] ?? '');
         if(strpos($referer, 'recordworkhour') and $this->cookie->taskEffortFold !== false)
         {
             $taskEffortFold = $this->cookie->taskEffortFold;
@@ -538,11 +541,30 @@ class taskZen extends task
             }
         }
 
+        $pager   = null;
+        if(empty($task->team) or $task->mode != 'linear')
+        {
+            $this->app->loadClass('pager', true);
+            $pager = new pager($recTotal, 10, $pageID, 'taskEffort');
+            if($pager->recPerPage != 10)
+            {
+                $pager->recPerPage = 10;
+                $pager->setPageTotal();
+                $pager->setPageID($pageID);
+            }
+            $efforts = $this->task->getTaskEfforts($task->id, '', 0, $orderBy, $pager);
+        }
+        else
+        {
+            $efforts = $this->task->getTaskEfforts($task->id, '', 0, $orderBy);
+        }
+
         $this->view->title          = $this->lang->task->record;
         $this->view->task           = $task;
         $this->view->from           = $from;
         $this->view->orderBy        = $orderBy;
-        $this->view->efforts        = $this->task->getTaskEfforts($task->id, '', 0, $orderBy);
+        $this->view->efforts        = $efforts;
+        $this->view->pager          = $pager;
         $this->view->users          = $this->loadModel('user')->getPairs('noclosed|noletter');
         $this->view->taskEffortFold = $taskEffortFold;
 
@@ -562,7 +584,8 @@ class taskZen extends task
         $oldTask = $this->task->getByID($task->id);
 
         /* Check if the fields is valid. */
-        if($task->estimate < 0 or $task->left < 0 or $task->consumed < 0) dao::$errors[] = $this->lang->task->error->recordMinus;
+        if($task->estimate < 0 or $task->consumed < 0) dao::$errors[] = $this->lang->task->error->recordMinus;
+        if($task->estimate == 0 && $task->left < 0) dao::$errors[] = $this->lang->task->error->leftZeroEstimate;
         if(!empty($this->config->limitTaskDate)) $this->task->checkEstStartedAndDeadline($oldTask->execution, (string)$task->estStarted, (string)$task->deadline);
         if(!empty($_POST['lastEditedDate']) && $oldTask->lastEditedDate != $this->post->lastEditedDate) dao::$errors[] = $this->lang->error->editedByOther;
         if(dao::isError()) return false;
@@ -801,9 +824,10 @@ class taskZen extends task
     protected function buildTaskForActivate(int $taskID): object|bool
     {
         $task = form::data($this->config->task->form->activate, $taskID)->add('id', $taskID)->get();
-        if($task->left && $task->left < 0)
+        $estimate = $this->dao->select('estimate')->from(TABLE_TASK)->where('id')->eq($taskID)->fetch('estimate');
+        if((float)$estimate == 0 && $task->left < 0)
         {
-            dao::$errors['left'] = sprintf($this->lang->task->error->recordMinus, $this->lang->task->left);
+            dao::$errors['left'] = $this->lang->task->error->leftZeroEstimate;
             return false;
         }
         unset($task->comment);
@@ -1210,7 +1234,7 @@ class taskZen extends task
             }
             if($task->estimate < 0)  dao::$errors["estimate[$taskID]"]   = (array)sprintf($this->lang->task->error->recordMinus, $this->lang->task->estimateAB);
             if($task->consumed < 0 ) dao::$errors["consumed[{$taskID}]"] = (array)sprintf($this->lang->task->error->recordMinus, $this->lang->task->consumedThisTime);
-            if($task->left < 0)      dao::$errors["left[$taskID]"]       = (array)sprintf($this->lang->task->error->recordMinus, $this->lang->task->leftAB);
+            if($task->estimate == 0 && $task->left < 0) dao::$errors["left[$taskID]"] = (array)$this->lang->task->error->leftZeroEstimate;
 
             if(!empty($this->config->limitTaskDate)) $this->task->checkEstStartedAndDeadline($oldTask->execution, (string)$task->estStarted, (string)$task->deadline, $taskID);
 
@@ -1309,7 +1333,7 @@ class taskZen extends task
             if($oldTask->status == 'doing') dao::$errors[] = $this->lang->task->error->alreadyStarted;
         }
         if(!$task->left && !$task->consumed) dao::$errors['message'] = $this->lang->task->noticeTaskStart;
-        if($task->left && $task->left < 0) dao::$errors['left'] = sprintf($this->lang->task->error->recordMinus, $this->lang->task->left);
+        if((float)$oldTask->estimate == 0 && $task->left < 0) dao::$errors['left'] = $this->lang->task->error->leftZeroEstimate;
         return !dao::isError();
     }
 

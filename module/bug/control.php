@@ -265,8 +265,28 @@ class bug extends control
             $formData = form::data($this->config->bug->form->create, 0, !empty($product->workflowGroup) ? $product->workflowGroup : 0);
             $bug      = $this->bugZen->prepareCreateExtras($formData);
 
+            $estimate = isset($bug->estimate) ? (float)$bug->estimate : 0;
+            unset($bug->estimate);
+
+            $this->dao->begin();
             $bugID = $this->bug->create($bug, $from);
-            if(dao::isError()) $this->send(array('result' => 'fail', 'message' => dao::getError()));
+            if(dao::isError())
+            {
+                $this->dao->rollBack();
+                $this->send(array('result' => 'fail', 'message' => dao::getError()));
+            }
+
+            if($estimate > 0)
+            {
+                $this->loadModel('objecteffort');
+                $effortID = $this->objecteffort->initializeEstimate('bug', $bugID, $estimate);
+                if(!$effortID || dao::isError())
+                {
+                    $this->dao->rollBack();
+                    $this->send(array('result' => 'fail', 'message' => dao::getError()));
+                }
+            }
+            $this->dao->commit();
 
             $bug->id = $bugID;
             $this->bugZen->afterCreate($bug, $params, $from);

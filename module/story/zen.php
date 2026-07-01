@@ -1482,6 +1482,12 @@ class storyZen extends story
     protected function buildStoryForReview(int $storyID): object|false
     {
         $oldStory   = $this->dao->findById($storyID)->from(TABLE_STORY)->fetch();
+        if(!$oldStory)
+        {
+            dao::$errors[] = $this->lang->notFound;
+            return false;
+        }
+
         $now        = helper::now();
         $fields     = $this->config->story->form->review;
         foreach(explode(',', trim($this->config->{$oldStory->type}->review->requiredFields, ',')) as $field)

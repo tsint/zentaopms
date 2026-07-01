@@ -1,5 +1,6 @@
 <?php
 $workflowOldStory = $this->getById($storyID);
+if(!$workflowOldStory) return false;
 $workflowTarget = isset($story->status) ? $story->status : $workflowOldStory->status;
 $workflowType = $workflowOldStory->type == 'requirement' ? 'requirement' : 'story';
 $workflowComment = isset($story->comment) ? (string)$story->comment : (isset($this->post->comment) ? (string)$this->post->comment : '');

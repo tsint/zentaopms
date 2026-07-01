@@ -25,6 +25,8 @@ $lang->workflowflowchart->readonly       = '只读流程图';
 $lang->workflowflowchart->currentStatus  = '当前状态';
 $lang->workflowflowchart->configure      = '配置流程';
 $lang->workflowflowchart->transitionList = '流转列表';
+$lang->workflowflowchart->nodeMatrix     = '状态节点视图';
+$lang->workflowflowchart->ruleMatrix     = '流转规则列表';
 $lang->workflowflowchart->flowEmpty      = '暂无启用的流转规则。';
 
 $lang->workflowflowchart->objectTypeList = array('epic' => '业务需求', 'requirement' => '用户需求', 'story' => '研发需求', 'bug' => 'Bug', 'task' => '任务', 'testcase' => '用例');

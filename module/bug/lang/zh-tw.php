@@ -33,6 +33,7 @@ $lang->bug->repo             = '所屬版本庫';
 $lang->bug->lines            = '代碼行';
 $lang->bug->v1               = '版本1';
 $lang->bug->v2               = '版本2';
+$lang->bug->estimate         = '工時預計';
 $lang->bug->repoType         = '版本庫類型';
 $lang->bug->steps            = '重現步驟';
 $lang->bug->status           = 'Bug狀態';

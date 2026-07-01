@@ -22,7 +22,7 @@ jsVar('window.lifetimeList', $lifetimeList);
 jsVar('window.attributeList', $attributeList);
 jsVar('teamMemberError', $lang->task->error->teamMember);
 jsVar('requiredFields', $config->task->create->requiredFields);
-jsVar('estimateNotEmpty', sprintf($lang->error->gt, $lang->task->estimateAB, '0'));
+jsVar('estimateNotEmpty', sprintf($lang->error->ge, $lang->task->estimateAB, '0'));
 jsVar('taskID', $taskID ?? 0);
 jsVar('toTaskList', !empty($task->id));
 jsVar('showFields', $showFields);

@@ -201,7 +201,11 @@ class taskTao extends taskModel
         if(helper::isZeroDate($effort->date)) dao::$errors['date']     = $this->lang->task->error->dateEmpty;
         if($effort->date > $today)            dao::$errors['date']     = $this->lang->task->error->date;
         if($effort->consumed <= 0)            dao::$errors['comsumed'] = sprintf($this->lang->error->gt, $this->lang->task->record, '0');
-        if($effort->left < 0)                 dao::$errors['left']     = sprintf($this->lang->error->ge, $this->lang->task->left, '0');
+        if($effort->left < 0)
+        {
+            $estimate = $this->dao->select('estimate')->from(TABLE_TASK)->where('id')->eq($effort->objectID)->fetch('estimate');
+            if((float)$estimate == 0) dao::$errors['left'] = $this->lang->task->error->leftZeroEstimate;
+        }
 
         return !dao::isError();
     }

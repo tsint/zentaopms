@@ -35,6 +35,7 @@ $config->bug->form->create['mailto']      = array('required' => false, 'type' =>
 $config->bug->form->create['keywords']    = array('required' => false, 'type' => 'string', 'default' => '');
 $config->bug->form->create['status']      = array('required' => false, 'type' => 'string', 'default' => 'active');
 $config->bug->form->create['issueKey']    = array('required' => false, 'type' => 'string', 'default' => '');
+$config->bug->form->create['estimate']    = array('required' => false, 'type' => 'float',  'default' => 0);
 $config->bug->form->create['openedBy']    = array('required' => false, 'type' => 'string', 'default' => isset($app->user->account) ? $app->user->account : '');
 $config->bug->form->create['openedDate']  = array('required' => false, 'type' => 'date',   'default' => helper::now());
 

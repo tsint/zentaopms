@@ -758,10 +758,10 @@ class storyTao extends storyModel
      * @param  int       $storyID
      * @param  array     $reviewers
      * @param  int       $storyVersion
-     * @access protected
+     * @access public
      * @return void
      */
-    protected function doCreateReviewer(int $storyID, array $reviewers, int $storyVersion = 1): void
+    public function doCreateReviewer(int $storyID, array $reviewers, int $storyVersion = 1): void
     {
         if(empty($storyID) or empty($reviewers)) return;
 
@@ -2205,10 +2205,10 @@ class storyTao extends storyModel
      * 检查当前账号是否是超级评审人。
      * Check account is super reviewer or not.
      *
-     * @access protected
+     * @access public
      * @return bool
      */
-    protected function isSuperReviewer(): bool
+    public function isSuperReviewer(): bool
     {
         $moduleName = $this->app->rawModule;
         return str_contains(',' . zget($this->config->{$moduleName}, 'superReviewers', '') . ',', ",{$this->app->user->account},");

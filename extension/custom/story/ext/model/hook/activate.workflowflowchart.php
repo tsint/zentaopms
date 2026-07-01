@@ -1,5 +1,6 @@
 <?php
 $workflowOldStory = $this->dao->findById($storyID)->from(TABLE_STORY)->fetch();
+if(!$workflowOldStory) return false;
 $workflowTarget = $this->getActivateStatus($storyID);
 $workflowType = $workflowOldStory->type == 'requirement' ? 'requirement' : 'story';
 $workflowComment = isset($postData->comment) ? (string)$postData->comment : (isset($this->post->comment) ? (string)$this->post->comment : '');

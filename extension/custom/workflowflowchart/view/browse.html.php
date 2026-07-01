@@ -3,7 +3,7 @@ $definitionJSON = json_encode($definition, JSON_UNESCAPED_UNICODE | JSON_UNESCAP
 $defaultsJSON   = json_encode($this->workflowflowchart->getDefaultDefinition($objectType), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 $statusJSON     = json_encode($statusList, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
 $actionJSON     = json_encode($actionList, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
-$entryJSON      = json_encode($this->workflowflowchart->getEntryStates($objectType), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
+$entryJSON      = json_encode($this->workflowflowchart->getDefinitionEntries($objectType, $definition), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
 $escape         = function($value){return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');};
 $mermaidSource  = $this->workflowflowchart->renderMermaid($objectType, $definition);
 $nodes          = array();
@@ -57,6 +57,11 @@ body > #main:has(#mainContent:empty) {display:none; min-height:0;}
 .workflow-board {display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; padding:10px;}
 .workflow-column {border:1px solid #cfd8e6; border-radius:6px; background:#fbfdff; min-width:0;}
 .workflow-node {display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border-bottom:1px solid #e7ebf2;color:#24364f;font-size:14px;font-weight:600;}
+.workflow-node.is-entry {background:#fff8e6;border-color:#f0d27a;}
+.workflow-entry-toggle {display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border:1px solid #cbd3df;border-radius:10px;background:#fff;color:#5f6f86;font-size:12px;cursor:pointer;font-weight:500;}
+.workflow-entry-toggle:hover {border-color:#2468f2;color:#2468f2;}
+.workflow-entry-toggle.is-entry {background:#fbbf24;border-color:#f59e0b;color:#5d3a00;}
+.workflow-entry-toggle.is-entry:hover {background:#f59e0b;color:#fff;}
 .workflow-route {display:flex; align-items:center; justify-content:space-between; gap:8px; width:calc(100% - 16px); margin:8px; padding:8px; border:1px solid #e2e7f0; border-radius:4px; background:#fff; color:#26364d; text-align:left; cursor:pointer;}
 .workflow-route.active {border-color:#2468f2; box-shadow:0 0 0 2px rgba(36,104,242,.12);}
 .workflow-target {font-weight:600;}
@@ -101,7 +106,7 @@ body > #main:has(#mainContent:empty) {display:none; min-height:0;}
   <div class="workflow-body">
     <main class="workflow-main">
       <section class="workflow-mermaid-panel" aria-label="<?php echo $escape($this->lang->workflowflowchart->common);?>">
-        <div class="workflow-mermaid mermaid" id="workflowMermaid" data-entry-states="<?php echo $escape(implode(',', $this->workflowflowchart->getEntryStates($objectType)));?>"><?php echo $escape($mermaidSource);?></div>
+        <div class="workflow-mermaid mermaid" id="workflowMermaid" data-entry-states="<?php echo $escape(implode(',', $this->workflowflowchart->getDefinitionEntries($objectType, $definition)));?>"><?php echo $escape($mermaidSource);?></div>
       </section>
       <section class="workflow-section workflow-node-section">
         <div class="workflow-section-head"><?php echo $escape($this->lang->workflowflowchart->nodeMatrix);?></div>
@@ -184,8 +189,9 @@ var definition = <?php echo $definitionJSON;?>;
 var defaults = <?php echo $defaultsJSON;?>;
 var statusLabels = <?php echo $statusJSON;?>;
 var actionLabels = <?php echo $actionJSON;?>;
-var entryStates = <?php echo $entryJSON;?>;
 var editable = <?php echo $editable ? 'true' : 'false';?>;
+if(!Array.isArray(definition.entries)) definition.entries = <?php echo $entryJSON;?>;
+function getEntryStates(){return Array.isArray(definition.entries) ? definition.entries : [];}
 var selectedEdge = null;
 var mermaidRenderID = 0;
 var mermaidQueue = Promise.resolve();
@@ -201,7 +207,7 @@ function buildMermaidSource(){
     ids[status] = mermaidStateID(status);
     lines.push('    state "' + mermaidLabel(nodes[status].label) + '" as ' + ids[status]);
   });
-  entryStates.forEach(function(status){if(ids[status]) lines.push('    [*] --> ' + ids[status]);});
+  getEntryStates().forEach(function(status){if(ids[status]) lines.push('    [*] --> ' + ids[status]);});
   buildMermaidTransitions(ids).forEach(function(t){
     lines.push('    ' + ids[t.source] + ' --> ' + ids[t.target] + ': ' + mermaidLabel(t.labels.join(' / ')));
   });
@@ -415,18 +421,31 @@ function nodeLayout(){
 }
 function nodeLabel(id){var node=definition.nodes.find(function(item){return item.id===id;});return node ? (statusLabels[node.status] || node.label || node.status) : id;}
 function refreshNodeOptions(){if(!editable)return;['newSource','newTarget'].forEach(function(selectID){var select=document.getElementById(selectID),value=select.value;select.innerHTML='';definition.nodes.forEach(function(node){var option=document.createElement('option');option.value=node.id;option.textContent=nodeLabel(node.id);select.appendChild(option);});if(Array.from(select.options).some(function(option){return option.value===value;}))select.value=value;});}
-function deleteNode(id){if(entryStates.indexOf(id)!==-1){zui.Modal.alert({message:<?php echo json_encode($this->lang->workflowflowchart->error->deleteEntryNode);?>});return;}definition.nodes=definition.nodes.filter(function(node){return node.id!==id;});definition.edges=definition.edges.filter(function(edge){return edge.source!==id&&edge.target!==id;});if(selectedEdge&&!definition.edges.some(function(edge){return edge.id===selectedEdge;}))selectEdge(null);render();}
+function deleteNode(id){if(getEntryStates().indexOf(id)!==-1){zui.Modal.alert({message:<?php echo json_encode($this->lang->workflowflowchart->error->deleteEntryNode);?>});return;}definition.nodes=definition.nodes.filter(function(node){return node.id!==id;});definition.edges=definition.edges.filter(function(edge){return edge.source!==id&&edge.target!==id;});if(Array.isArray(definition.entries))definition.entries=definition.entries.filter(function(entry){return entry!==id;});if(selectedEdge&&!definition.edges.some(function(edge){return edge.id===selectedEdge;}))selectEdge(null);render();}
+function toggleEntry(id){if(!editable)return;var node=definition.nodes.find(function(item){return item.id===id;});if(!node)return;var entries=Array.isArray(definition.entries)?definition.entries.slice():[];var index=entries.indexOf(id);if(index===-1)entries.push(id);else entries.splice(index,1);definition.entries=entries;var mermaidRoot=document.getElementById('workflowMermaid');if(mermaidRoot)mermaidRoot.setAttribute('data-entry-states',entries.join(','));render();}
 function renderBoard(){
   var nodes = nodeLayout();
   var root = document.getElementById('workflowBoard');
   root.innerHTML = '';
+  var currentEntries = getEntryStates();
   Object.keys(nodes).forEach(function(id){
     var n = nodes[id];
     var column = document.createElement('section');
     column.className = 'workflow-column';
     column.setAttribute('data-status', id);
-    column.innerHTML = '<div class="workflow-node '+escapeHtml(id)+'"><span>'+escapeHtml(n.label)+'</span>'+(editable&&entryStates.indexOf(id)===-1?'<button type="button" class="btn ghost square size-sm workflow-delete-node" title="<?php echo $escape($this->lang->workflowflowchart->deleteNode);?>"><i class="icon icon-trash"></i></button>':'')+'</div>';
+    var isEntry = currentEntries.indexOf(id) !== -1;
+    var nodeClass = 'workflow-node ' + escapeHtml(id) + (isEntry ? ' is-entry' : '');
+    var nodeInner = '<span>' + escapeHtml(n.label) + '</span>';
+    if(editable)
+    {
+      var entryLabel = isEntry ? <?php echo json_encode($this->lang->workflowflowchart->unsetEntry);?> : <?php echo json_encode($this->lang->workflowflowchart->setAsEntry);?>;
+      var entryIcon = isEntry ? '<i class="icon icon-star"></i>' : '<i class="icon icon-star-empty"></i>';
+      nodeInner += '<button type="button" class="workflow-entry-toggle' + (isEntry ? ' is-entry' : '') + '" title="' + escapeHtml(entryLabel) + '" data-toggle-entry="' + escapeHtml(id) + '">' + entryIcon + '<span>' + escapeHtml(isEntry ? <?php echo json_encode($this->lang->workflowflowchart->unsetEntry);?> : <?php echo json_encode($this->lang->workflowflowchart->setAsEntry);?>) + '</span></button>';
+      if(!isEntry) nodeInner += '<button type="button" class="btn ghost square size-sm workflow-delete-node" title="<?php echo $escape($this->lang->workflowflowchart->deleteNode);?>"><i class="icon icon-trash"></i></button>';
+    }
+    column.innerHTML = '<div class="' + nodeClass + '">' + nodeInner + '</div>';
     var deleteButton=column.querySelector('.workflow-delete-node');if(deleteButton)deleteButton.onclick=function(){deleteNode(id);};
+    var entryButton=column.querySelector('[data-toggle-entry="'+id+'"]');if(entryButton)entryButton.onclick=function(){toggleEntry(id);};
     var sourceEdges = definition.edges.filter(function(e){return e.enabled !== false && e.source === id;});
     if(!sourceEdges.length)
     {

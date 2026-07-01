@@ -76,6 +76,27 @@ class workflowflowchartModel extends model
         return array();
     }
 
+    public function getDefinitionEntries(string $objectType, array $definition): array
+    {
+        $validStatuses = array();
+        foreach($definition['nodes'] as $node) $validStatuses[(string)$node['status']] = true;
+
+        $entries = isset($definition['entries']) && is_array($definition['entries']) ? $definition['entries'] : array();
+        $resolved = array();
+        foreach($entries as $entry)
+        {
+            $entry = trim((string)$entry);
+            if($entry !== '' && isset($validStatuses[$entry]) && !in_array($entry, $resolved, true)) $resolved[] = $entry;
+        }
+        if(!empty($resolved)) return $resolved;
+
+        foreach($this->getEntryStates($objectType) as $entry)
+        {
+            if(isset($validStatuses[$entry]) && !in_array($entry, $resolved, true)) $resolved[] = $entry;
+        }
+        return $resolved;
+    }
+
     public function getDefaultDefinition(string $objectType): array
     {
         $objectType = strtolower($objectType);
@@ -104,6 +125,7 @@ class workflowflowchartModel extends model
                 'description' => ''
             );
         };
+        $entries = $this->getEntryStates($objectType);
 
         if($objectType == 'bug')
         {
@@ -162,7 +184,7 @@ class workflowflowchartModel extends model
             $add('closed', 'draft', 'activate');
         }
 
-        return array('objectType' => $objectType, 'enabled' => false, 'nodes' => $nodes, 'edges' => $edges, 'version' => 1);
+        return array('objectType' => $objectType, 'enabled' => false, 'nodes' => $nodes, 'edges' => $edges, 'entries' => $entries, 'version' => 1);
     }
 
     protected function getActionListForDefault(string $action): string
@@ -191,7 +213,7 @@ class workflowflowchartModel extends model
             $lines[] = '    state "' . $this->escapeMermaidLabel($label) . '" as ' . $id;
         }
 
-        foreach($this->getEntryStates($objectType) as $status)
+        foreach($this->getDefinitionEntries($objectType, $definition) as $status)
         {
             if(isset($stateIDs[$status])) $lines[] = '    [*] --> ' . $stateIDs[$status];
         }
@@ -274,6 +296,18 @@ class workflowflowchartModel extends model
                 $routes[$route] = true;
             }
         }
+
+        $rawEntries = isset($definition['entries']) ? $definition['entries'] : null;
+        if($rawEntries !== null)
+        {
+            if(!is_array($rawEntries)) return 'invalidEntries';
+            foreach($rawEntries as $entry)
+            {
+                $entry = trim((string)$entry);
+                if($entry === '' || !isset($nodeStatuses[$entry])) return 'missingEntryState';
+            }
+            if(empty($rawEntries)) return 'missingEntryState';
+        }
         return true;
     }
 
@@ -284,6 +318,7 @@ class workflowflowchartModel extends model
             'enabled' => !empty($definition['enabled']),
             'nodes' => array(),
             'edges' => array(),
+            'entries' => array(),
             'version' => isset($definition['version']) ? max(1, (int)$definition['version']) : 1
         );
         foreach($definition['nodes'] as $node)
@@ -295,6 +330,31 @@ class workflowflowchartModel extends model
                 'x' => isset($node['x']) ? (float)$node['x'] : 0,
                 'y' => isset($node['y']) ? (float)$node['y'] : 0
             );
+        }
+        $validStatuses = array();
+        foreach($normalized['nodes'] as $node) $validStatuses[$node['status']] = true;
+
+        $rawEntries = isset($definition['entries']) && is_array($definition['entries']) ? $definition['entries'] : array();
+        $seen = array();
+        foreach($rawEntries as $entry)
+        {
+            $entry = trim((string)$entry);
+            if($entry !== '' && isset($validStatuses[$entry]) && !isset($seen[$entry]))
+            {
+                $normalized['entries'][] = $entry;
+                $seen[$entry] = true;
+            }
+        }
+        if(empty($normalized['entries']))
+        {
+            foreach($this->getEntryStates($objectType) as $entry)
+            {
+                if(isset($validStatuses[$entry]) && !isset($seen[$entry]))
+                {
+                    $normalized['entries'][] = $entry;
+                    $seen[$entry] = true;
+                }
+            }
         }
         foreach($definition['edges'] as $edge)
         {

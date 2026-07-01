@@ -2,32 +2,30 @@
 <?php
 /**
 title=测试 workflowflowchartModel 流程定义和流转规则;
+timeout=0
 cid=0
 
-- Bug默认流程通过校验 @1
-- 重复节点被拒绝 @duplicateNode
-- 非法动作被拒绝 @invalidAction
-- 未启用流程保持兼容 @1
-- 已启用流程允许匹配边 @1
-- 已启用流程拒绝未配置边 @transitionDenied
-- 角色规则允许匹配角色 @1
-- 角色规则拒绝其他角色 @actorDenied
-- 强制备注规则拒绝空备注 @commentRequired
-- 流程按钮规则允许已配置动作 @1
-- 流程按钮规则拒绝未配置动作 @0
-- 任务默认流程通过校验 @1
-- 任务默认流程包含开始到完成主流程 @1
-- 详情流程图渲染包含状态板、当前状态和任务主流程 @1
-- 五类对象详情页流程图均可直接渲染 @1
-- 五类对象均支持配置和详情渲染 @1
-- 流程图使用分组状态板且不再输出混乱连线SVG @1
-- 任务 Mermaid 状态机包含入口和所有下一状态 @1
-- 用例默认流程支持 Mermaid 状态机渲染 @1
-- 六类对象均支持配置和 Mermaid 渲染 @1
-- 合法自定义状态节点通过校验并进入Mermaid图 @1
-- 非法自定义状态键被拒绝 @invalidStatus
-- 自定义流转名称通过规范化并显示在Mermaid边上 @1
-
+- 执行$result === true @1
+- 执行$result @duplicateNode
+- 执行$result @invalidAction
+- 执行model模块的checkDefinitionTransition方法，参数是$definition, 'active', 'closed', 'publish', 'dev', 'user1', ''  @1
+- 执行model模块的checkDefinitionTransition方法，参数是$definition, 'active', 'resolved', 'resolve', 'dev', 'user1', 'fixed'  @1
+- 执行model模块的checkDefinitionTransition方法，参数是$definition, 'active', 'closed', 'activate', 'dev', 'user1', ''  @transitionDenied
+- 执行model模块的checkDefinitionTransition方法，参数是$definition, 'active', 'resolved', 'resolve', 'qa', 'user1', 'fixed'  @1
+- 执行model模块的checkDefinitionTransition方法，参数是$definition, 'active', 'resolved', 'resolve', 'dev', 'user1', 'fixed'  @actorDenied
+- 执行model模块的checkDefinitionTransition方法，参数是$definition, 'active', 'resolved', 'resolve', 'dev', 'user1', ''  @commentRequired
+- 执行model模块的isDefinitionActionAllowed方法，参数是$definition, 'active', 'resolve', 'dev', 'user1'  @1
+- 执行model模块的isDefinitionActionAllowed方法，参数是$definition, 'active', 'activate', 'dev', 'user1'  @0
+- 执行$result === true @1
+- 执行$taskRoutes['wait>doing:start']) && isset($taskRoutes['doing>done:finish']) && isset($taskRoutes['doing>pause:pause']) && isset($taskRoutes['pause>doing:restart']) && isset($taskRoutes['done>closed:close']) && isset($taskRoutes['cancel>closed:close'] @1
+- 执行$html, 'workflowflowchart-mermaid') !== false && strpos($html, 'stateDiagram-v2') !== false && strpos($html, 'data-current-status="doing"') !== false && strpos($html, 'querySelectorAll(".workflowflowchart-mermaid pre.mermaid")') !== false && strpos($html, 'document.currentScript') === false && strpos($html, 'workflowflowchart-board') === false && strpos($html, 'workflowflowchart-list') === false @1
+- 执行$allDetailFlowsVisible @1
+- 执行$allTypesSupported @1
+- 执行$groupedHtml, 'workflowflowchart-mermaid') !== false && strpos($groupedHtml, 'workflowflowchart-row') === false && strpos($groupedHtml, 'workflowflowchart-item') === false @1
+- 执行$allMermaidSupported @1
+- 执行model模块的validateDefinition方法，参数是'story', $customDefinition) === true && strpos  @1
+- 执行model模块的validateDefinition方法，参数是'story', $customDefinition  @invalidStatus
+- 执行model模块的validateDefinition方法，参数是'bug', $namedDefinition) === true && strpos  @1
 */
 include dirname(__FILE__, 6) . '/test/lib/init.php';
 

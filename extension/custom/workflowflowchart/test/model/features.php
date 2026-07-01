@@ -3,13 +3,15 @@
 /**
 title=测试状态流转图遵循需求功能开关;
 timeout=0
-cid=workflowflowchart
+cid=0
 
-- 关闭业务需求和用户需求后只保留四类对象 @story,bug,task,testcase
-- 仅开启用户需求后显示用户需求但隐藏业务需求 @requirement,story,bug,task,testcase
-- 同时开启后显示全部六类对象 @epic,requirement,story,bug,task,testcase
-- 关闭用户需求后不渲染其详情状态图 @1
+- 执行model模块的getAvailableObjectTypes方法  @story,bug,task,testcase
 
+- 执行model模块的getAvailableObjectTypes方法  @requirement,story,bug,task,testcase
+
+- 执行model模块的getAvailableObjectTypes方法  @epic,requirement,story,bug,task,testcase
+
+- 执行model模块的renderFlowHtml方法，参数是'requirement', 'draft', false) ===   @1
 */
 include dirname(__FILE__, 6) . '/test/lib/init.php';
 

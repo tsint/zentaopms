@@ -3,17 +3,10 @@
 /**
 title=测试工作流状态机唯一初始状态;
 timeout=0
-cid=workflowflowchart
+cid=0
 
-- 业务需求只能从草稿进入状态机 @1
-- 用户需求只能从草稿进入状态机 @1
-- 研发需求只能从草稿进入状态机 @1
-- Bug只能从激活进入状态机 @1
-- 任务只能从未开始进入状态机 @1
-- 用例只能从正常进入状态机 @1
-- 六类对象的Mermaid图都只有一条初始连线 @1
-- 缺少真实初始节点的自定义流程不能保存 @1
-
+- 执行$singleEntry @1
+- 执行model模块的validateDefinition方法，参数是'story', $invalidDefinition) === 'missingEntryState  @1
 */
 include dirname(__FILE__, 6) . '/test/lib/init.php';
 

@@ -15,6 +15,7 @@ const taskID = process.env.ZT_TEST_TASK_ID || '900001';
 const featureNodesOnly = process.env.ZT_TEST_FEATURE_NODES === '1';
 const edgeDeletionOnly = process.env.ZT_TEST_EDGE_DELETION === '1';
 const reviewModalOnly = process.env.ZT_TEST_REVIEW_MODAL === '1';
+const entryToggleOnly = process.env.ZT_TEST_ENTRY_TOGGLE === '1';
 const reviewStoryID = process.env.ZT_TEST_REVIEW_STORY_ID || '';
 const chrome = process.env.CHROME_BIN || join(process.env.HOME, '.cache/ms-playwright/chromium-1208/chrome-linux64/chrome');
 const require = createRequire(import.meta.url);
@@ -224,6 +225,91 @@ try
         const removed = await evaluate(`!document.querySelector('#workflowBoard [data-status="accepted"]') && !document.querySelector('#newSource option[value="accepted"]') && !document.querySelector('#newTarget option[value="accepted"]') && !Array.from(document.querySelectorAll('.workflow-transition')).some(node => node.textContent.includes('暂不处理'))`);
         assert(removed, 'Custom state node and its named transition were not removed together');
         console.log('workflow feature switches, custom nodes and transition names browser test passed');
+    }
+    else if(entryToggleOnly)
+    {
+        await navigate(editorURL);
+        await waitForMermaid();
+        const initial = await evaluate(`(() => {
+            const root = document.getElementById('workflowMermaid');
+            const draftNode = document.querySelector('#workflowBoard [data-status="draft"] .workflow-node');
+            const activeNode = document.querySelector('#workflowBoard [data-status="active"] .workflow-node');
+            const draftToggle = document.querySelector('#workflowBoard [data-status="draft"] [data-toggle-entry]');
+            const activeToggle = document.querySelector('#workflowBoard [data-status="active"] [data-toggle-entry]');
+            return {
+                dataEntries: root ? (root.dataset.entryStates || '') : '',
+                draftIsEntry: draftNode ? draftNode.classList.contains('is-entry') : false,
+                activeIsEntry: activeNode ? activeNode.classList.contains('is-entry') : false,
+                draftToggle: !!draftToggle,
+                activeToggle: !!activeToggle,
+                draftToggleIsEntry: draftToggle ? draftToggle.classList.contains('is-entry') : false,
+                activeToggleIsEntry: activeToggle ? activeToggle.classList.contains('is-entry') : false
+            };
+        })()`);
+        assert(initial.dataEntries === 'draft' && initial.draftIsEntry && !initial.activeIsEntry && initial.draftToggle && initial.activeToggle && initial.draftToggleIsEntry && !initial.activeToggleIsEntry, `Story workflow did not load with single default entry draft: ${JSON.stringify(initial)} errors=${JSON.stringify(browserErrors)}`);
+
+        await evaluate(`var btn=document.querySelector('#workflowBoard [data-status="active"] [data-toggle-entry]');if(btn)btn.click();true`);
+        let addRetry = 0;
+        for(; addRetry < 30; addRetry++)
+        {
+            const val = await evaluate(`(document.getElementById('workflowMermaid')||{}).dataset ? document.getElementById('workflowMermaid').dataset.entryStates : ''`);
+            if(val === 'draft,active') break;
+            await sleep(200);
+        }
+        const afterAdd = await evaluate(`(() => {
+            const root = document.getElementById('workflowMermaid');
+            const activeNode = document.querySelector('#workflowBoard [data-status="active"] .workflow-node');
+            const activeToggle = document.querySelector('#workflowBoard [data-status="active"] [data-toggle-entry]');
+            const dataEntries = root ? (root.dataset.entryStates || '') : '';
+            return {
+                dataEntries: dataEntries,
+                activeIsEntry: activeNode ? activeNode.classList.contains('is-entry') : false,
+                activeToggleIsEntry: activeToggle ? activeToggle.classList.contains('is-entry') : false,
+                svgHasDraftEntry: dataEntries.split(',').indexOf('draft') !== -1,
+                svgHasActiveEntry: dataEntries.split(',').indexOf('active') !== -1
+            };
+        })()`);
+        assert(afterAdd.dataEntries === 'draft,active' && afterAdd.activeIsEntry && afterAdd.activeToggleIsEntry && afterAdd.svgHasDraftEntry && afterAdd.svgHasActiveEntry, `Setting active as entry did not refresh Mermaid diagram and data-entry-states (retry=${addRetry}): ${JSON.stringify(afterAdd)} errors=${JSON.stringify(browserErrors)}`);
+
+        await evaluate(`var btn=document.querySelector('#workflowBoard [data-status="draft"] [data-toggle-entry]');if(btn)btn.click();true`);
+        let removeRetry = 0;
+        for(; removeRetry < 30; removeRetry++)
+        {
+            const val = await evaluate(`(document.getElementById('workflowMermaid')||{}).dataset ? document.getElementById('workflowMermaid').dataset.entryStates : ''`);
+            if(val === 'active') break;
+            await sleep(200);
+        }
+        const afterRemove = await evaluate(`(() => {
+            const root = document.getElementById('workflowMermaid');
+            const draftNode = document.querySelector('#workflowBoard [data-status="draft"] .workflow-node');
+            const draftToggle = document.querySelector('#workflowBoard [data-status="draft"] [data-toggle-entry]');
+            const draftDeleteBtn = document.querySelector('#workflowBoard [data-status="draft"] .workflow-delete-node');
+            const activeDeleteBtn = document.querySelector('#workflowBoard [data-status="active"] .workflow-delete-node');
+            return {
+                dataEntries: root ? (root.dataset.entryStates || '') : '',
+                draftIsEntry: draftNode ? draftNode.classList.contains('is-entry') : false,
+                draftToggleIsEntry: draftToggle ? draftToggle.classList.contains('is-entry') : false,
+                draftDeleteVisible: !!draftDeleteBtn,
+                activeDeleteHidden: !activeDeleteBtn
+            };
+        })()`);
+        assert(afterRemove.dataEntries === 'active' && !afterRemove.draftIsEntry && !afterRemove.draftToggleIsEntry && afterRemove.draftDeleteVisible && afterRemove.activeDeleteHidden, `Unsetting draft entry did not free draft for deletion (retry=${removeRetry}): ${JSON.stringify(afterRemove)} errors=${JSON.stringify(browserErrors)}`);
+
+        await evaluate(`document.querySelector('#resetWorkflow').click();true`);
+        await sleep(900);
+        const afterReset = await evaluate(`document.getElementById('workflowMermaid') ? document.getElementById('workflowMermaid').dataset.entryStates : ''`);
+        assert(afterReset === 'draft', `Reset did not restore single draft entry: ${afterReset}`);
+
+        await evaluate(`var btn=document.querySelector('#workflowBoard [data-status="active"] [data-toggle-entry]');if(btn)btn.click();document.querySelector('#saveWorkflow').click();true`);
+        await sleep(1800);
+        await navigate(editorURL);
+        await waitForMermaid();
+        const persisted = await evaluate(`document.getElementById('workflowMermaid') ? document.getElementById('workflowMermaid').dataset.entryStates : ''`);
+        assert(persisted === 'draft,active', `Custom entry states were not persisted after save: ${persisted}`);
+
+        await evaluate(`document.querySelector('#resetWorkflow').click();document.querySelector('#saveWorkflow').click();true`);
+        await sleep(1200);
+        console.log('workflow entry state toggle browser test passed');
     }
     else if(reviewModalOnly)
     {

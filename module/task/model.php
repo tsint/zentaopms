@@ -36,6 +36,11 @@ class taskModel extends model
         $oldTask = $this->getById($taskID);
         if($oldTask->isParent) $this->config->task->activate->requiredFields = '';
 
+        /* Workflow guard (PRD §6). */
+        $target = $this->loadModel('statetransition')->applyWorkflowTransition('task', 0, (int)$taskID, $oldTask->status, 'activate', null, $comment, 'doing');
+        if($target === null) return false;
+        $task->status = $target;
+
         $this->dao->update(TABLE_TASKTEAM)->set('status')->eq('wait')->where('task')->eq($task->id)->andWhere('consumed')->eq(0)->andWhere('left')->gt('0')->exec();
         $this->dao->update(TABLE_TASKTEAM)->set('status')->eq('doing')->where('task')->eq($task->id)->andWhere('consumed')->gt(0)->andWhere('left')->gt(0)->exec();
         $this->dao->update(TABLE_TASKTEAM)->set('status')->eq('done')->where('task')->eq($task->id)->andWhere('consumed')->gt(0)->andWhere('left')->eq('0')->exec();
@@ -772,6 +777,12 @@ class taskModel extends model
      */
     public function cancel(object $oldTask, object $task, array $output = array()): bool
     {
+        /* Workflow guard (PRD §6). */
+        $comment = isset($_POST['comment']) ? (string)$_POST['comment'] : '';
+        $target = $this->loadModel('statetransition')->applyWorkflowTransition('task', 0, (int)$oldTask->id, $oldTask->status, 'cancel', null, $comment, 'cancel');
+        if($target === null) return false;
+        $task->status = $target;
+
         $this->dao->update(TABLE_TASK)->data($task)->autoCheck()->checkFlow()->where('id')->eq($oldTask->id)->exec();
         if(dao::isError()) return false;
 
@@ -864,6 +875,12 @@ class taskModel extends model
      */
     public function close(object $oldTask, object $task, array $output = array()): bool|array
     {
+        /* Workflow guard (PRD §6). */
+        $comment = isset($_POST['comment']) ? (string)$_POST['comment'] : '';
+        $target = $this->loadModel('statetransition')->applyWorkflowTransition('task', 0, (int)$oldTask->id, $oldTask->status, 'close', null, $comment, 'closed');
+        if($target === null) return false;
+        $task->status = $target;
+
         $this->dao->update(TABLE_TASK)->data($task)->autoCheck()->checkFlow()->where('id')->eq((int)$oldTask->id)->exec();
         if(dao::isError()) return false;
 
@@ -1360,6 +1377,12 @@ class taskModel extends model
      */
     public function finish(object $oldTask, object $task): bool|array
     {
+        /* Workflow guard (PRD §6). */
+        $comment = isset($_POST['comment']) ? (string)$_POST['comment'] : '';
+        $target = $this->loadModel('statetransition')->applyWorkflowTransition('task', 0, (int)$oldTask->id, $oldTask->status, 'finish', null, $comment, 'done');
+        if($target === null) return false;
+        $task->status = $target;
+
         $currentTeam = !empty($oldTask->team) ? $this->getTeamByAccount($oldTask->team) : array();
         if($currentTeam)
         {
@@ -2496,6 +2519,19 @@ class taskModel extends model
         /* 任务不可修改的话，则无法进行操作。 */
         if(!common::canModify('task', $task)) return false;
 
+        /* Workflow guard FIRST — active workflow is authoritative (PRD §6.3). */
+        global $app;
+        if(is_object($app) && in_array($action, array('start', 'restart', 'pause', 'finish', 'close', 'cancel', 'activate'), true))
+        {
+            $model = $app->loadTarget('statetransition');
+            $row = $model->getDefinition('task', 0);
+            if($row !== null && $row['enabled'])
+            {
+                if(!$model->isActionAllowed('task', 0, $task->status, $action)) return false;
+                return true;
+            }
+        }
+
         /* IPD任务当关联的需求池需求撤销/移除移除时，任务需要点击确认。*/
         /* IPD Task when the associated demand is retraec / unlink, the task needs to confirm . */
         if($action == 'confirmdemandretract') return !empty($task->confirmeActionType) && $task->confirmeActionType == 'confirmedretract';
@@ -2738,6 +2774,12 @@ class taskModel extends model
     {
         /* Get old task. */
         $oldTask = $this->getById($task->id);
+
+        /* Workflow guard (PRD §6). */
+        $comment = isset($_POST['comment']) ? (string)$_POST['comment'] : '';
+        $target = $this->loadModel('statetransition')->applyWorkflowTransition('task', 0, (int)$task->id, $oldTask->status, 'pause', null, $comment, 'pause');
+        if($target === null) return false;
+        $task->status = $target;
 
         /* Update kanban status. */
         $this->dao->update(TABLE_TASK)->data($task)->autoCheck()->checkFlow()->where('id')->eq($task->id)->exec();
@@ -3187,6 +3229,13 @@ class taskModel extends model
      */
     public function start(object $oldTask, object $task): false|array
     {
+        /* Workflow guard (PRD §6). Auto-detect start vs restart by from-status. */
+        $action = $oldTask->status === 'pause' ? 'restart' : 'start';
+        $comment = isset($_POST['comment']) ? (string)$_POST['comment'] : '';
+        $target = $this->loadModel('statetransition')->applyWorkflowTransition('task', 0, (int)$oldTask->id, $oldTask->status, $action, null, $comment, 'doing');
+        if($target === null) return false;
+        $task->status = $target;
+
         /* Process data for multiple tasks. */
         $account     = $this->app->user->account;
         $currentTeam = !empty($oldTask->team) ? $this->getTeamByAccount($oldTask->team, $account, array()) : '';

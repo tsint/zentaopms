@@ -74,6 +74,7 @@ $lang->admin->menuList->feature['subMenu']['execution']   = array('link' => "{$l
 $lang->admin->menuList->feature['subMenu']['qa']          = array('link' => "{$lang->qa->common}|custom|required|module=bug", 'exclude' => 'set,required');
 $lang->admin->menuList->feature['subMenu']['kanban']      = array('link' => "{$lang->kanban->common}|custom|kanban|");
 $lang->admin->menuList->feature['subMenu']['user']        = array('link' => "{$lang->user->common}|custom|required|module=user", 'links' => array('custom|set|module=user&field=roleList'), 'exclude' => 'set,required');
+$lang->admin->menuList->feature['subMenu']['statetransition'] = array('link' => '状态流转图|statetransition|browse|', 'subModule' => 'statetransition');
 
 $lang->admin->menuList->feature['tabMenu']['my']['todo']  = array('link' => "{$lang->todo->common}|custom|set|module=todo&field=priList", 'exclude' => 'custom-set');
 $lang->admin->menuList->feature['tabMenu']['my']['block'] = array('link' => "{$lang->block->common}|custom|set|module=block&field=closed", 'exclude' => 'custom-set');
@@ -135,6 +136,7 @@ $lang->admin->menuList->feature['menuOrder']['25'] = 'qa';
 $lang->admin->menuList->feature['menuOrder']['30'] = 'kanban';
 $lang->admin->menuList->feature['menuOrder']['35'] = 'doc';
 $lang->admin->menuList->feature['menuOrder']['40'] = 'user';
+$lang->admin->menuList->feature['menuOrder']['45'] = 'statetransition';
 
 $lang->admin->menuList->feature['dividerMenu'] = ',user,';
 

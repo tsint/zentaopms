@@ -7,9 +7,7 @@ su('admin');
 zenData('project')->loadYaml('project')->gen(6);
 zenData('task')->loadYaml('task')->gen(9);
 zenData('taskteam')->loadYaml('taskteam')->gen(6);
-
 /**
-
 title=taskModel->start();
 timeout=0
 cid=18844
@@ -46,7 +44,6 @@ cid=18844
  - 第0条的field属性 @status
  - 第0条的old属性 @doing
  - 第0条的new属性 @done
-
 */
 
 $taskIDList = range(1, 9);

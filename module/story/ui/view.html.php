@@ -193,9 +193,45 @@ if($story->status == 'changing') $config->{$story->type}->actionList['recall']['
 
 $this->loadModel('repo');
 $hasRepo    = $this->repo->getListByProduct($story->product, implode(',', $config->repo->gitServiceTypeList), 1);
+
+/* Apply workflow label overrides BEFORE buildOperateMenu — when the user has
+   customized a transition's label (e.g. activate → "测试"), native buttons that
+   match by action name should display the custom label instead of the default
+   action name. This makes the workflow's custom label visible to all users with
+   native priv, not just users who fall through to triggerCustom. */
+if(!$story->deleted && $canModify)
+{
+    $labelOverrides = $this->loadModel('statetransition')->getActionLabelOverrides($story->type, (int)$story->product, $story->status);
+    foreach($labelOverrides as $actionLower => $label)
+    {
+        /* actionList keys are camelCase; workflow actions are lowercase. Match flexibly. */
+        foreach($config->{$story->type}->actionList as $actionKey => $actionData)
+        {
+            if(strtolower((string)$actionKey) === $actionLower)
+            {
+                $config->{$story->type}->actionList[$actionKey]['text'] = $label;
+                $config->{$story->type}->actionList[$actionKey]['hint'] = $label;
+                break;
+            }
+        }
+    }
+}
+
 $actions    = $story->deleted || !$canModify ? array() : $this->loadModel('common')->buildOperateMenu($story, $story->type);
 $hasDivider = !empty($actions['mainActions']) && !empty($actions['suffixActions']);
 if(!empty($actions)) $actions = array_merge($actions['mainActions'], $hasDivider ? array(array('type' => 'divider')) : array(), $actions['suffixActions']);
+
+/* Inject workflow custom buttons for transitions the user can't trigger natively.
+   This bridges the gap: worker may lack priv for story-review but the workflow
+   explicitly allows review from a custom status — we render via triggerCustom
+   endpoint which bypasses native module priv. */
+if(!$story->deleted && $canModify)
+{
+    $existingNames = array();
+    foreach($actions as $a) if(!empty($a['name'])) $existingNames[] = $a['name'];
+    $workflowButtons = $this->loadModel('statetransition')->getDetailActionButtons($story->type, (int)$story->product, (int)$story->id, $story->status, $existingNames);
+    foreach($workflowButtons as $wb) $actions[] = $wb;
+}
 
 foreach($actions as $key => $action)
 {

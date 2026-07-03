@@ -477,6 +477,12 @@ class bugModel extends model
             }
         }
 
+        /* Workflow guard (PRD §6). */
+        $comment = isset($_POST['comment']) ? (string)$_POST['comment'] : '';
+        $target = $this->loadModel('statetransition')->applyWorkflowTransition('bug', (int)$oldBug->product, (int)$bug->id, $oldBug->status, 'resolve', null, $comment, 'resolved');
+        if($target === null) return false;
+        $bug->status = $target;
+
         /* Update bug. */
         $this->dao->update(TABLE_BUG)->data($bug, 'buildName,createBuild,buildExecution,comment')
             ->autoCheck()
@@ -588,6 +594,12 @@ class bugModel extends model
     {
         $oldBug = parent::fetchByID($bug->id);
 
+        /* Workflow guard (PRD §6). */
+        $comment = isset($_POST['comment']) ? (string)$_POST['comment'] : '';
+        $target = $this->loadModel('statetransition')->applyWorkflowTransition('bug', (int)$oldBug->product, (int)$bug->id, $oldBug->status, 'activate', null, $comment, 'active');
+        if($target === null) return false;
+        $bug->status = $target;
+
         $this->dao->update(TABLE_BUG)->data($bug, 'comment')->check('openedBuild', 'notempty')->autoCheck()->checkFlow()->where('id')->eq($bug->id)->exec();
         if(dao::isError()) return false;
 
@@ -633,6 +645,12 @@ class bugModel extends model
     {
         $oldBug = $this->getById($bug->id);
         $bug    = $this->loadModel('file')->processImgURL($bug, $this->config->bug->editor->close['id'], $this->post->uid);
+
+        /* Workflow guard (PRD §6). */
+        $comment = isset($_POST['comment']) ? (string)$_POST['comment'] : '';
+        $target = $this->loadModel('statetransition')->applyWorkflowTransition('bug', (int)$oldBug->product, (int)$bug->id, $oldBug->status, 'close', null, $comment, 'closed');
+        if($target === null) return false;
+        $bug->status = $target;
 
         $this->dao->update(TABLE_BUG)->data($bug, 'comment')->autoCheck()->checkFlow()->where('id')->eq($bug->id)->exec();
         if(dao::isError()) return false;
@@ -1937,6 +1955,19 @@ class bugModel extends model
         global $config, $app;
 
         $action = strtolower($action);
+
+        /* Workflow guard FIRST — active workflow is authoritative (PRD §6.3). */
+        if(is_object($app) && $module == 'bug' && in_array($action, array('resolve', 'close', 'activate'), true))
+        {
+            $productID = isset($object->product) ? (int)$object->product : 0;
+            $model = $app->loadTarget('statetransition');
+            $row = $model->getDefinition('bug', $productID);
+            if($row !== null && $row['enabled'])
+            {
+                if(!$model->isActionAllowed('bug', $productID, $object->status, $action)) return false;
+                return true;
+            }
+        }
 
         /* 如果bug状态是激活，没有确认过，这个bug可以被确认。 */
         /* If the status is active, and the confirmed is 0, the bug can be confirm. */

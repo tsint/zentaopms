@@ -14,10 +14,9 @@ zenData('kanbanlane')->loadYaml('kanbanlane')->gen(3);
 zenData('kanbanregion')->loadYaml('kanbanregion')->gen(1);
 
 su('admin');
-
 /**
-
 title=bugModel->close();
+timeout=0
 cid=15348
 
 - 测试关闭状态为active的bug1
@@ -50,7 +49,6 @@ cid=15348
  - 属性status @closed
  - 属性assignedTo @closed
  - 属性confirmed @1
-
 */
 
 $bugIDList = array(1, 2, 3, 7, 8, 9);

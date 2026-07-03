@@ -12,9 +12,7 @@ $stories->gen(5);
 zenData('storystage')->gen(5);
 zenData('project')->gen(5);
 zenData('product')->gen(5);
-
 /**
-
 title=测试 storyModel->close();
 timeout=0
 cid=18483
@@ -33,7 +31,6 @@ cid=18483
  - 属性status @~~
  - 属性closedReason @~~
  - 属性duplicateStory @『重复需求』不能为空。
-
 */
 
 $postData1 = new stdclass();

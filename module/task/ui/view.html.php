@@ -50,9 +50,38 @@ $task->executionInfo = $execution;
 $task->estimate      = helper::formatHours($task->estimate);
 $task->consumed      = helper::formatHours($task->consumed);
 $task->left          = helper::formatHours($task->left);
+
+/* Apply workflow label overrides BEFORE buildOperateMenu (see story/ui/view.html.php for rationale). */
+if(!$task->deleted && common::canModify('execution', $execution))
+{
+    $labelOverrides = $this->loadModel('statetransition')->getActionLabelOverrides('task', 0, $task->status);
+    foreach($labelOverrides as $actionLower => $label)
+    {
+        foreach($config->task->actionList as $actionKey => $actionData)
+        {
+            if(strtolower((string)$actionKey) === $actionLower)
+            {
+                $config->task->actionList[$actionKey]['text'] = $label;
+                $config->task->actionList[$actionKey]['hint'] = $label;
+                break;
+            }
+        }
+    }
+}
+
 $actions             = !$task->deleted && common::canModify('execution', $execution) ? $this->loadModel('common')->buildOperateMenu($task) : array();
 $hasDivider          = !empty($actions['mainActions']) && !empty($actions['suffixActions']);
 if(!empty($actions)) $actions = array_merge($actions['mainActions'], $hasDivider ? array(array('type' => 'divider')) : array(), $actions['suffixActions']);
+
+/* Inject workflow custom buttons (transitions allowed by workflow but not natively accessible). */
+if(!$task->deleted && common::canModify('execution', $execution))
+{
+    $existingNames = array();
+    foreach($actions as $a) if(!empty($a['name'])) $existingNames[] = $a['name'];
+    $workflowButtons = $this->loadModel('statetransition')->getDetailActionButtons('task', 0, (int)$task->id, $task->status, $existingNames);
+    foreach($workflowButtons as $wb) $actions[] = $wb;
+}
+
 foreach($actions as $key => $action)
 {
     if(isset($action['url']) && strpos($action['url'], 'createBranch') !== false && empty($hasGitRepo)) unset($actions[$key]);

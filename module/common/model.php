@@ -1435,7 +1435,47 @@ eof;
 
         if(isset($rights[$module][$method])) return commonTao::checkPrivByRights($module, $method, $acls, $object);
 
+        /* Assignee auto-grant: the responsible person must always be able to hand off the work
+           and edit basic info — even if their role doesn't include edit/assignTo privs.
+           Limited to story/bug/task (the workflows where this responsibility concept applies). */
+        if(commonModel::isAssigneeAutoGrant($module, $method, $object)) return true;
+
         return false;
+    }
+
+    /**
+     * Check if the current user is the assignee of the object and the method is one of the
+     * "responsible-person minimum powers" methods (edit, assignTo).
+     *
+     * Used by getUserPriv to grant assignees basic editing/handoff powers regardless of role.
+     *
+     * @param  string $module
+     * @param  string $method
+     * @param  mixed  $object
+     * @static
+     * @access public
+     * @return bool
+     */
+    public static function isAssigneeAutoGrant(string $module, string $method, mixed $object): bool
+    {
+        /* Only story/bug/task support this concept. */
+        if(!in_array($module, array('story', 'epic', 'requirement', 'bug', 'task'), true)) return false;
+
+        /* Only edit and assignTo are auto-granted — these are the minimum powers a responsible
+           person needs to manage their work. Other methods (delete, close, activate, etc.) still
+           require explicit role privs. */
+        if(!in_array($method, array('edit', 'assignto'), true)) return false;
+
+        /* Object must be loaded with assignedTo field. */
+        if(!is_object($object) || empty($object->assignedTo)) return false;
+
+        global $app;
+        $account = $app->user->account ?? '';
+        if($account === '') return false;
+
+        /* For story-type modules, the object type (epic/requirement/story) is in ->type;
+           the module passed in might be epic/Requirement/Story depending on context — accept all. */
+        return $object->assignedTo === $account;
     }
 
     /**

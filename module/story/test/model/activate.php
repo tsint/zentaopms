@@ -1,9 +1,8 @@
 #!/usr/bin/env php
 <?php
-
 /**
-
 title=测试 storyModel->activate();
+timeout=0
 cid=18460
 
 - 查看激活之前的需求状态属性status @draft
@@ -14,7 +13,6 @@ cid=18460
 - 查看激活之后的需求状态属性status @active
 - 查看激活之后的需求状态属性status @active
 - 查看激活之后的需求状态属性status @active
-
 */
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 

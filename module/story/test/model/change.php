@@ -1,8 +1,6 @@
 #!/usr/bin/env php
 <?php
-
 /**
-
 title=测试 storyModel->change();
 timeout=0
 cid=18479
@@ -14,7 +12,6 @@ cid=18479
 - 变更时不填写需求名称，给出提示 @1
 - 测试存在relievedTwins。属性title @测试需求1变更标题
 - 测试变成需求。属性title @名称修改
-
 */
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/model.class.php';

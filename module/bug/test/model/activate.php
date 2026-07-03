@@ -14,9 +14,7 @@ zenData('kanbancolumn')->loadYaml('kanbancolumn_activate')->gen(27);
 zenData('kanbanlane')->loadYaml('kanbanlane_activate')->gen(3);
 zenData('kanbanregion')->loadYaml('kanbanregion_activate')->gen(1);
 zenData('history')->gen(0);
-
 /**
-
 title=bugModel->activate();
 timeout=0
 cid=15344
@@ -37,7 +35,6 @@ cid=15344
 - 状态是 closed   的 bug 激活后更新研发看板。 @fixing
 - 状态是 resolved 的 bug 激活后更新看板执行。 @fixing
 - 状态是 closed   的 bug 激活后更新看板执行。 @fixing
-
 */
 
 global $config;
@@ -49,7 +46,6 @@ $kanbanParams = array();
 
 r($bug->activateTest(2)) && p('status,activatedCount') && e('active,1'); // 状态是 resolved 的 bug 激活后的状态是 active，激活次数加 1。
 r($bug->activateTest(3)) && p('status,activatedCount') && e('active,1'); // 状态是 closed   的 bug 激活后的状态是 active，激活次数加 1。
-
 
 r($bug->activateTest(5, 1, $kanbanParams, 'build')) && p('bugs', ';') && e('4,6'); // 状态是 resolved 的 bug 激活后版本解决的 bug 中不再包含这个 bug。
 r($bug->activateTest(6, 1, $kanbanParams, 'build')) && p('bugs')      && e('4');   // 状态是 closed   的 bug 激活后版本解决的 bug 中不再包含这个 bug。

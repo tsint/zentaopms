@@ -352,6 +352,7 @@ $config->logonMethods[] = 'space.binduser';
 $config->logonMethods[] = 'space.createapplication';
 $config->logonMethods[] = 'space.edit';
 $config->logonMethods[] = 'space.getstoreappinfo';
+$config->logonMethods[] = 'statetransition.triggercustom';
 $config->logonMethods[] = 'story.storyview';
 $config->logonMethods[] = 'system.editdomain';
 $config->logonMethods[] = 'task.editteam';
@@ -618,6 +619,7 @@ define('TABLE_WORKFLOWRULE',           '`' . $config->db->prefix . 'workflowrule
 define('TABLE_WORKFLOWSQL',            '`' . $config->db->prefix . 'workflowsql`');
 define('TABLE_WORKFLOWVERSION',        '`' . $config->db->prefix . 'workflowversion`');
 define('TABLE_WORKFLOWUI',             '`' . $config->db->prefix . 'workflowui`');
+define('TABLE_WORKFLOW_DEFINITION',    '`' . $config->db->prefix . 'workflow_definition`');
 define('TABLE_ZOUTPUT',                '`' . $config->db->prefix . 'zoutput`');
 
 define('TABLE_METRIC',        '`' . $config->db->prefix . 'metric`');

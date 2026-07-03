@@ -797,6 +797,13 @@ class storyModel extends model
     public function change(int $storyID, object $story): array|false
     {
         $oldStory = $this->getById($storyID);
+
+        /* Workflow guard (PRD §6). */
+        $comment = isset($_POST['comment']) ? (string)$_POST['comment'] : '';
+        $target = $this->loadModel('statetransition')->applyWorkflowTransition($oldStory->type, (int)$oldStory->product, $storyID, $oldStory->status, 'change', null, $comment, 'changing');
+        if($target === null) return false;
+        $story->status = $target;
+
         $this->dao->update(TABLE_STORY)->data($story, 'spec,verify,deleteFiles,renameFiles,files,relievedTwins,reviewer,reviewerHasChanged')
             ->autoCheck()
             ->batchCheck($this->config->{$oldStory->type}->change->requiredFields, 'notempty')
@@ -1430,6 +1437,14 @@ class storyModel extends model
 
         $story = new stdclass();
         $story->status = $isChanged ? 'changing' : 'draft';
+
+        /* Workflow guard (PRD §6). For recallReview, target status may be 'draft' or 'changing' depending on history;
+           workflow should define both draft and changing as valid targets from reviewing. */
+        $comment = isset($_POST['comment']) ? (string)$_POST['comment'] : '';
+        $target = $this->loadModel('statetransition')->applyWorkflowTransition($oldStory->type, (int)$oldStory->product, $storyID, $oldStory->status, 'recallreview', null, $comment, $story->status);
+        if($target === null) return;
+        $story->status = $target;
+
         $this->dao->update(TABLE_STORY)->set('status')->eq($story->status)->where('id')->in($twinsIdList)->exec();
 
         $this->dao->delete()->from(TABLE_STORYREVIEW)->where('story')->in($twinsIdList)->andWhere('version')->eq($oldStory->version)->exec();
@@ -1450,6 +1465,11 @@ class storyModel extends model
         $oldStory = $this->fetchById($storyID);
         if(empty($oldStory)) return;
 
+        /* Workflow guard (PRD §6). */
+        $comment = isset($_POST['comment']) ? (string)$_POST['comment'] : '';
+        $target = $this->loadModel('statetransition')->applyWorkflowTransition($oldStory->type, (int)$oldStory->product, $storyID, $oldStory->status, 'recallchange', null, $comment, 'active');
+        if($target === null) return;
+
         /* Update story title and version and status. */
         $twinsIdList = $storyID . ($oldStory->twins ? ",{$oldStory->twins}" : '');
         $titleList   = $this->dao->select('story,title')->from(TABLE_STORYSPEC)->where('story')->in($twinsIdList)->andWHere('version')->eq($oldStory->version - 1)->fetchAll('story');
@@ -1459,7 +1479,7 @@ class storyModel extends model
             $story = new stdclass();
             $story->title   = $titleList[$twinID]->title;
             $story->version = $oldStory->version - 1;
-            $story->status  = 'active';
+            $story->status  = $target;
             $this->dao->update(TABLE_STORY)->set('title')->eq($story->title)->set('version')->eq($story->version)->set('status')->eq($story->status)->where('id')->eq($storyID)->exec();
         }
 
@@ -1485,6 +1505,12 @@ class storyModel extends model
         $reviewerList = $this->getReviewerPairs($oldStory->id, $oldStory->version);
         $oldStory->reviewer = implode(',', array_keys($reviewerList));
 
+        /* Workflow guard (PRD §6). Branch=null, single-branch action. */
+        $comment = isset($_POST['comment']) ? (string)$_POST['comment'] : '';
+        $target = $this->loadModel('statetransition')->applyWorkflowTransition($oldStory->type, (int)$oldStory->product, $storyID, $oldStory->status, 'submitreview', null, $comment, 'reviewing');
+        if($target === null) return false;
+        $story->status = $target;
+
         $twinsIdList = $storyID . ($oldStory->twins ? ",{$oldStory->twins}" : '');
         $this->dao->delete()->from(TABLE_STORYREVIEW)->where('story')->in($twinsIdList)->andWhere('version')->eq($oldStory->version)->exec();
 
@@ -1495,7 +1521,6 @@ class storyModel extends model
         }
 
         $story->reviewer = implode(',', $story->reviewer);
-        if($story->reviewer) $story->status = 'reviewing';
 
         $this->dao->update(TABLE_STORY)->data($story, 'reviewer')->where('id')->in($twinsIdList)->exec();
 
@@ -1589,6 +1614,12 @@ class storyModel extends model
             dao::$errors['duplicateStory'] = sprintf($this->lang->error->notempty, $this->lang->story->duplicateStory);
             return false;
         }
+
+        /* Workflow guard (PRD §6). Story type may be epic/requirement/story — all route through story module. */
+        $comment = isset($_POST['comment']) ? (string)$_POST['comment'] : '';
+        $target = $this->loadModel('statetransition')->applyWorkflowTransition($oldStory->type, (int)$oldStory->product, $storyID, $oldStory->status, 'close', null, $comment, 'closed');
+        if($target === null) return false;
+        $story->status = $target;
 
         if(strpos($this->config->{$oldStory->type}->close->requiredFields, 'comment') !== false and !$this->post->comment) dao::$errors['comment'][] = sprintf($this->lang->error->notempty, $this->lang->comment);
 
@@ -2263,6 +2294,12 @@ class storyModel extends model
         /* Get status after activation. */
         $story = $postData;
         $story->status = $this->getActivateStatus($storyID);
+
+        /* Workflow guard (PRD §6). Use business default as fallback. */
+        $comment = isset($_POST['comment']) ? (string)$_POST['comment'] : '';
+        $target = $this->loadModel('statetransition')->applyWorkflowTransition($oldStory->type, (int)$oldStory->product, $storyID, $oldStory->status, 'activate', null, $comment, $story->status);
+        if($target === null) return false;
+        $story->status = $target;
 
         $this->dao->update(TABLE_STORY)->data($story, 'comment')->autoCheck()->checkFlow()->where('id')->eq($storyID)->exec();
 
@@ -3909,6 +3946,27 @@ class storyModel extends model
     {
         global $app, $config;
         $action = strtolower($action);
+
+        /* Workflow guard FIRST — when an active workflow definition exists, IT is authoritative.
+           - Workflow denies → return false (hide button).
+           - Workflow allows → return true (show button, SKIP native rules — this is critical
+             for custom transitions like changing→testing via activate, where native rules
+             would normally block activate unless status==closed).
+           - No active workflow → fall through to native rules. */
+        $storyType = isset($story->type) ? $story->type : 'story';
+        $productID = isset($story->product) ? (int)$story->product : 0;
+        $workflowActions = array('submitreview', 'review', 'change', 'recallreview', 'recallchange', 'close', 'activate');
+        if(is_object($app) && in_array($action, $workflowActions, true))
+        {
+            $model = $app->loadTarget('statetransition');
+            $row = $model->getDefinition($storyType, $productID);
+            if($row !== null && $row['enabled'])
+            {
+                /* Active workflow — it decides. */
+                if(!$model->isActionAllowed($storyType, $productID, $story->status, $action)) return false;
+                return true;  /* Workflow allows → override native rules. */
+            }
+        }
 
         if(in_array($action, array('edit', 'batchcreate', 'change', 'delete')) && !empty($story->frozen)) return false;
         if($action == 'subdivide') $action = 'batchcreate';

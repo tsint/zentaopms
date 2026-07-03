@@ -39,6 +39,25 @@ $canCreateBug = $canModify && $this->app->tab != 'devops' && hasPriv('bug', 'cre
 $canViewRepo  = hasPriv('repo', 'revision');
 $canViewMR    = hasPriv('mr', 'view');
 $canViewBug   = hasPriv('bug', 'view');
+
+/* Apply workflow label overrides BEFORE buildOperateMenu (see story/ui/view.html.php for rationale). */
+if(!$bug->deleted && $canModify)
+{
+    $labelOverrides = $this->loadModel('statetransition')->getActionLabelOverrides('bug', (int)$bug->product, $bug->status);
+    foreach($labelOverrides as $actionLower => $label)
+    {
+        foreach($config->bug->actionList as $actionKey => $actionData)
+        {
+            if(strtolower((string)$actionKey) === $actionLower)
+            {
+                $config->bug->actionList[$actionKey]['text'] = $label;
+                $config->bug->actionList[$actionKey]['hint'] = $label;
+                break;
+            }
+        }
+    }
+}
+
 $operateList  = $this->loadModel('common')->buildOperateMenu($bug);
 
 /* 初始化头部右上方工具栏。Init detail toolbar. */
@@ -66,6 +85,12 @@ if(!$bug->deleted && $canModify)
         if($app->getClientLang() == 'en')  $actions = array_merge($actions, $operateList['suffixActions']);
         if($app->getClientLang() != 'en') $actions = array_merge($actions, array(array('type' => 'divider')), $operateList['suffixActions']);
     }
+
+    /* Inject workflow custom buttons (transitions allowed by workflow but not natively accessible). */
+    $existingNames = array();
+    foreach($actions as $a) if(!empty($a['name'])) $existingNames[] = $a['name'];
+    $workflowButtons = $this->loadModel('statetransition')->getDetailActionButtons('bug', (int)$bug->product, (int)$bug->id, $bug->status, $existingNames);
+    foreach($workflowButtons as $wb) $actions[] = $wb;
 
     $this->loadModel('repo');
     $hasRepo = $this->repo->getListByProduct($bug->product, implode(',', $config->repo->gitServiceTypeList), 1);

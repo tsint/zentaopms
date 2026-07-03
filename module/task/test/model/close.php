@@ -8,9 +8,7 @@ zenData('project')->loadYaml('execution')->gen(5);
 zenData('task')->loadYaml('task')->gen(5);
 zenData('story')->gen(0);
 zenData('product')->gen(5);
-
 /**
-
 title=taskModel->close();
 timeout=0
 cid=18774
@@ -20,7 +18,6 @@ cid=18774
 - done状态任务关闭 @status-done-closed
 - pause状态任务关闭 @status-pause-closed
 - cancel状态任务关闭 @status-cancel-closed
-
 */
 
 $taskIDList = range(1, 5);

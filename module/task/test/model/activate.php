@@ -1,8 +1,6 @@
 #!/usr/bin/env php
 <?php
-
 /**
-
 title=taskModel->activate();
 timeout=0
 cid=18755
@@ -21,7 +19,6 @@ cid=18755
 - closed状态任务激活属性status @doing
 - wait状态串行任务激活属性status @doing
 - doing状态并行任务激活属性status @doing
-
 */
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/model.class.php';

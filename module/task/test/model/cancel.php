@@ -3,9 +3,7 @@
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/model.class.php';
 su('admin');
-
 /**
-
 title=taskModel->cancel();
 timeout=0
 cid=18770
@@ -34,7 +32,6 @@ cid=18770
  - 属性id @6
  - 属性name @任务6
  - 属性status @cancel
-
 */
 
 $task = zenData('task');

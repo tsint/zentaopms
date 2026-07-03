@@ -15,9 +15,7 @@ zenData('kanbancolumn')->loadYaml('kanbancolumn_resolve')->gen(9);
 zenData('kanbancell')->loadYaml('kanbancell_resolve')->gen(9);
 
 su('admin');
-
 /**
-
 title=bugModel->resolve();
 timeout=0
 cid=15405
@@ -43,7 +41,6 @@ cid=15405
 - 测试解决原因为空的bug @『解决方案』不能为空。
 - 测试解决原因为重复bug 无重复bugID的bug @『重复Bug』不能为空。
 - 测试解决原因为解决 无解决版本的bug @『解决版本』不能为空。
-
 */
 
 $bugIdList = array(1, 2, 3, 4, 5, 6, 7);

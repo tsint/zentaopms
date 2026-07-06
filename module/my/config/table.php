@@ -5,6 +5,7 @@ $app->loadLang('score');
 $app->loadLang('task');
 $app->loadLang('story');
 $app->loadLang('bug');
+$app->loadLang('objecteffort');
 $app->loadLang('doc');
 $app->loadLang('testtask');
 $app->loadLang('testcase');
@@ -409,6 +410,13 @@ $config->my->requirement->actionList['edit']['hint']        = $lang->story->edit
 $config->my->requirement->actionList['edit']['url']         = array('module' => 'requirement', 'method' => 'edit', 'params' => 'storyID={id}&from=default&storyType=requirement');
 $config->my->requirement->actionList['edit']['data-toggle'] = 'modal';
 
+$config->my->requirement->actionList['recordWorkhour']['icon']          = 'time';
+$config->my->requirement->actionList['recordWorkhour']['text']          = $lang->objecteffort->record;
+$config->my->requirement->actionList['recordWorkhour']['hint']          = $lang->objecteffort->record;
+$config->my->requirement->actionList['recordWorkhour']['url']           = array('module' => 'objecteffort', 'method' => 'record', 'params' => 'objectType=requirement&objectID={id}');
+$config->my->requirement->actionList['recordWorkhour']['data-toggle']   = 'modal';
+$config->my->requirement->actionList['recordWorkhour']['data-position'] = 'center';
+
 $config->my->requirement->actionList['close']['icon']        = 'off';
 $config->my->requirement->actionList['close']['text']        = $lang->story->close;
 $config->my->requirement->actionList['close']['hint']        = $lang->story->close;
@@ -465,7 +473,7 @@ $config->my->requirement->dtable->fieldList['actions']['title']    = $lang->acti
 $config->my->requirement->dtable->fieldList['actions']['type']     = 'actions';
 $config->my->requirement->dtable->fieldList['actions']['sortType'] = false;
 $config->my->requirement->dtable->fieldList['actions']['list']     = $config->my->requirement->actionList;
-$config->my->requirement->dtable->fieldList['actions']['menu']     = array('change', 'review|submitReview', 'recall', 'edit', 'close');
+$config->my->requirement->dtable->fieldList['actions']['menu']     = array('change', 'review|submitReview', 'recall', 'recordWorkhour', 'edit', 'close');
 
 $config->my->epic = new stdclass();
 $config->my->epic->actionList = array();
@@ -590,6 +598,13 @@ $config->my->story->actionList['edit']['url']         = array('module' => 'story
 $config->my->story->actionList['edit']['data-toggle'] = 'modal';
 $config->my->story->actionList['edit']['data-size']   = 'lg';
 
+$config->my->story->actionList['recordWorkhour']['icon']          = 'time';
+$config->my->story->actionList['recordWorkhour']['text']          = $lang->objecteffort->record;
+$config->my->story->actionList['recordWorkhour']['hint']          = $lang->objecteffort->record;
+$config->my->story->actionList['recordWorkhour']['url']           = array('module' => 'objecteffort', 'method' => 'record', 'params' => 'objectType=story&objectID={id}');
+$config->my->story->actionList['recordWorkhour']['data-toggle']   = 'modal';
+$config->my->story->actionList['recordWorkhour']['data-position'] = 'center';
+
 $config->my->story->actionList['create']['icon']        = 'sitemap';
 $config->my->story->actionList['create']['text']        = $lang->testcase->create;
 $config->my->story->actionList['create']['hint']        = $lang->testcase->create;
@@ -672,7 +687,7 @@ $config->my->story->dtable->fieldList['actions']['title']    = $lang->actions;
 $config->my->story->dtable->fieldList['actions']['type']     = 'actions';
 $config->my->story->dtable->fieldList['actions']['sortType'] = false;
 $config->my->story->dtable->fieldList['actions']['list']     = $config->my->story->actionList;
-$config->my->story->dtable->fieldList['actions']['menu']     = array(array('processStoryChange'), array('change', 'review|submitReview', 'recall', 'edit', 'create', 'close'));
+$config->my->story->dtable->fieldList['actions']['menu']     = array(array('processStoryChange'), array('change', 'review|submitReview', 'recall', 'recordWorkhour', 'edit', 'create', 'close'));
 
 $config->my->bug = new stdclass();
 $config->my->bug->actionList = array();
@@ -706,6 +721,13 @@ $config->my->bug->actionList['edit']['hint']        = $lang->bug->edit;
 $config->my->bug->actionList['edit']['url']         = helper::createLink('bug', 'edit',"bugID={id}");
 $config->my->bug->actionList['edit']['data-size']   = 'lg';
 $config->my->bug->actionList['edit']['data-toggle'] = 'modal';
+
+$config->my->bug->actionList['recordWorkhour']['icon']          = 'time';
+$config->my->bug->actionList['recordWorkhour']['text']          = $lang->objecteffort->record;
+$config->my->bug->actionList['recordWorkhour']['hint']          = $lang->objecteffort->record;
+$config->my->bug->actionList['recordWorkhour']['url']           = array('module' => 'objecteffort', 'method' => 'record', 'params' => 'objectType=bug&objectID={id}');
+$config->my->bug->actionList['recordWorkhour']['data-toggle']   = 'modal';
+$config->my->bug->actionList['recordWorkhour']['data-position'] = 'center';
 
 $config->my->bug->actionList['copy']['icon']        = 'copy';
 $config->my->bug->actionList['copy']['text']        = $lang->bug->copy;
@@ -936,7 +958,7 @@ $config->my->bug->dtable->fieldList['actions']['width']    = '140';
 $config->my->bug->dtable->fieldList['actions']['sortType'] = false;
 $config->my->bug->dtable->fieldList['actions']['fixed']    = 'right';
 $config->my->bug->dtable->fieldList['actions']['list']     = $config->my->bug->actionList;
-$config->my->bug->dtable->fieldList['actions']['menu']     = array('confirm', 'resolve', 'close|activate', 'edit', 'copy');
+$config->my->bug->dtable->fieldList['actions']['menu']     = array('confirm', 'resolve', 'close|activate', 'recordWorkhour', 'edit', 'copy');
 
 $config->my->testtask = new stdclass();
 $config->my->testtask->dtable = new stdclass();

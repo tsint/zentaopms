@@ -3,23 +3,16 @@
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/tao.class.php';
 su('admin');
-
 /**
-
 title=taskModel->checkEffort();
 timeout=0
 cid=18866
 
 - 检查正常编辑的工时信息，查看返回的信息 @1
-
 - 检查无剩余工时的工时信息，查看返回的信息 @1
-
-- 编辑日志消耗为0，查看返回的信息 @『工时』应当大于『0』。
-
-- 编辑日志日期为空，查看返回的信息 @请填写"日期"
-
-- 编辑日志日期大于今天，查看返回的信息 @日期不能大于今天
-
+- 编辑日志消耗为0，查看返回的信息属性comsumed @『工时』应当大于『0』。
+- 编辑日志日期为空，查看返回的信息属性date @请填写"日期"
+- 编辑日志日期大于今天，查看返回的信息属性date @日期不能大于今天
 */
 $effort = zenData('effort');
 $effort->objectType->range('task');

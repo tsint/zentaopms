@@ -522,15 +522,15 @@ class taskModel extends model
         $oldTask = $this->getById($task->id);
 
         /* Check task left. */
-        if($oldTask->isParent == '0' && !in_array($oldTask->status, array('done', 'closed')) && isset($task->left) && $task->left == 0)
+        if((float)$oldTask->estimate > 0 && $oldTask->isParent == '0' && !in_array($oldTask->status, array('done', 'closed')) && isset($task->left) && $task->left == 0)
         {
             dao::$errors['left'] = sprintf($this->lang->error->notempty, $this->lang->task->left);
             return false;
         }
 
-        if(!empty($task->left) && $task->left < 0)
+        if((float)$oldTask->estimate == 0 && isset($task->left) && (float)$task->left < 0)
         {
-            dao::$errors['left'] = sprintf($this->lang->task->error->recordMinus, $this->lang->task->left);
+            dao::$errors['left'] = $this->lang->task->error->leftZeroEstimate;
             return false;
         }
 
@@ -2253,10 +2253,11 @@ class taskModel extends model
      * @param  string    $account
      * @param  int       $effortID
      * @param  string    $orderBy
+     * @param  object    $pager
      * @access public
      * @return array
      */
-    public function getTaskEfforts(int|array $taskIdList, string $account = '', int $effortID = 0, string $orderBy = 'date,id'): array
+    public function getTaskEfforts(int|array $taskIdList, string $account = '', int $effortID = 0, string $orderBy = 'date,id', ?object $pager = null): array
     {
         return $this->dao->select('*')->from(TABLE_EFFORT)
             ->where('objectType')->eq('task')
@@ -2265,6 +2266,7 @@ class taskModel extends model
             ->beginIF($account)->andWhere('account')->eq($account)->fi()
             ->beginIF($effortID)->orWhere('id')->eq($effortID)->fi()
             ->orderBy($orderBy)
+            ->page($pager)
             ->fetchAll('id', false);
     }
 
@@ -3123,6 +3125,17 @@ class taskModel extends model
      */
     public function checkWorkhour(object $task, array $workhour): false|array
     {
+        $teamMember = null;
+        if($task->team)
+        {
+            $teamMember = $this->dao->select('*')->from(TABLE_TASKTEAM)
+                ->where('task')->eq($task->id)
+                ->andWhere('account')->eq($this->app->user->account)
+                ->fetch();
+        }
+
+        $estimate      = $teamMember ? (float)$teamMember->estimate : (float)$task->estimate;
+        $totalConsumed = $teamMember ? (float)$teamMember->consumed : (float)$task->consumed;
         foreach($workhour as $id => $record)
         {
             if(!$record->work && !$record->consumed && !$record->left)
@@ -3134,6 +3147,11 @@ class taskModel extends model
             $date     = $record->date;
             $consumed = $record->consumed;
             $left     = $record->left;
+            if($left === '' && is_numeric($consumed) && $consumed > 0)
+            {
+                $calculatedLeft = $estimate - $totalConsumed - (float)$consumed;
+                $left = $record->left = round($estimate == 0 ? max(0, $calculatedLeft) : $calculatedLeft, 2);
+            }
 
             /* Check the date of workhour. */
             if(helper::isZeroDate($date)) dao::$errors["date[$id]"] = $this->lang->task->error->dateEmpty;
@@ -3160,13 +3178,13 @@ class taskModel extends model
             /* Check left hours. */
             if($left === '') dao::$errors["left[$id]"] = $this->lang->task->error->left;
             if(!is_numeric($left)) dao::$errors["left[$id]"] = 'ID #' . $id . ' ' . $this->lang->task->error->leftNumber;
-            if(is_numeric($left) && $left < 0) dao::$errors["left[$id]"] = sprintf($this->lang->error->gt, 'ID #' . $id . ' ' . $this->lang->task->left, '0');
+            if(is_numeric($left) && $estimate == 0 && $left < 0) dao::$errors["left[$id]"] = $this->lang->task->error->leftZeroEstimate;
+            if(is_numeric($consumed) && $consumed > 0) $totalConsumed += (float)$consumed;
         }
 
         if(dao::isError()) return false;
 
-        $inTeam = $this->dao->select('id')->from(TABLE_TASKTEAM)->where('task')->eq($task->id)->andWhere('account')->eq($this->app->user->account)->fetch('id');
-        if($task->team && !$inTeam) return false;
+        if($task->team && !$teamMember) return false;
 
         return $workhour;
     }

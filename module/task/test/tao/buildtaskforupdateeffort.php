@@ -3,9 +3,7 @@
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/tao.class.php';
 su('admin');
-
 /**
-
 title=taskModel->buildTaskForUpdateEffort();
 timeout=0
 cid=18863
@@ -30,7 +28,6 @@ cid=18863
  - 属性consumed @3
  - 属性left @10.00
  - 属性status @pause
-
 */
 
 $task = zenData('task');

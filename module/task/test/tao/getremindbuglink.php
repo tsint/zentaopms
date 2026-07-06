@@ -3,9 +3,7 @@
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 
 zenData('task')->loadYaml('task')->gen(9);
-
 /**
-
 title=taskModel->getRemindBugLink();
 timeout=0
 cid=18882
@@ -15,7 +13,6 @@ cid=18882
 - 获取是否关闭弹窗属性closeModal @1
 - 获取返回的链接属性link @~~
 - 获取回调函数属性callback @zui.Modal.confirm
-
 */
 
 global $tester;

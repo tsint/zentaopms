@@ -27,6 +27,11 @@ jsVar('duplicateBugID',        !empty($bug->duplicateBug) ? $bug->duplicateBug :
 
 $isEn = $app->getClientLang() == 'en';
 
+$this->app->loadLang('objecteffort');
+$effortSummary   = $effortSummary ?? (object)array('estimate' => 0, 'consumed' => 0, 'left' => 0);
+$canRecordEffort = $canRecordEffort ?? false;
+$effortLink      = $canRecordEffort ? createLink('objecteffort', 'record', "objectType=bug&objectID={$bug->id}") : '';
+
 detailHeader
 (
     to::title
@@ -226,9 +231,10 @@ detailBody
                 set::name($lang->bug->status),
                 picker
                 (
-                    set::disabled(true),
+                    set::name('status'),
                     set::items($lang->bug->statusList),
-                    set::value($bug->status)
+                    set::value($bug->status),
+                    set::required(true)
                 )
             ),
             item
@@ -351,6 +357,42 @@ detailBody
             (
                 set::name($lang->bug->mailto),
                 mailto(set::items($users), set::value($bug->mailto)),
+            )
+        ),
+        tableData
+        (
+            setClass('mt-4'),
+            set::title($lang->objecteffort->effort),
+            item
+            (
+                set::name($lang->objecteffort->estimate),
+                span(setClass('span-text'), helper::formatHours($effortSummary->estimate) . $lang->task->suffixHour)
+            ),
+            item
+            (
+                set::name($lang->objecteffort->consumed),
+                inputGroup
+                (
+                    setClass('items-center'),
+                    span
+                    (
+                        setClass('span-text'),
+                        setID('consumedSpan'),
+                        $effortSummary->consumed . $lang->task->suffixHour
+                    ),
+                    $canRecordEffort ? btn
+                    (
+                        setClass('ghost text-primary'),
+                        icon('time'),
+                        set::href($effortLink),
+                        setData('toggle', 'modal')
+                    ) : null
+                )
+            ),
+            item
+            (
+                set::name($lang->objecteffort->left),
+                span(setClass('span-text'), helper::formatHours($effortSummary->left) . $lang->task->suffixHour)
             )
         ),
         tableData

@@ -4,13 +4,23 @@ include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/tao.class.php';
 
 zenData('task')->loadYaml('task_checkhaschildren')->gen(12);
-
 /**
-
 title=taskModel->checkHasChildren();
 timeout=0
 cid=18867
 
+- 测试任务1是否为父任务 @1
+- 测试任务2是否为父任务 @1
+- 测试任务3是否为父任务 @1
+- 测试任务4是否为父任务 @0
+- 测试任务5是否为父任务 @0
+- 测试任务6是否为父任务 @0
+- 测试任务7是否为父任务 @0
+- 测试任务8是否为父任务 @0
+- 测试任务9是否为父任务 @0
+- 测试任务10是否为父任务 @0
+- 测试任务11是否为父任务 @0
+- 测试任务12是否为父任务 @0
 */
 
 $task = $tester->loadModel('task');

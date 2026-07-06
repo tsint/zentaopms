@@ -17,6 +17,7 @@ jsVar('teamLeftEmpty', $lang->task->error->teamLeftEmpty);
 jsVar('totalLeftError', sprintf($this->lang->task->error->leftEmptyAB, $this->lang->task->statusList[$task->status]));
 jsVar('estimateNotEmpty', sprintf($lang->task->error->notempty, $lang->task->estimate));
 jsVar('leftNotEmpty', sprintf($lang->task->error->notempty, $lang->task->left));
+jsVar('leftZeroEstimate', $lang->task->error->leftZeroEstimate);
 jsVar('teamNotEmpty', sprintf($lang->error->notempty, $lang->task->assignedTo));
 jsVar('isMultiple', $isMultiple);
 jsVar('taskMode', $task->mode);

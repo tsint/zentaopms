@@ -14,9 +14,7 @@ $taskteam->status->range('wait{2},done{2},wait{2}');
 $taskteam->gen(6);
 
 su('admin');
-
 /**
-
 title=taskModel->getFinishedUsers();
 timeout=0
 cid=18878
@@ -36,7 +34,6 @@ cid=18878
 - 测试子任务获取指定不存在人员多人任务的完成者 @0
 - 测试串行任务指定不存在人员获取多人任务的完成者 @0
 - 测试并行任务指定不存在人员获取多人任务的完成者 @0
-
 */
 
 $taskIdList    = array(1, 6, 7, 8, 9);

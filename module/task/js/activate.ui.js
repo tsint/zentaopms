@@ -96,7 +96,7 @@ $(document).off('click', '#confirmButton').on('click', '#confirmButton', functio
 
         if(!isNaN(estimate)) totalEstimate += estimate;
 
-        if($tr.hasClass('member-wait') && (isNaN(estimate) || estimate <= 0))
+        if($tr.hasClass('member-wait') && (isNaN(estimate) || estimate < 0))
         {
             zui.Modal.alert(account + ' ' + estimateNotEmpty);
             error = true;
@@ -109,9 +109,15 @@ $(document).off('click', '#confirmButton').on('click', '#confirmButton', functio
         let $left = $tr.find('[name^=teamLeft]');
         let left  = parseFloat($left.val());
         if(!isNaN(left)) totalLeft += left;
-        if(!$left.prop('readonly') && $tr.hasClass('member-wait') && (isNaN(left) || left <= 0))
+        if(!$left.prop('readonly') && $tr.hasClass('member-wait') && isNaN(left))
         {
             zui.Modal.alert(account + ' ' + leftNotEmpty);
+            error = true;
+            return false;
+        }
+        if(!$left.prop('readonly') && $tr.hasClass('member-wait') && estimate === 0 && left < 0)
+        {
+            zui.Modal.alert(account + ' ' + leftZeroEstimate);
             error = true;
             return false;
         }

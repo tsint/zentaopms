@@ -18,7 +18,7 @@ window.clickSubmit = function()
         let account  = $tr.find('.picker-single-selection').text();
         let estimate = parseFloat($tr.find('[name^=teamEstimate]').val());
 
-        if($tr.hasClass('member-wait') && (isNaN(estimate) || estimate <= 0))
+        if($tr.hasClass('member-wait') && (isNaN(estimate) || estimate < 0))
         {
             zui.Modal.alert(account + ' ' + estimateNotEmpty);
             error = true;
@@ -27,9 +27,15 @@ window.clickSubmit = function()
 
         let $left = $tr.find('[name^=teamLeft]');
         let left  = parseFloat($left.val());
-        if(!$left.prop('readonly') && $tr.hasClass('member-wait') && (isNaN(left) || left <= 0))
+        if(!$left.prop('readonly') && $tr.hasClass('member-wait') && isNaN(left))
         {
             zui.Modal.alert(account + ' ' + leftNotEmpty);
+            error = true;
+            return false;
+        }
+        if(!$left.prop('readonly') && $tr.hasClass('member-wait') && estimate === 0 && left < 0)
+        {
+            zui.Modal.alert(account + ' ' + leftZeroEstimate);
             error = true;
             return false;
         }

@@ -3,9 +3,7 @@
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/tao.class.php';
 su('admin');
-
 /**
-
 title=- 无消耗工时给出提示 @『ID \
 timeout=0
 cid=18865
@@ -15,37 +13,31 @@ cid=18865
  - 第1条的left属性 @5
  - 第1条的task属性 @1
  - 第1条的account属性 @admin
-
 - 以admin账号登录，构造待创建的工时信息
  - 第1条的consumed属性 @5
  - 第1条的left属性 @5
  - 第1条的task属性 @2
  - 第1条的account属性 @admin
-
 - 以admin账号登录，构造待创建的工时信息
  - 第1条的consumed属性 @5
  - 第1条的left属性 @0
  - 第1条的task属性 @3
  - 第1条的account属性 @admin
-
 - 以admin账号登录，构造待创建的工时信息
  - 第1条的consumed属性 @5
  - 第1条的left属性 @0
  - 第1条的task属性 @4
  - 第1条的account属性 @admin
-
 - 以user1账号登录，构造待创建的工时信息
  - 第1条的consumed属性 @5
  - 第1条的left属性 @5
  - 第1条的task属性 @5
  - 第1条的account属性 @user1
-
 - 以user1账号登录，构造待创建的工时信息
  - 第1条的consumed属性 @5
  - 第1条的left属性 @5
  - 第1条的task属性 @6
  - 第1条的account属性 @user1
-
 */
 $task = zenData('task');
 $task->id->range('1-7');

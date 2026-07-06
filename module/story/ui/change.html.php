@@ -26,6 +26,12 @@ jsVar('page', $this->app->rawMethod);
 
 $uid       = uniqid();
 $formItems = array();
+$formItems['status'] = section
+(
+    set::width('1/2'),
+    set::title($lang->story->status),
+    picker(set::name('status'), set::items($lang->{$story->type}->statusList), set::value('changing'), set::required(true))
+);
 $formItems['reviewer'] = section
 (
     set::width('full'),
@@ -101,7 +107,6 @@ $formItems['hidden'] = section
     set::hidden(true),
     formGroup
     (
-        input(set::type('hidden'), set::name('status'), set::value($fields['status']['default'])),
         input(set::type('hidden'), set::name('lastEditedDate'), set::value($story->lastEditedDate))
     )
 );

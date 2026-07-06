@@ -2,10 +2,9 @@
 <?php
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/tao.class.php';
-
 /**
-
 title=taskTao->createAutoUpdateTaskAction();
+timeout=0
 cid=18872
 
 - 执行task模块的createAutoUpdateTaskActionTest方法，参数是$oldParentTask 属性action @adjusttasktowait
@@ -38,7 +37,6 @@ cid=18872
 - 执行task模块的createAutoUpdateTaskActionTest方法，参数是$oldParentTask 属性action @adjusttasktowait
 - 执行task模块的createAutoUpdateTaskActionTest方法，参数是$oldParentTask 属性action @adjusttasktowait
 - 执行task模块的createAutoUpdateTaskActionTest方法，参数是$oldParentTask 属性action @adjusttasktowait
-
 */
 
 zenData('action')->gen(0);

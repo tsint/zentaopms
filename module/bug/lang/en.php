@@ -33,6 +33,7 @@ $lang->bug->repo             = 'Linked Repository';
 $lang->bug->mr               = 'Merge Request';
 $lang->bug->entry            = 'Code Path';
 $lang->bug->lines            = 'Code Line';
+$lang->bug->estimate         = 'Estimate';
 $lang->bug->v1               = 'Version 1';
 $lang->bug->v2               = 'Version 2';
 $lang->bug->issueKey         = 'Sonarqube Issue Key';

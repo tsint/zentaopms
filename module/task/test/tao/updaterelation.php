@@ -2,10 +2,9 @@
 <?php
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/tao.class.php';
-
 /**
-
 title=taskTao->updateRelation();
+timeout=0
 cid=18891
 
 - 都传入空参数 @null
@@ -13,7 +12,6 @@ cid=18891
 - 传入正常参数 @1
 - 修改关联父任务 @3
 - 解除关联 @null
-
 */
 
 zenData('relation')->gen(0);

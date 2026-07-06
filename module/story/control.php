@@ -350,6 +350,12 @@ class story extends control
         $this->view->branches     = $this->view->product->type == 'normal' ? array() : $this->loadModel('branch')->getPairs($story->product);
         $this->view->lastReviewer = $this->story->getLastReviewer($story->id);
 
+        $this->loadModel('objecteffort');
+        $this->view->effortSummary     = $this->objecteffort->getSummary($story->type, $story->id);
+        $this->view->canRecordEffort   = $this->objecteffort->canRecord($story->type, $story->id);
+        $this->view->effortExecutions  = $this->objecteffort->getExecutionPairs($story->type, $story->id);
+        $this->view->effortProjects    = $this->objecteffort->getProjectPairs($story->type, $story->id);
+
         $this->display();
     }
 

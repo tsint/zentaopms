@@ -5,7 +5,7 @@ $config->task->form = new stdclass();
 $config->task->form->team = new stdclass();
 $config->task->form->testTask = new stdclass();
 
-global $app;
+global $app, $lang;
 $account = isset($app->user->account) ? $app->user->account : '';
 
 $config->task->form->create = array();
@@ -65,7 +65,7 @@ $config->task->form->edit['keywords']       = array('type' => 'string',   'requi
 $config->task->form->edit['mode']           = array('type' => 'string',   'required' => false, 'default' => '');
 $config->task->form->edit['assignedTo']     = array('type' => 'string',   'required' => false, 'default' => '');
 $config->task->form->edit['type']           = array('type' => 'string',   'required' => true);
-$config->task->form->edit['status']         = array('type' => 'string',   'required' => true);
+$config->task->form->edit['status']         = array('type' => 'string',   'required' => false, 'control' => 'select', 'default' => '', 'options' => $lang->task->statusList);
 $config->task->form->edit['pri']            = array('type' => 'int',      'required' => false, 'default' => 0);
 $config->task->form->edit['estStarted']     = array('type' => 'date',     'required' => false, 'default' => null);
 $config->task->form->edit['realStarted']    = array('type' => 'datetime', 'required' => false, 'default' => null);

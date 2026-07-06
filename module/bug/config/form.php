@@ -35,6 +35,7 @@ $config->bug->form->create['mailto']      = array('required' => false, 'type' =>
 $config->bug->form->create['keywords']    = array('required' => false, 'type' => 'string', 'default' => '');
 $config->bug->form->create['status']      = array('required' => false, 'type' => 'string', 'default' => 'active');
 $config->bug->form->create['issueKey']    = array('required' => false, 'type' => 'string', 'default' => '');
+$config->bug->form->create['estimate']    = array('required' => false, 'type' => 'float',  'default' => 0);
 $config->bug->form->create['openedBy']    = array('required' => false, 'type' => 'string', 'default' => isset($app->user->account) ? $app->user->account : '');
 $config->bug->form->create['openedDate']  = array('required' => false, 'type' => 'date',   'default' => helper::now());
 
@@ -55,7 +56,7 @@ $config->bug->form->edit['duplicateBug']   = array('required' => false, 'type' =
 $config->bug->form->edit['severity']       = array('required' => false, 'type' => 'int',    'default' => 3);
 $config->bug->form->edit['pri']            = array('required' => false, 'type' => 'int',    'default' => 3);
 $config->bug->form->edit['type']           = array('required' => false, 'type' => 'string', 'default' => '');
-$config->bug->form->edit['status']         = array('required' => false, 'type' => 'string', 'default' => 'active');
+$config->bug->form->edit['status']         = array('required' => false, 'type' => 'string', 'control' => 'select', 'default' => 'active', 'options' => $lang->bug->statusList);
 $config->bug->form->edit['keywords']       = array('required' => false, 'type' => 'string', 'default' => '');
 $config->bug->form->edit['steps']          = array('required' => false, 'type' => 'string', 'default' => $lang->bug->tplStep . $lang->bug->tplResult . $lang->bug->tplExpect, 'control' => 'editor');
 $config->bug->form->edit['resolution']     = array('required' => false, 'type' => 'string', 'default' => '');

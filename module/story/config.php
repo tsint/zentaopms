@@ -170,9 +170,17 @@ $config->story->actionList['createBranch']['text']        = $lang->story->codeBr
 $config->story->actionList['createBranch']['url']         = helper::createLink('story', 'createBranch', 'storyID={id}');
 $config->story->actionList['createBranch']['data-toggle'] = 'modal';
 
+global $app;
+$app->loadLang('objecteffort');
+$config->story->actionList['recordWorkhour']['icon']        = 'time';
+$config->story->actionList['recordWorkhour']['text']        = $lang->objecteffort->record;
+$config->story->actionList['recordWorkhour']['hint']        = $lang->objecteffort->record;
+$config->story->actionList['recordWorkhour']['url']         = array('module' => 'objecteffort', 'method' => 'record', 'params' => 'objectType={type}&objectID={id}');
+$config->story->actionList['recordWorkhour']['data-toggle'] = 'modal';
+
 $config->story->actions = new stdclass();
 $config->story->actions->view = array();
-$config->story->actions->view['mainActions']   = array('change', 'submitReview', 'recall', 'review', 'subdivide', 'createBranch', 'assignTo', 'close', 'activate', 'importToLib', 'testcase', 'createTask');
+$config->story->actions->view['mainActions']   = array('change', 'submitReview', 'recall', 'review', 'subdivide', 'createBranch', 'assignTo', 'close', 'activate', 'importToLib', 'testcase', 'createTask', 'recordWorkhour');
 $config->story->actions->view['suffixActions'] = array('edit', 'copy', 'delete');
 
 if(!helper::hasFeature('devops')) $config->story->actions->view['mainActions'] = array_diff($config->story->actions->view['mainActions'], array('createBranch'));

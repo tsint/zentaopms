@@ -8,9 +8,7 @@ $task->name->prefix('任务')->range('1-5');
 $task->consumed->range('0,10,15,20,25');
 $task->left->range('0,0,1,5,10');
 $task->gen(5);
-
 /**
-
 title=测试computeTaskProgress
 timeout=0
 cid=18868
@@ -20,7 +18,6 @@ cid=18868
 - 测试任务消耗工时为15，剩余工时为1的情况 @94
 - 测试任务消耗工时为20，剩余工时为5的情况 @80
 - 测试任务消耗工时为25，剩余工时为10的情况 @71
-
 */
 
 $tester->loadModel('task');

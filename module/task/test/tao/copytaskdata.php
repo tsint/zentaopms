@@ -5,9 +5,7 @@ include dirname(__FILE__, 2) . '/lib/tao.class.php';
 
 zenData('task')->loadYaml('task')->gen(9);
 zenData('effort')->loadYaml('effort')->gen(3);
-
 /**
-
 title=taskModel->copyTaskData();
 timeout=0
 cid=18871
@@ -20,7 +18,6 @@ cid=18871
  - 属性name @开发任务15
  - 属性type @discuss
  - 属性pri @1
-
 */
 
 $taskIdList = array(0, 1, 2, 3, 4, 5);

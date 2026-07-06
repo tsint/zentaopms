@@ -2,9 +2,7 @@
 <?php
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/tao.class.php';
-
 /**
-
 title=taskTao->getParentStatusById();
 timeout=0
 cid=18881
@@ -33,7 +31,6 @@ cid=18881
 - 执行task模块的getParentStatusById方法，参数是41  @closed
 - 执行task模块的getParentStatusById方法，参数是42  @cancel
 - 执行task模块的getParentStatusById方法，参数是43  @cancel
-
 */
 
 $task = $tester->loadModel('task');

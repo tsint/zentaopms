@@ -376,6 +376,11 @@ $config->story->dtable->fieldList['actions']['actionsMap']['batchCreate']['data-
 $app->loadLang('task');
 $config->story->dtable->fieldList['actions']['actionsMap']['createTask']['icon']     = 'plus';
 $config->story->dtable->fieldList['actions']['actionsMap']['createTask']['hint']     = $lang->task->create;
+
+$app->loadLang('objecteffort');
+$config->story->dtable->fieldList['actions']['actionsMap']['recordWorkhour']['icon'] = 'time';
+$config->story->dtable->fieldList['actions']['actionsMap']['recordWorkhour']['hint'] = $lang->objecteffort->record;
+
 $config->story->dtable->fieldList['actions']['actionsMap']['createTask']['data-app'] = $app->tab;
 
 $config->story->dtable->fieldList['actions']['actionsMap']['batchCreateTask']['icon']     = 'pluses';

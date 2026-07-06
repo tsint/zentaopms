@@ -18,9 +18,7 @@ $effort->consumed->range('1,1,1');
 $effort->left->range('1,1,0');
 $effort->deleted->range('0');
 $effort->gen(3);
-
 /**
-
 title=获取删除工时后的任务
 timeout=0
 cid=18884
@@ -37,7 +35,6 @@ cid=18884
  - 属性consumed @1
  - 属性left @1
  - 属性status @doing
-
 */
 
 $task = new taskTaoTest();

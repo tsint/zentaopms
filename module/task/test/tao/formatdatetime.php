@@ -1,8 +1,6 @@
 #!/usr/bin/env php
 <?php
-
 /**
-
 title=测试 taskTao::formatDatetime();
 timeout=0
 cid=18877
@@ -14,7 +12,6 @@ cid=18877
 - 测试零日期转换后不再是0000-00-00属性deadline @0
 - 测试零日期时间转换后不再是0000-00-00 00:00:00属性openedDate @0
 - 测试空字符串日期转换为null后检查转换属性deadline @1
-
 */
 
 include dirname(__FILE__, 5) . '/test/lib/init.php';

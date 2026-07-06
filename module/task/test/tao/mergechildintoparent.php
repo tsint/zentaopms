@@ -2,10 +2,9 @@
 <?php
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/tao.class.php';
-
 /**
-
 title=taskTao->mergeChildIntoParent();
+timeout=0
 cid=18887
 
 - 传入空数组。 @0
@@ -15,7 +14,6 @@ cid=18887
 - 检查归并后的第四个任务 @5
 - 检查归并后的第五个任务 @4
 - 检查归并后的最后一个任务 @7
-
 */
 
 $tasks = array();

@@ -1,8 +1,6 @@
 #!/usr/bin/env php
 <?php
-
 /**
-
 title=测试 taskTao::getRequiredFields4Edit();
 timeout=0
 cid=18883
@@ -14,7 +12,6 @@ cid=18883
 - 步骤3：doing状态任务且left为空检查错误属性left @任务状态为进行中时，预计剩余不能为0
 - 步骤4：pause状态任务且left为空检查错误属性left @任务状态为已暂停时，预计剩余不能为0
 - 步骤5：wait状态任务不受left限制 @execution,name,type
-
 */
 
 // 1. 导入依赖（路径固定，不可修改）

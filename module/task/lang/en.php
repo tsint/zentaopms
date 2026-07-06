@@ -333,6 +333,7 @@ $lang->task->error->consumedNumber    = 'Current Cost must be a number.';
 $lang->task->error->estimateNumber    = 'Initial Estimation must be a positive number.';
 $lang->task->error->leftNumber        = 'Remaining must be a number.';
 $lang->task->error->recordMinus       = '%s cannot be a negative number.';
+$lang->task->error->leftZeroEstimate  = 'Remaining hours cannot be negative when the estimate is 0.';
 $lang->task->error->consumedSmall     = 'Total Cost must be greater than the previous spent hours.';
 $lang->task->error->dateEmpty         = 'Please enter the Date.';
 $lang->task->error->consumedThisTime  = 'Please enter the Cost.';

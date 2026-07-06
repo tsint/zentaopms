@@ -4,13 +4,47 @@ include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/tao.class.php';
 
 zenData('taskteam')->gen(0);
-
 /**
-
 title=taskModel->batchComputeProgress();
 timeout=0
 cid=18890
 
+- 创建串行多人任务的成员信息
+ - 属性account @admin
+ - 属性estimate @1.00
+ - 属性status @wait
+- 创建串行多人任务的成员信息
+ - 属性account @user1
+ - 属性estimate @1.00
+ - 属性status @doing
+- 创建串行多人任务的成员信息
+ - 属性account @user2
+ - 属性estimate @1.00
+ - 属性status @done
+- 创建并行多人任务的成员信息
+ - 属性account @admin
+ - 属性estimate @1.00
+ - 属性status @wait
+- 创建并行多人任务的成员信息
+ - 属性account @user1
+ - 属性estimate @1.00
+ - 属性status @doing
+- 创建并行多人任务的成员信息
+ - 属性account @user2
+ - 属性estimate @1.00
+ - 属性status @done
+- 更新并行多人任务的成员信息
+ - 属性account @admin
+ - 属性estimate @2.00
+ - 属性status @wait
+- 更新并行多人任务的成员信息
+ - 属性account @user1
+ - 属性estimate @2.00
+ - 属性status @doing
+- 更新并行多人任务的成员信息
+ - 属性account @user2
+ - 属性estimate @2.00
+ - 属性status @done
 */
 
 $memberList[] = array('task' => 1, 'account' => 'admin', 'estimate' => 1, 'consumed' => 0, 'left' => 1, 'status' => 'wait');

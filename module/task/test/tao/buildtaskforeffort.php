@@ -3,10 +3,8 @@
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/tao.class.php';
 su('admin');
-
 /**
-
-title= 测试buildTaskforEffort方法
+title=测试buildTaskforEffort方法
 timeout=0
 cid=18862
 
@@ -70,7 +68,6 @@ cid=18862
  - 第0条的left属性 @3.00
  - 第0条的estimate属性 @2.00
  - 第0条的status属性 @doing
-
 */
 $task = zenData('project');
 $task->id->range('1-7');

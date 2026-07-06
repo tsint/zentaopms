@@ -60,7 +60,7 @@ $config->story->form->edit['notifyEmail']    = array('type' => 'string',  'contr
 $config->story->form->edit['keywords']       = array('type' => 'string',  'control' => 'text',         'required' => false, 'default' => '');
 $config->story->form->edit['mailto']         = array('type' => 'array',   'control' => 'multi-select', 'required' => false, 'default' => '', 'filter' => 'join', 'options' => 'users');
 $config->story->form->edit['reviewer']       = array('type' => 'array',   'control' => 'multi-select', 'required' => false, 'default' => '', 'options' => 'users');
-$config->story->form->edit['status']         = array('type' => 'string',  'control' => 'hidden',       'required' => false, 'default' => 'active');
+$config->story->form->edit['status']         = array('type' => 'string',  'control' => 'select',       'required' => false, 'default' => '', 'options' => $lang->story->statusList);
 $config->story->form->edit['assignedTo']     = array('type' => 'string',  'control' => 'select',       'required' => false, 'default' => '', 'options' => 'users');
 $config->story->form->edit['closedBy']       = array('type' => 'string',  'control' => 'select',       'required' => false, 'default' => '', 'options' => 'users');
 $config->story->form->edit['closedReason']   = array('type' => 'string',  'control' => 'select',       'required' => false, 'default' => '', 'options' => $lang->story->reasonList);
@@ -127,7 +127,7 @@ $config->story->form->change['color']          = array('type' => 'string',  'con
 $config->story->form->change['spec']           = array('type' => 'string',  'control' => 'editor',       'required' => false, 'default' => '');
 $config->story->form->change['verify']         = array('type' => 'string',  'control' => 'editor',       'required' => false, 'default' => '');
 $config->story->form->change['relievedTwins']  = array('type' => 'string',  'control' => 'text',         'required' => false, 'default' => '1');
-$config->story->form->change['status']         = array('type' => 'string',  'control' => 'hidden',       'required' => false, 'default' => '');
+$config->story->form->change['status']         = array('type' => 'string',  'control' => 'select',       'required' => false, 'default' => '', 'options' => $lang->story->statusList);
 $config->story->form->change['lastEditedDate'] = array('type' => 'string',  'control' => 'hidden',       'required' => false, 'default' => '');
 $config->story->form->change['deleteFiles']    = array('type' => 'array',   'control' => 'hidden',       'required' => false, 'default' => array());
 $config->story->form->change['renameFiles']    = array('type' => 'array',   'control' => 'hidden',       'required' => false, 'default' => array());

@@ -1,8 +1,6 @@
 #!/usr/bin/env php
 <?php
-
 /**
-
 title=测试 taskTao::recordTaskVersion();
 timeout=0
 cid=18888
@@ -12,7 +10,6 @@ cid=18888
 - 执行taskTest模块的recordTaskVersionTest方法  @1
 - 执行taskTest模块的recordTaskVersionTest方法  @1
 - 执行taskTest模块的recordTaskVersionTest方法  @0
-
 */
 
 include dirname(__FILE__, 5) . '/test/lib/init.php';

@@ -24,6 +24,7 @@ jsVar('oldConsumed', $task->consumed);
 jsVar('objectID', $execution->multiple ? $execution->id : $execution->project);
 jsVar('taskStatus', $taskStatus);
 jsVar('currentUser', $app->user->account);
+jsVar('isAdmin', $app->user->admin);
 jsVar('team', array_values($task->members));
 jsVar('members', $members);
 jsVar('page', 'edit');
@@ -31,8 +32,9 @@ jsVar('confirmChangeExecution', $lang->task->confirmChangeExecution);
 jsVar('teamMemberError', $lang->task->error->teamMember);
 jsVar('totalLeftError', sprintf($this->lang->task->error->leftEmptyAB, zget($this->lang->task->statusList, $taskStatus)));
 jsVar('confirmRecord', $lang->task->confirmRecord);
-jsVar('estimateNotEmpty', sprintf($lang->error->gt, $lang->task->estimate, '0'));
+jsVar('estimateNotEmpty', sprintf($lang->error->ge, $lang->task->estimate, '0'));
 jsVar('leftNotEmpty', sprintf($lang->error->gt, $lang->task->left, '0'));
+jsVar('leftZeroEstimate', $lang->task->error->leftZeroEstimate);
 jsVar('requiredFields', $config->task->edit->requiredFields);
 jsVar('+parentEstStarted', !empty($parentTask) ? $parentTask->estStarted : '');
 jsVar('+parentDeadline', !empty($parentTask) ? $parentTask->deadline : '');
@@ -105,7 +107,7 @@ if(!empty($task->team))
             $member->memberDisabled = true;
         }
 
-        $member->hourDisabled = $member->memberDisabled;
+        $member->hourDisabled = !$app->user->admin && $member->memberDisabled;
     }
 }
 
@@ -524,7 +526,7 @@ detailBody
                         (
                             set::name('estimate'),
                             set::value(helper::formatHours($task->estimate)),
-                            !empty($task->team) || !empty($task->children) ? set::readonly(true) : null
+                            (!empty($task->team) || !empty($task->children)) && !$app->user->admin ? set::readonly(true) : null
                         ),
                         to::suffix($lang->task->suffixHour),
                         set::suffixWidth(20)
@@ -564,7 +566,7 @@ detailBody
                         (
                             set::name('left'),
                             set::value(helper::formatHours($task->left)),
-                            !empty($task->team) || !empty($task->children) ? set::readonly(true) : null
+                            (!empty($task->team) || !empty($task->children)) && !$app->user->admin ? set::readonly(true) : null
                         ),
                         to::suffix($lang->task->suffixHour),
                         set::suffixWidth(20)

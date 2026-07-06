@@ -59,9 +59,7 @@ $module = zenData('module');
 $module->root->range('1-5');
 $module->type->range('story');
 $module->gen(5);
-
 /**
-
 title=taskModel->fetchUserTasksByType();
 timeout=0
 cid=18876
@@ -77,7 +75,6 @@ cid=18876
 - 查看项目1下由用户1完成的任务数量 @11
 - 查看不存在的项目下由用户1完成的任务 @0
 - 查看不存在的项目下由用户1完成的任务数量 @0
-
 */
 $task = new taskTaoTest();
 

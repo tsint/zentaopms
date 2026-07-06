@@ -2,13 +2,8 @@
 <?php
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/tao.class.php';
-
 /**
-
 title=测试taskModel->doUpdate();
-timeout=0
-cid=18874
-
 timeout=0
 cid=18874
 
@@ -28,7 +23,6 @@ cid=18874
 - 测试修改任务截止时间属性deadline @2022-03-29
 - 测试修改任务关闭原因第closedReason条的0属性 @『关闭原因』必须为空。
 - 测试修改任务的父任务属性parent @1
-
 */
 
 $execution = zenData('project');

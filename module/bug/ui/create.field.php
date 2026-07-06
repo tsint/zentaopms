@@ -82,6 +82,13 @@ $fields->field('mailto')->foldable();
 
 $fields->field('keywords')->foldable();
 
+/* 工时预计：可选输入，创建 bug 时录入初始 estimate。 */
+$fields->field('estimate')
+    ->label($lang->bug->estimate)
+    ->width('1/4')
+    ->control('input', array('type' => 'number', 'min' => '0', 'step' => '0.5', 'placeholder' => $lang->bug->estimate))
+    ->foldable();
+
 $fields->field('module')->className($isShadowProduct ? 'w-1/2' : 'w-1/4')->className('full:w-1/2');
 
 $fields->field('openedBuild')->className($isShadowProduct ? 'w-1/2' : 'w-1/4')->className('full:w-1/2');

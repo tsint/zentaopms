@@ -1,13 +1,11 @@
 #!/usr/bin/env php
 <?php
-
 /**
-
 title=测试 taskTao::getTeamInfoList();
 timeout=0
 cid=18885
 
-- 执行taskTest模块的getTeamInfoListTest方法，参数是array
+- 执行taskTest模块的getTeamInfoListTest方法，参数是array 
  - 第0条的account属性 @admin
  - 第0条的estimate属性 @8
  - 第0条的consumed属性 @2
@@ -21,7 +19,7 @@ cid=18885
  - 第2条的consumed属性 @0
  - 第2条的left属性 @4
 - 执行taskTest模块的getTeamInfoListTest方法，参数是array  @0
-- 执行taskTest模块的getTeamInfoListTest方法，参数是array
+- 执行taskTest模块的getTeamInfoListTest方法，参数是array 
  - 第0条的account属性 @admin
  - 第0条的estimate属性 @8
  - 第0条的consumed属性 @2
@@ -30,7 +28,7 @@ cid=18885
  - 第2条的estimate属性 @4
  - 第2条的consumed属性 @0
  - 第2条的left属性 @4
-- 执行taskTest模块的getTeamInfoListTest方法，参数是array
+- 执行taskTest模块的getTeamInfoListTest方法，参数是array 
  - 第0条的account属性 @admin
  - 第0条的estimate属性 @8
  - 第0条的consumed属性 @2
@@ -39,7 +37,7 @@ cid=18885
  - 第1条的estimate属性 @16
  - 第1条的consumed属性 @8
  - 第1条的left属性 @8
-- 执行taskTest模块的getTeamInfoListTest方法，参数是array
+- 执行taskTest模块的getTeamInfoListTest方法，参数是array 
  - 第0条的account属性 @admin
  - 第0条的estimate属性 @0
  - 第0条的consumed属性 @0
@@ -48,7 +46,6 @@ cid=18885
  - 第1条的estimate属性 @5
  - 第1条的consumed属性 @3
  - 第1条的left属性 @2
-
 */
 
 include dirname(__FILE__, 5) . '/test/lib/init.php';

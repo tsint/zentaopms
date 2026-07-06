@@ -15,9 +15,7 @@ $task->closedBy->range('[],admin,[]{7}');
 
 $task->gen(9);
 su('admin');
-
 /**
-
 title=taskModel->buildTaskTree();
 timeout=0
 cid=18864
@@ -31,7 +29,6 @@ cid=18864
 - 测试数据中有父子任务时，重构结构后的任务数量 @2
 - 测试数据中只有父任务时，重构结构后的父任务的名称第1条的name属性 @父任务1
 - 测试数据中只有父任务时，重构结构后的任务数量 @3
-
 */
 
 $taskTester = new taskTaoTest();

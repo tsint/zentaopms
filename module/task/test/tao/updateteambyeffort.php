@@ -3,9 +3,7 @@
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/tao.class.php';
 su('user1');
-
 /**
-
 title=检查根据effortID更新任务团队工时
 timeout=0
 cid=18893
@@ -16,7 +14,6 @@ cid=18893
 - 通过ID为3的日志更新任务团队工时第0条的consumed属性 @1.00
 - 通过ID为4的日志更新任务团队工时第0条的consumed属性 @0.00
 - 通过ID为4的日志更新任务团队工时第0条的consumed属性 @1.00
-
 */
 $task = zenData('task');
 $task->id->range('1-7');

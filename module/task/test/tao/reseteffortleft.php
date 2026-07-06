@@ -5,13 +5,22 @@ include dirname(__FILE__, 2) . '/lib/tao.class.php';
 
 zenData('task')->loadYaml('task')->gen(9);
 zenData('effort')->loadYaml('effort')->gen(3);
-
 /**
-
 title=taskModel->resetEffortLeft();
 timeout=0
 cid=18889
 
+- 测试任务ID为空，用户名为空的情况 @0
+- 测试任务ID为空，用户名不存在的情况 @0
+- 测试任务ID为空，用户名正确的情况 @0
+- 测试任务ID正确，用户名为空的情况 @0
+- 测试任务ID正确，用户名不存在的情况 @0
+- 测试任务ID正确，用户名正确的情况
+ - 属性id @1
+ - 属性left @0
+- 测试任务ID错误，用户名为空的情况 @0
+- 测试任务ID错误，用户名不存在的情况 @0
+- 测试任务ID错误，用户名正确的情况 @0
 */
 
 $taskIdList = array(0, 1, 5);

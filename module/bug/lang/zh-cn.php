@@ -32,6 +32,7 @@ $lang->bug->repo             = '所属版本库';
 $lang->bug->mr               = '合并请求';
 $lang->bug->entry            = '代码路径';
 $lang->bug->lines            = '代码行';
+$lang->bug->estimate         = '工时预计';
 $lang->bug->v1               = '版本1';
 $lang->bug->v2               = '版本2';
 $lang->bug->issueKey         = 'Sonarqube问题键值';

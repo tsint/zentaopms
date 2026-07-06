@@ -6,9 +6,7 @@ su('admin');
 
 zenData('project')->loadYaml('project', true)->gen(10);
 zenData('task')->loadYaml('task', true)->gen(30);
-
 /**
-
 title=测试updateTaskEsDateByGantt方法
 timeout=0
 cid=18892
@@ -22,7 +20,6 @@ cid=18892
 - 测试更新子任务 @1
 - 测试更新串行任务 @1
 - 测试更新并行任务 @1
-
 */
 
 $taskIdList = array(1, 6, 7, 8, 9);

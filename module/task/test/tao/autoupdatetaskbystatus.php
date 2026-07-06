@@ -2,50 +2,49 @@
 <?php
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/tao.class.php';
-
 /**
-
 title=taskTao->autoUpdateTaskByStatus();
+timeout=0
 cid=18860
 
-- 执行task模块的autoUpdateTaskByStatusTest方法，参数是$parentTask, $childTask, 'done'
+- 执行task模块的autoUpdateTaskByStatusTest方法，参数是$parentTask, $childTask, 'done' 
  - 属性status @done
  - 属性assignedTo @user1
  - 属性assignedDate @~c:<3~
  - 属性finishedBy @user4
  - 属性finishedDate @~c:<3~
-- 执行task模块的autoUpdateTaskByStatusTest方法，参数是$parentTask, $childTask, 'cancel'
+- 执行task模块的autoUpdateTaskByStatusTest方法，参数是$parentTask, $childTask, 'cancel' 
  - 属性status @cancel
  - 属性assignedTo @user1
  - 属性assignedDate @~c:<3~
  - 属性canceledBy @user4
  - 属性canceledDate @~c:<3~
-- 执行task模块的autoUpdateTaskByStatusTest方法，参数是$parentTask, $childTask, 'cancel'
+- 执行task模块的autoUpdateTaskByStatusTest方法，参数是$parentTask, $childTask, 'cancel' 
  - 属性status @cancel
  - 属性assignedTo @user1
  - 属性assignedDate @~c:<3~
  - 属性canceledBy @user4
  - 属性canceledDate @~c:<3~
-- 执行task模块的autoUpdateTaskByStatusTest方法，参数是$parentTask, $childTask, 'closed'
+- 执行task模块的autoUpdateTaskByStatusTest方法，参数是$parentTask, $childTask, 'closed' 
  - 属性status @closed
  - 属性assignedTo @closed
  - 属性assignedDate @~c:<3~
  - 属性closedBy @user4
  - 属性closedDate @~c:<3~
  - 属性closedReason @done
-- 执行task模块的autoUpdateTaskByStatusTest方法，参数是$parentTask, $childTask, 'doing'
+- 执行task模块的autoUpdateTaskByStatusTest方法，参数是$parentTask, $childTask, 'doing' 
  - 属性status @doing
  - 属性finishedBy @~~
  - 属性finishedDate @~c:>100~
  - 属性closedBy @~~
  - 属性closedDate @~c:>100~
-- 执行task模块的autoUpdateTaskByStatusTest方法，参数是$parentTask, $childTask, 'wait'
+- 执行task模块的autoUpdateTaskByStatusTest方法，参数是$parentTask, $childTask, 'wait' 
  - 属性status @wait
  - 属性finishedBy @~~
  - 属性finishedDate @~c:>100~
  - 属性closedBy @~~
  - 属性closedDate @~c:>100~
-- 执行task模块的autoUpdateTaskByStatusTest方法，参数是$parentTask, $childTask, 'doing'
+- 执行task模块的autoUpdateTaskByStatusTest方法，参数是$parentTask, $childTask, 'doing' 
  - 属性status @doing
  - 属性finishedBy @~~
  - 属性finishedDate @~c:>100~
@@ -53,10 +52,9 @@ cid=18860
  - 属性closedDate @~c:>100~
  - 属性assignedTo @user3
  - 属性assignedDate @~c:<3~
-- 执行task模块的autoUpdateTaskByStatusTest方法，参数是$parentTask, $childTask, 'doing'
+- 执行task模块的autoUpdateTaskByStatusTest方法，参数是$parentTask, $childTask, 'doing' 
  - 属性lastEditedBy @user4
  - 属性lastEditedDate @~c:<3~
-
 */
 
 zenData('user')->loadYaml('user')->gen(5);

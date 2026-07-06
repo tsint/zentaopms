@@ -7,7 +7,7 @@ cid=0
 
 - 执行$status1 @closed
 - 执行$status2 @closed
-- 执行$result3Ok @0
+- 执行$result3Ok @1
 - 执行$status4 @closed
 */
 include dirname(__FILE__, 5) . '/test/lib/init.php';
@@ -78,7 +78,8 @@ $tester->story->close($storyID, $postData2);
 $fetched2 = $tester->dao->select('status')->from(TABLE_STORY)->where('id')->eq($storyID)->fetch();
 $status2 = $fetched2 ? $fetched2->status : 'MISSING';
 
-/* Case 3: workflow forbids close by removing the close transition. */
+/* Case 3: workflow enabled but with only submitreview transition — close is still available
+   via auto-injection (ensures lifecycle actions are always accessible). */
 $resetToActive();
 $def3 = $defaultDef;
 $def3['transitions'] = array_values(array_filter($def3['transitions'], fn($t) => $t['action'] !== 'close'));
@@ -86,7 +87,7 @@ $tester->statetransition->saveDefinition('story', 0, $def3, 0, true);
 $postData3 = new stdclass();
 $postData3->closedReason = 'done';
 $postData3->status = 'closed';
-$_POST['comment'] = 'workflow forbids close';
+$_POST['comment'] = 'workflow still allows close via auto-injection';
 $result3 = $tester->story->close($storyID, $postData3);
 $result3Ok = $result3 === false ? '0' : '1';
 
@@ -108,5 +109,5 @@ $tester->dao->update(TABLE_STORY)->set('status')->eq('active')->where('id')->eq(
 
 r($status1) && p() && e('closed');
 r($status2) && p() && e('closed');
-r($result3Ok) && p() && e('0');
+r($result3Ok) && p() && e('1');
 r($status4) && p() && e('closed');

@@ -301,6 +301,110 @@ class statetransitionTao extends statetransitionModel
     }
 
     /**
+     * Inject default close/activate/resolve transitions for non-terminal statuses.
+     *
+     * Called at runtime (not during normalization) so the stored definition stays clean
+     * and admins can remove unwanted transitions. Auto-injected transitions are appended
+     * to the transitions array and marked with isAutoInjected=true.
+     *
+     * @param  array  $def        normalized definition
+     * @param  string $objectType bug|story|task|epic|requirement
+     * @return array  updated transitions array
+     * @access protected
+     */
+    protected function injectDefaultTransitions(array $def, string $objectType): array
+    {
+        $transitions = $def['transitions'];
+
+        /* Determine which lifecycle actions apply to this object type. */
+        $lifecycleActions = array();
+        if(in_array($objectType, array('story', 'epic', 'requirement'), true))
+        {
+            $lifecycleActions = array(
+                'close'    => array('toStatus' => 'closed',   'label' => array('zh_cn' => '关闭', 'en' => 'Close'),    'icon' => 'off',   'branch' => null),
+                'activate' => array('toStatus' => 'active',   'label' => array('zh_cn' => '激活', 'en' => 'Activate'), 'icon' => 'play',  'branch' => null),
+            );
+        }
+        elseif($objectType === 'bug')
+        {
+            $lifecycleActions = array(
+                'resolve'  => array('toStatus' => 'resolved', 'label' => array('zh_cn' => '解决', 'en' => 'Resolve'),  'icon' => 'check', 'branch' => null),
+                'close'    => array('toStatus' => 'closed',   'label' => array('zh_cn' => '关闭', 'en' => 'Close'),    'icon' => 'off',   'branch' => null),
+                'activate' => array('toStatus' => 'active',   'label' => array('zh_cn' => '激活', 'en' => 'Activate'), 'icon' => 'play',  'branch' => null),
+            );
+        }
+        elseif($objectType === 'task')
+        {
+            $lifecycleActions = array(
+                'close'    => array('toStatus' => 'closed',   'label' => array('zh_cn' => '关闭', 'en' => 'Close'),    'icon' => 'off',   'branch' => null),
+                'activate' => array('toStatus' => 'doing',    'label' => array('zh_cn' => '激活', 'en' => 'Activate'), 'icon' => 'play',  'branch' => null),
+            );
+        }
+
+        if(empty($lifecycleActions)) return $transitions;
+
+        /* Build a set of existing (fromStatus, action) pairs to avoid duplicates. */
+        $existingPairs = array();
+        foreach($transitions as $tr)
+        {
+            $pairKey = ($tr['fromStatus'] ?? '') . '|' . ($tr['action'] ?? '');
+            $existingPairs[$pairKey] = true;
+        }
+
+        /* Find terminal statuses (category='terminal') — skip injecting outgoing transitions for them. */
+        $terminalStatuses = array();
+        foreach($def['statuses'] as $s)
+        {
+            if(($s['category'] ?? 'normal') === 'terminal') $terminalStatuses[$s['key']] = true;
+        }
+
+        /* For each non-terminal status, inject missing lifecycle transitions. */
+        $maxOrder = 0;
+        foreach($transitions as $tr)
+        {
+            $order = (int)($tr['buttonOrder'] ?? 0);
+            if($order > $maxOrder) $maxOrder = $order;
+        }
+
+        foreach($def['statuses'] as $s)
+        {
+            $statusKey = $s['key'] ?? '';
+            if($statusKey === '' || isset($terminalStatuses[$statusKey])) continue;
+
+            foreach($lifecycleActions as $action => $config)
+            {
+                $pairKey = $statusKey . '|' . $action;
+                if(isset($existingPairs[$pairKey])) continue;
+
+                $maxOrder++;
+                $branchSuffix = $config['branch'] === null ? '' : '-' . $config['branch'];
+                $transitions[] = array(
+                    'key'             => $statusKey . '-to-' . $config['toStatus'] . '-via-' . $action . $branchSuffix,
+                    'fromStatus'      => $statusKey,
+                    'toStatus'        => $config['toStatus'],
+                    'action'          => $action,
+                    'branch'          => $config['branch'],
+                    'label'           => $config['label'],
+                    'roles'           => array(),
+                    'accounts'        => array(),
+                    'requireComment'  => false,
+                    'enabled'         => true,
+                    'isCustom'        => false,
+                    'buttonLabel'     => $config['label'],
+                    'buttonIcon'      => $config['icon'],
+                    'buttonOrder'     => $maxOrder,
+                    'buttonGroup'     => 'primary',
+                    'sideEffects'     => array(),
+                    'condition'       => null,
+                );
+                $existingPairs[$pairKey] = true;
+            }
+        }
+
+        return $transitions;
+    }
+
+    /**
      * Find the matching transitions for a (fromStatus, action[, branch]) query.
      *
      * Returns array of matching enabled transitions. Caller decides what to do with multiple.

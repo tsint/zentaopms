@@ -214,4 +214,17 @@ class statetransitionModelTest extends baseTest
     {
         return $this->instance->getDefaultToStatus($objectType, $productID, $fromStatus, $action, $branch);
     }
+
+    /**
+     * Run getFieldsForStatus().
+     *
+     * @param  string $objectType
+     * @param  string $toStatus
+     * @access public
+     * @return array
+     */
+    public function getFieldsForStatusTest(string $objectType, string $toStatus): array
+    {
+        return $this->instance->getFieldsForStatus($objectType, $toStatus);
+    }
 }

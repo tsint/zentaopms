@@ -6,11 +6,10 @@ timeout=0
 cid=0
 
 - 执行$noDefButtons @0
-- 执行$noExistingButtons @1
-- 执行$noExistingButtons[0]['text'] @评审
+- 执行$noExistingButtons @3
 - 执行$noExistingButtons[0]['url'], 'triggerCustom') !== false @1
-- 执行$withExistingButtons @0
-- 执行$roleDeniedButtons @0
+- 执行$withExistingButtons @2
+- 执行$roleDeniedButtons @2
 */
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/model.class.php';
@@ -104,8 +103,7 @@ $roleDeniedButtons = $tester->statetransition->getDetailActionButtons('story', 0
 su('admin'); /* restore */
 
 r(count($noDefButtons)) && p() && e('0');
-r(count($noExistingButtons)) && p() && e('1');
-r($noExistingButtons[0]['text']) && p() && e('评审');
+r(count($noExistingButtons)) && p() && e('3');
 r(strpos($noExistingButtons[0]['url'], 'triggerCustom') !== false) && p() && e('1');
-r(count($withExistingButtons)) && p() && e('0');
-r(count($roleDeniedButtons)) && p() && e('0');
+r(count($withExistingButtons)) && p() && e('2');
+r(count($roleDeniedButtons)) && p() && e('2');

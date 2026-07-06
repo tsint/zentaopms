@@ -24,7 +24,10 @@ formPanel
 (
     set::submitBtnText($label),
     $requireComment ? set::requiredFields('comment') : null,
-    formGroup
+    /* Hide the assignee picker when the target status is 'closed' —
+       assignedTo is auto-set to 'closed' by the controller, just like
+       the native close() methods. */
+    ($toStatus ?? '') !== 'closed' ? formGroup
     (
         set::width('1/2'),
         set::label($lang->statetransition->assignedTo),
@@ -34,7 +37,7 @@ formPanel
             set::items($assignedToItems),
             set::value($assignedTo)
         )
-    ),
+    ) : null,
     formGroup
     (
         set::label($lang->comment),

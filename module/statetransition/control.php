@@ -226,6 +226,7 @@ class statetransition extends control
             $this->view->objectID   = $objectID;
             $this->view->transitionKey = $transitionKey;
             $this->view->requireComment = !empty($transition['requireComment']);
+            $this->view->toStatus       = $transition['toStatus'];
             /* Provide user list so the modal can render an assignee picker — users have
                asked to be able to set 负责人 during a transition, not just after. */
             $this->view->users      = $this->loadModel('user')->getPairs('noclosed|nodeleted');
@@ -245,34 +246,52 @@ class statetransition extends control
         );
         if(!$decision->ok) return $this->send(array('result' => 'fail', 'message' => $decision->errorMessage));
 
-        /* Update the object's status, lastEdited info, and assignedTo (if user picked one).
-           Allowing assignee changes during transition lets the workflow hand off responsibility
-           to the next person — e.g., assign to QA after dev finishes, or back to dev after QA fails. */
+        /* Update the object's status and status-specific fields.
+           getFieldsForStatus() returns the field mapping that mirrors native close/activate/resolve
+           methods, so custom transitions produce the same database state. */
         $tableName  = $moduleName === 'story' ? TABLE_STORY : ($moduleName === 'bug' ? TABLE_BUG : TABLE_TASK);
         $assignedTo = (string)($this->post->assignedTo ?? '');
         $newObject  = clone $object;
         $newObject->status = $decision->toStatus;
-        $hasAssigneeChange = false;
-        if($assignedTo !== '' && $assignedTo !== ($object->assignedTo ?? ''))
+        $now = helper::now();
+        $account = $this->app->user->account;
+
+        /* Get status-specific fields (closed→assignedTo=closed, active→activatedDate, etc.). */
+        $statusFields = $this->statetransition->getFieldsForStatus($objectType, $decision->toStatus);
+
+        /* Resolve special markers to actual values. */
+        $resolved = array();
+        foreach($statusFields as $field => $value)
         {
-            $this->dao->update($tableName)
-                ->set('status')->eq($decision->toStatus)
-                ->set('assignedTo')->eq($assignedTo)
-                ->set('lastEditedBy')->eq($this->app->user->account)
-                ->set('lastEditedDate')->eq(helper::now())
-                ->where('id')->eq($objectID)
-                ->exec();
-            $newObject->assignedTo = $assignedTo;
-            $hasAssigneeChange = true;
+            if($value === 'now')       $resolved[$field] = $now;
+            elseif($value === 'user')  $resolved[$field] = $account;
+            else                       $resolved[$field] = $value;
         }
-        else
+
+        /* If user explicitly picked an assignee and the target is NOT 'closed' (which
+           hardcodes assignedTo='closed'), honour the user's choice. */
+        if($decision->toStatus !== 'closed' && $assignedTo !== '' && $assignedTo !== ($object->assignedTo ?? ''))
         {
-            $this->dao->update($tableName)
-                ->set('status')->eq($decision->toStatus)
-                ->set('lastEditedBy')->eq($this->app->user->account)
-                ->set('lastEditedDate')->eq(helper::now())
-                ->where('id')->eq($objectID)
-                ->exec();
+            $resolved['assignedTo'] = $assignedTo;
+        }
+
+        /* Always set lastEditedBy/Date. */
+        $resolved['lastEditedBy']   = $account;
+        $resolved['lastEditedDate'] = $now;
+
+        /* Build and execute the UPDATE. */
+        $dao = $this->dao->update($tableName)->where('id')->eq($objectID);
+        foreach($resolved as $field => $value)
+        {
+            if($value === null) $dao->set($field)->eq(null);
+            else                $dao->set($field)->eq($value);
+        }
+        $dao->exec();
+
+        /* Track changes for audit log. */
+        foreach($resolved as $field => $value)
+        {
+            if(is_object($newObject) && property_exists($newObject, $field)) $newObject->$field = $value;
         }
 
         /* Record an action with history so assignee/status changes appear in the audit log

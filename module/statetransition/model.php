@@ -108,6 +108,27 @@ class statetransitionModel extends model
     }
 
     /**
+     * Get definition with auto-injected lifecycle transitions (close/activate/resolve).
+     *
+     * Unlike getDefinition(), this appends default transitions at runtime so that
+     * every non-terminal node supports essential lifecycle actions. The stored
+     * definition is NOT modified — admins retain full control over what's persisted.
+     *
+     * @param  string $objectType
+     * @param  int    $productID
+     * @return array|null
+     * @access public
+     */
+    public function getEffectiveDefinition(string $objectType, int $productID): ?array
+    {
+        $row = $this->getDefinition($objectType, $productID);
+        if($row === null) return null;
+
+        $row['definition']['transitions'] = $this->injectDefaultTransitions($row['definition'], $objectType);
+        return $row;
+    }
+
+    /**
      * Fetch a single definition row from DB (with cache).
      *
      * @param  string $scope
@@ -316,7 +337,7 @@ class statetransitionModel extends model
             return transitionDecision::fail('objectTypeInvalid', $this->lang->statetransition->errors['objectTypeInvalid']);
         }
 
-        $row = $this->getDefinition($objectType, $productID);
+        $row = $this->getEffectiveDefinition($objectType, $productID);
         if($row === null)
         {
             /* No definition → unrestricted. Caller must fall back to business default. */
@@ -442,7 +463,7 @@ class statetransitionModel extends model
             return transitionDecision::fail('objectTypeInvalid', $this->lang->statetransition->errors['objectTypeInvalid']);
         }
 
-        $row = $this->getDefinition($objectType, $productID);
+        $row = $this->getEffectiveDefinition($objectType, $productID);
         if($row === null || !$row['enabled'])
         {
             return $this->unrestricted($objectType, $fromStatus, '', null);
@@ -475,7 +496,7 @@ class statetransitionModel extends model
      */
     public function isActionAllowed(string $objectType, int $productID, string $fromStatus, string $action, ?object $actor = null): bool
     {
-        $row = $this->getDefinition($objectType, $productID);
+        $row = $this->getEffectiveDefinition($objectType, $productID);
         if($row === null || !$row['enabled']) return true; /* Unrestricted → allow all. */
 
         $definition = $row['definition'];
@@ -720,7 +741,7 @@ class statetransitionModel extends model
     {
         if(!$this->config->statetransition->globalEnabled) return array();
 
-        $row = $this->getDefinition($objectType, $productID);
+        $row = $this->getEffectiveDefinition($objectType, $productID);
         if($row === null || !$row['enabled']) return array();
 
         $definition   = $row['definition'];
@@ -1043,5 +1064,105 @@ class statetransitionModel extends model
         }
 
         return $definition;
+    }
+
+    /**
+     * Return status-specific fields that must be set when transitioning to $toStatus.
+     *
+     * Mirrors the field-setting logic in native close/activate/resolve/finish/cancel methods
+     * so that custom transitions produce the same database state.
+     *
+     * Special values:
+     *  - 'now'  → helper::now() at apply time
+     *  - 'user' → $currentUser at apply time
+     *  - ''     → empty string (clear the field)
+     *  - null   → SQL NULL
+     *  - other  → literal value
+     *
+     * @param  string $objectType  bug|story|task
+     * @param  string $toStatus    target status
+     * @return array  fieldName => value mapping (empty array if no special fields needed)
+     * @access public
+     */
+    public function getFieldsForStatus(string $objectType, string $toStatus): array
+    {
+        /* Fields common to all object types when closing. */
+        $closeBase = array(
+            'assignedTo'  => 'closed',
+            'closedBy'    => 'user',
+            'closedDate'  => 'now',
+        );
+
+        $map = array(
+            'bug' => array(
+                'closed' => array_merge($closeBase, array(
+                    'confirmed'    => 1,
+                    'assignedDate' => 'now',
+                )),
+                'active' => array(
+                    'activatedDate' => 'now',
+                    'assignedDate'  => 'now',
+                    'resolution'    => '',
+                    'resolvedBy'    => '',
+                    'resolvedBuild' => '',
+                    'resolvedDate'  => null,
+                    'closedBy'      => '',
+                    'closedDate'    => null,
+                ),
+                'resolved' => array(
+                    'resolvedBy'    => 'user',
+                    'resolvedDate'  => 'now',
+                    'confirmed'     => 1,
+                    'assignedDate'  => 'now',
+                ),
+            ),
+            'story' => array(
+                'closed' => array_merge($closeBase, array(
+                    'stage'        => 'closed',
+                    'assignedDate' => 'now',
+                )),
+                'active' => array(
+                    'activatedDate'  => 'now',
+                    'assignedDate'   => 'now',
+                    'closedBy'       => '',
+                    'closedReason'   => '',
+                    'closedDate'     => null,
+                    'retractedBy'    => '',
+                    'retractedReason'=> '',
+                    'retractedDate'  => null,
+                ),
+            ),
+            'task' => array(
+                'closed' => array_merge($closeBase, array(
+                    'assignedDate' => 'now',
+                )),
+                'active' => array(
+                    'activatedDate' => 'now',
+                    'assignedDate'  => 'now',
+                    'finishedBy'    => '',
+                    'canceledBy'    => '',
+                    'closedBy'      => '',
+                    'closedReason'  => '',
+                    'finishedDate'  => null,
+                    'canceledDate'  => null,
+                    'closedDate'    => null,
+                ),
+                'done' => array(
+                    'finishedBy'   => 'user',
+                    'finishedDate' => 'now',
+                    'left'         => 0,
+                    'assignedDate' => 'now',
+                ),
+                'cancel' => array(
+                    'canceledBy'   => 'user',
+                    'canceledDate' => 'now',
+                    'assignedDate' => 'now',
+                    'finishedBy'   => '',
+                    'finishedDate' => null,
+                ),
+            ),
+        );
+
+        return $map[$objectType][$toStatus] ?? array();
     }
 }

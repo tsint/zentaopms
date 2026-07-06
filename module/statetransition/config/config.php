@@ -36,11 +36,11 @@ $config->statetransition->objectModules = array(
 
 /* Built-in action whitelist per objectType. Custom buttons use the custom_* namespace and bypass this list. */
 $config->statetransition->actions = array(
-    'epic'        => array('submitreview', 'review', 'change', 'recallreview', 'recallchange', 'close', 'activate'),
-    'requirement' => array('submitreview', 'review', 'change', 'recallreview', 'recallchange', 'close', 'activate'),
-    'story'       => array('submitreview', 'review', 'change', 'recallreview', 'recallchange', 'close', 'activate'),
+    'epic'        => array('submitreview', 'review', 'change', 'recallreview', 'recallchange', 'resolve', 'close', 'activate'),
+    'requirement' => array('submitreview', 'review', 'change', 'recallreview', 'recallchange', 'resolve', 'close', 'activate'),
+    'story'       => array('submitreview', 'review', 'change', 'recallreview', 'recallchange', 'resolve', 'close', 'activate'),
     'bug'         => array('resolve', 'close', 'activate'),
-    'task'        => array('start', 'restart', 'pause', 'finish', 'close', 'cancel', 'activate'),
+    'task'        => array('start', 'restart', 'pause', 'finish', 'resolve', 'close', 'cancel', 'activate'),
 );
 
 /* Built-in branches per action. Null means single-branch. */

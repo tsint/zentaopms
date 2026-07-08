@@ -29,6 +29,13 @@ for attempt in $(seq 1 60); do
     sleep 2
 done
 
+# Quick exit: if the admin user already exists, the database is initialized.
+admin_exists="$("${root_mysql[@]}" -Nse "SELECT COUNT(*) FROM \`${ZT_DB_NAME}\`.\`${ZT_DB_PREFIX}user\` WHERE account='${ZT_ADMIN_ACCOUNT}'" 2>/dev/null || echo 0)"
+if [[ "$admin_exists" != 0 ]]; then
+    echo "Database already initialized; skipping."
+    exit 0
+fi
+
 "${root_mysql[@]}" -e "CREATE DATABASE IF NOT EXISTS \`${ZT_DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE USER IF NOT EXISTS '${ZT_DB_USER}'@'%' IDENTIFIED BY '${ZT_DB_PASSWORD//\'/\'\'}'; GRANT ALL PRIVILEGES ON \`${ZT_DB_NAME}\`.* TO '${ZT_DB_USER}'@'%'; FLUSH PRIVILEGES;"
 
 export MYSQL_PWD="$ZT_DB_PASSWORD"
@@ -62,11 +69,9 @@ if [[ -f /var/www/html/module/statetransition/db/install.sql ]] && ! table_exist
     render_sql /var/www/html/module/statetransition/db/install.sql | "${app_mysql[@]}"
 fi
 
-admin_exists="$("${app_mysql[@]}" -Nse "SELECT COUNT(*) FROM \`${ZT_DB_PREFIX}user\` WHERE account='${ZT_ADMIN_ACCOUNT}'")"
-if [[ "$admin_exists" == 0 ]]; then
-    password_hash="$(php -r 'echo md5(getenv("ZT_ADMIN_PASSWORD"));')"
-    company_name="${ZT_COMPANY_NAME//\'/\'\'}"
-    "${app_mysql[@]}" <<SQL
+password_hash="$(php -r 'echo md5(getenv("ZT_ADMIN_PASSWORD"));')"
+company_name="${ZT_COMPANY_NAME//\'/\'\'}"
+"${app_mysql[@]}" <<SQL
 INSERT INTO \`${ZT_DB_PREFIX}company\` (name, admins) VALUES ('${company_name}', ',${ZT_ADMIN_ACCOUNT},');
 INSERT INTO \`${ZT_DB_PREFIX}user\` (account, realname, password, gender, visions) VALUES ('${ZT_ADMIN_ACCOUNT}', '${ZT_ADMIN_ACCOUNT}', '${password_hash}', 'f', 'rnd,lite');
 REPLACE INTO \`${ZT_DB_PREFIX}config\` (vision, owner, module, section, \`key\`, value) VALUES
@@ -76,7 +81,4 @@ REPLACE INTO \`${ZT_DB_PREFIX}config\` (vision, owner, module, section, \`key\`,
 ('', 'system', 'common', 'safe', 'changeWeak', '0'),
 ('', 'system', 'common', 'global', 'cron', '1');
 SQL
-    echo "Created ZenTao administrator: ${ZT_ADMIN_ACCOUNT}"
-else
-    echo "ZenTao administrator ${ZT_ADMIN_ACCOUNT} already exists; database data was left unchanged."
-fi
+echo "Created ZenTao administrator: ${ZT_ADMIN_ACCOUNT}"

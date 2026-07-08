@@ -1,0 +1,47 @@
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: zentao123456
+      MYSQL_ROOT_HOST: "%"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    volumes:
+      - /opt/zentao-db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-pzentao123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  zentao:
+    #build:
+    #  context: .
+    #  dockerfile: Dockerfile
+    image: zentao:v1
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "0.0.0.0:8080:80"
+    environment:
+      ZT_AUTO_INIT: "true"
+      ZT_DB_HOST: db
+      ZT_DB_NAME: zentao
+      ZT_DB_USER: zentao
+      ZT_DB_PASSWORD: zentao123456
+      ZT_DB_ROOT_PASSWORD: zentao123456
+      ZT_ADMIN_ACCOUNT: admin
+      ZT_ADMIN_PASSWORD: Admin1234!
+      ZT_COMPANY_NAME: My Company
+    volumes:
+      - zentao-data:/var/www/html/www/data
+      - zentao-tmp:/var/www/html/tmp
+
+volumes:
+  zentao-data:
+  zentao-tmp:

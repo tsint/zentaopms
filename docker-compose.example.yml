@@ -1,0 +1,41 @@
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: change-root-password
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - zentao-db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-pchange-root-password"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  zentao:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    environment:
+      ZT_AUTO_INIT: "true"
+      ZT_DB_HOST: db
+      ZT_DB_NAME: zentao
+      ZT_DB_USER: zentao
+      ZT_DB_PASSWORD: change-db-password
+      ZT_DB_ROOT_PASSWORD: change-root-password
+      ZT_ADMIN_ACCOUNT: admin
+      ZT_ADMIN_PASSWORD: ChangeMe123!
+      ZT_COMPANY_NAME: My Company
+    volumes:
+      - zentao-data:/var/www/html/data
+      - zentao-tmp:/var/www/html/tmp
+
+volumes:
+  zentao-db:
+  zentao-data:
+  zentao-tmp:

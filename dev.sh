@@ -6,19 +6,35 @@
 #   PORT=9000 ./dev.sh    # 自定义端口
 #
 # 功能：
+#   - 自动初始化数据库（首次运行）
 #   - 自动杀掉占用端口的旧进程
 #   - 启动 PHP 内置服务器（www 为 docroot）
 #   - 实时打印请求日志
 #   - Ctrl-C 干净退出
 #
 # 默认管理员账号：admin / 123456
+#
+# 环境变量：
+#   PORT              服务器端口（默认 8080）
+#   HOST              服务器地址（默认 127.0.0.1）
+#   DB_HOST           MySQL 主机（默认 127.0.0.1）
+#   DB_PORT           MySQL 端口（默认 3306）
+#   DB_NAME           数据库名（默认 zentao）
+#   DB_USER           应用账号（默认 zentao）
+#   DB_PASSWORD       应用密码（默认 zentao123456）
+#   DB_ROOT_USER      root 账号（默认 root）
+#   DB_ROOT_PASSWORD  root 密码（默认空）
+#   ADMIN_ACCOUNT     管理员账号（默认 admin）
+#   ADMIN_PASSWORD    管理员密码（默认 123456）
 
 set -euo pipefail
 
 PORT="${PORT:-8080}"
 HOST="${HOST:-127.0.0.1}"
-DOCROOT="$(dirname "$(readlink -f "$0")")/www"
-LOG_DIR="$(dirname "$(readlink -f "$0")")/tmp/logs"
+
+PROJECT_ROOT="$(dirname "$(readlink -f "$0")")"
+DOCROOT="$PROJECT_ROOT/www"
+LOG_DIR="$PROJECT_ROOT/tmp/logs"
 LOG_FILE="$LOG_DIR/dev-server.log"
 PID_FILE="$LOG_DIR/dev-server.pid"
 
@@ -57,15 +73,11 @@ if [[ ${#MISSING[@]} -gt 0 ]]; then
     echo "⚠ 缺少扩展: ${MISSING[*]}（建议安装：sudo apt install php8.3-{pdo_mysql,mbstring,curl,gd}）"
 fi
 
-# 检查 DB 连接
+# 初始化数据库（首次运行时自动执行）
 if command -v mysql >/dev/null; then
-    if mysql -h 127.0.0.1 -u zentao -pzentao123456 -e "SELECT 1 FROM zentao.zt_user LIMIT 1" >/dev/null 2>&1; then
-        echo "✓ MySQL 连接正常"
-    else
-        echo "⚠ MySQL 连接失败（参考 config/my.php 配置，预期 zentao/zentao123456/zentao）"
-    fi
+    "$PROJECT_ROOT/dev-init-db.sh"
 else
-    echo "⚠ 未找到 mysql 客户端"
+    echo "⚠ 未找到 mysql 客户端，跳过数据库检查"
 fi
 
 # 启动服务器

@@ -83,7 +83,7 @@ $bodyHTML = '<div class="statetransition-cta">'
 
     . '<div class="statetransition-flow panel">'
     .   '<div class="panel-heading"><strong>' . htmlspecialchars($lang->statetransition->flowDiagramTitle) . '</strong></div>'
-    .   '<div class="panel-body"><div class="mermaid">' . htmlspecialchars($mermaidText) . '</div></div>'
+    .   '<div class="panel-body"><div class="statetransition-mermaid" data-mermaid-source="' . htmlspecialchars($mermaidText, ENT_QUOTES) . '">' . htmlspecialchars($mermaidText) . '</div></div>'
     . '</div>'
 
     . '<div class="panel">'
@@ -132,8 +132,8 @@ $css = <<<'CSS'
 .statetransition-cta-actions .btn { min-width: 180px; font-size: 16px; padding: 10px 24px; }
 .color-dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: middle; border: 1px solid #cbd5e1; margin-right: 4px; }
 .action-chip { padding: 2px 8px; border-radius: 10px; background: #eef3ff; color: #2468f2; font-size: 12px; font-weight: 500; }
-.statetransition-flow .mermaid { text-align: center; padding: 20px; }
-.statetransition-flow .mermaid svg { max-width: 100%; height: auto; }
+.statetransition-flow .statetransition-mermaid { text-align: center; padding: 20px; }
+.statetransition-flow .statetransition-mermaid svg { max-width: 100%; height: auto; }
 CSS;
 
 /* 1. Feature bar — Zin node, automatically goes into #mainMenu. */
@@ -159,5 +159,4 @@ html('<style class="zin-page-css" data-id="statetransition-browse">' . $css . '<
 
 /* 3. Mermaid library + explicit init (startOnLoad doesn't fire if DOMContentLoaded already past). */
 $mermaidWebPath = $this->config->webRoot . 'js/zui3/mermaid/mermaid.min.js';
-html('<script src="' . htmlspecialchars($mermaidWebPath) . '"></script>');
-html('<script>(function(){function renderMermaid(){if(typeof mermaid==="undefined"){setTimeout(renderMermaid,50);return;}try{mermaid.initialize({startOnLoad:false,securityLevel:"loose"});var nodes=document.querySelectorAll(".statetransition-flow .mermaid");if(mermaid.run){mermaid.run({nodes:nodes});}else if(mermaid.init){mermaid.init(undefined,nodes);}}catch(e){console.warn("[statetransition] mermaid render error:",e);}}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",renderMermaid);}else{renderMermaid();}})();</script>');
+html('<script>(function(){var seq=(window.__statetransitionBrowseMermaidSeq||0)+1;window.__statetransitionBrowseMermaidSeq=seq;function loadMermaid(done){if(typeof mermaid!=="undefined")return done();var id="statetransitionMermaidLib";var script=document.getElementById(id);if(script){script.addEventListener("load",done,{once:true});return;}script=document.createElement("script");script.id=id;script.src="' . htmlspecialchars($mermaidWebPath, ENT_QUOTES) . '";script.onload=done;document.head.appendChild(script);}function renderMermaid(){if(seq!==window.__statetransitionBrowseMermaidSeq)return;var nodes=Array.from(document.querySelectorAll(".statetransition-flow .statetransition-mermaid"));if(!nodes.length)return;if(typeof mermaid==="undefined"){setTimeout(renderMermaid,50);return;}try{mermaid.initialize({startOnLoad:false,securityLevel:"loose"});nodes.forEach(function(node){node.classList.remove("mermaid");node.textContent=node.dataset.mermaidSource||node.textContent;node.removeAttribute("data-processed");});var promise=mermaid.run?mermaid.run({nodes:nodes}):new Promise(function(resolve){mermaid.init(undefined,nodes);resolve();});promise.catch(function(e){if(seq!==window.__statetransitionBrowseMermaidSeq)return;console.warn("[statetransition] mermaid render error:",e);nodes.forEach(function(node){node.innerHTML="<div class=\"workflow-hint\">流程图渲染失败，请检查定义。</div>";});});}catch(e){console.warn("[statetransition] mermaid render error:",e);}}function schedule(){loadMermaid(function(){setTimeout(renderMermaid,0);});}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",schedule,{once:true});}else{schedule();}})();</script>');

@@ -114,13 +114,19 @@
         }
         return lines.join('\n');
     }
+    let mermaidRenderSeq = 0;
     function renderMermaid() {
+        const renderSeq = ++mermaidRenderSeq;
         /* Wait for mermaid library with retries (ZenTao loads it via <script src> in #main,
            which may complete after init() runs). */
         if(typeof mermaid === 'undefined') {
             let attempts = 0;
             const wait = setInterval(() => {
                 attempts++;
+                if(renderSeq !== mermaidRenderSeq) {
+                    clearInterval(wait);
+                    return;
+                }
                 if(typeof mermaid !== 'undefined') {
                     clearInterval(wait);
                     renderMermaid();
@@ -136,13 +142,19 @@
         try { mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', flowchart: { useMaxWidth: true, htmlLabels: true } }); } catch(e) { /* ignore */ }
         const el = document.getElementById('workflowMermaid');
         if(!el) return;
-        el.innerHTML = generateMermaidSource(state.definition);
+        el.classList.remove('mermaid');
+        const source = generateMermaidSource(state.definition);
+        el.textContent = source;
         el.removeAttribute('data-processed');
         /* Mermaid 10+: use mermaid.run */
         const promise = (mermaid.run)
             ? mermaid.run({ nodes: [el] })
             : new Promise((res) => { mermaid.init(undefined, el); res(); });
-        promise.then(() => wireEdges()).catch((e) => {
+        promise.then(() => {
+            if(renderSeq !== mermaidRenderSeq || !document.body.contains(el)) return;
+            wireEdges();
+        }).catch((e) => {
+            if(renderSeq !== mermaidRenderSeq || !document.body.contains(el)) return;
             console.warn('[statetransition] Mermaid render error:', e);
             el.innerHTML = '<div class="workflow-hint">流程图渲染失败，请检查定义。</div>';
         });
@@ -686,15 +698,15 @@
     } else {
         startWhenReady();
     }
+    window.__statetransitionStartWhenReady = startWhenReady;
     /* ZenTao SPA calls window.afterPageRender after injecting new page content. */
-    if(typeof window.afterPageRender === 'undefined' || window.afterPageRender !== startWhenReady) {
-        window.afterPageRender = startWhenReady;
-    }
+    window.afterPageRender = function() {
+        if(typeof window.__statetransitionStartWhenReady === 'function') window.__statetransitionStartWhenReady();
+    };
     /* Fallback: MutationObserver detects #workflowEditor appearance in any injection scenario. */
     if(!window.__statetransitionEditorObserver) {
         window.__statetransitionEditorObserver = new MutationObserver(() => {
-            const editor = document.getElementById('workflowEditor');
-            if(editor && !editor.dataset.inited) startWhenReady();
+            if(typeof window.__statetransitionStartWhenReady === 'function') window.__statetransitionStartWhenReady();
         });
         window.__statetransitionEditorObserver.observe(document.body, { childList: true, subtree: true });
     }

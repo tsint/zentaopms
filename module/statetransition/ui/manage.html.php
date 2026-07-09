@@ -99,7 +99,7 @@ ob_start();
     <main class="workflow-main">
         <!-- 1. Mermaid diagram -->
         <section class="workflow-mermaid-panel">
-            <div class="workflow-mermaid mermaid" id="workflowMermaid"><?php echo htmlspecialchars($mermaidSource); ?></div>
+            <div class="workflow-mermaid" id="workflowMermaid"><?php echo htmlspecialchars($mermaidSource); ?></div>
         </section>
 
         <!-- 2. Node matrix: each source status as a column -->

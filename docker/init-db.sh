@@ -115,8 +115,9 @@ INSERT INTO \`${ZT_DB_PREFIX}user\` (account, realname, password, gender, vision
 REPLACE INTO \`${ZT_DB_PREFIX}config\` (vision, owner, module, section, \`key\`, value) VALUES
 ('', 'system', 'common', 'global', 'version', '22.2'),
 ('', 'system', 'common', 'global', 'flow', 'full'),
-('', 'system', 'common', 'safe', 'mode', '0'),
+('', 'system', 'common', 'safe', 'mode', '1'),
 ('', 'system', 'common', 'safe', 'changeWeak', '0'),
+('', 'system', 'common', 'safe', 'modifyPasswordFirstLogin', '0'),
 ('', 'system', 'common', 'global', 'cron', '1');
 SQL
 echo "Created ZenTao administrator: ${ZT_ADMIN_ACCOUNT}"

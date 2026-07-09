@@ -15,7 +15,7 @@
 #   DB_ROOT_USER     root 账号（默认 root）
 #   DB_ROOT_PASSWORD root 密码（默认空）
 #   ADMIN_ACCOUNT    管理员账号（默认 admin）
-#   ADMIN_PASSWORD   管理员密码（默认 123456）
+#   ADMIN_PASSWORD   管理员密码（默认 Admin1234!）
 
 set -euo pipefail
 
@@ -28,7 +28,7 @@ DB_PREFIX="${DB_PREFIX:-zt_}"
 DB_ROOT_USER="${DB_ROOT_USER:-root}"
 DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:-}"
 ADMIN_ACCOUNT="${ADMIN_ACCOUNT:-admin}"
-ADMIN_PASSWORD="${ADMIN_PASSWORD:-123456}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-Admin1234!}"
 
 PROJECT_ROOT="$(dirname "$(readlink -f "$0")")"
 
@@ -191,8 +191,9 @@ INSERT INTO \`${DB_PREFIX}user\` (account, realname, password, gender, visions) 
 REPLACE INTO \`${DB_PREFIX}config\` (vision, owner, module, section, \`key\`, value) VALUES
 ('', 'system', 'common', 'global', 'version', '22.2'),
 ('', 'system', 'common', 'global', 'flow', 'full'),
-('', 'system', 'common', 'safe', 'mode', '0'),
+('', 'system', 'common', 'safe', 'mode', '1'),
 ('', 'system', 'common', 'safe', 'changeWeak', '0'),
+('', 'system', 'common', 'safe', 'modifyPasswordFirstLogin', '0'),
 ('', 'system', 'common', 'global', 'cron', '1');
 SQL
     echo "✓ 已创建管理员: $ADMIN_ACCOUNT / $ADMIN_PASSWORD"

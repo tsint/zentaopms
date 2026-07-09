@@ -12,7 +12,7 @@
 #   - 实时打印请求日志
 #   - Ctrl-C 干净退出
 #
-# 默认管理员账号：admin / 123456
+# 默认管理员账号：admin / Admin1234!
 #
 # 环境变量：
 #   PORT              服务器端口（默认 8080）
@@ -25,7 +25,7 @@
 #   DB_ROOT_USER      root 账号（默认 root）
 #   DB_ROOT_PASSWORD  root 密码（默认空）
 #   ADMIN_ACCOUNT     管理员账号（默认 admin）
-#   ADMIN_PASSWORD    管理员密码（默认 123456）
+#   ADMIN_PASSWORD    管理员密码（默认 Admin1234!）
 
 set -euo pipefail
 
@@ -84,7 +84,7 @@ fi
 echo "→ 启动 PHP 开发服务器 http://${HOST}:${PORT}/"
 echo "  docroot: $DOCROOT"
 echo "  log:     $LOG_FILE"
-echo "  默认账号：admin / 123456"
+echo "  默认账号：admin / Admin1234!"
 echo "  按 Ctrl-C 停止"
 echo ""
 

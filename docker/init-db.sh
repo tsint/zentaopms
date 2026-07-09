@@ -20,7 +20,42 @@ set -euo pipefail
 
 export MYSQL_PWD="$ZT_DB_ROOT_PASSWORD"
 mysql_client="$(command -v mariadb || command -v mysql)"
-root_mysql=("$mysql_client" --protocol=TCP --ssl=0 -h "$ZT_DB_HOST" -P "$ZT_DB_PORT" -u "$ZT_DB_ROOT_USER" --default-character-set=utf8mb4)
+mysql_ssl_opt=(--ssl=0)
+if "$mysql_client" --no-defaults --help 2>&1 | grep -q -- '--ssl-mode'; then
+    mysql_ssl_opt=(--ssl-mode=DISABLED)
+fi
+root_mysql=("$mysql_client" --protocol=TCP "${mysql_ssl_opt[@]}" -h "$ZT_DB_HOST" -P "$ZT_DB_PORT" -u "$ZT_DB_ROOT_USER" --default-character-set=utf8mb4)
+app_mysql=("$mysql_client" --protocol=TCP "${mysql_ssl_opt[@]}" -h "$ZT_DB_HOST" -P "$ZT_DB_PORT" -u "$ZT_DB_USER" --default-character-set=utf8mb4 "$ZT_DB_NAME")
+
+ensure_runtime_dirs()
+{
+    mkdir -p \
+        /var/www/html/config \
+        /var/www/html/tmp \
+        /var/www/html/tmp/cache \
+        /var/www/html/tmp/log \
+        /var/www/html/tmp/logs \
+        /var/www/html/tmp/session \
+        /var/www/html/data/upload \
+        /var/www/html/www/data/upload
+    chown -R www-data:www-data /var/www/html/config /var/www/html/tmp /var/www/html/data/upload /var/www/html/www/data 2>/dev/null || true
+    chmod -R u+rwX,go+rwX /var/www/html/config /var/www/html/tmp /var/www/html/data/upload /var/www/html/www/data 2>/dev/null || true
+    chmod u+rw,go+r /var/www/html/config/my.php 2>/dev/null || true
+}
+
+fast_ready()
+{
+    export MYSQL_PWD="$ZT_DB_PASSWORD"
+    local table_counts
+    table_counts="$("${app_mysql[@]}" -Nse "SELECT SUM(table_name='${ZT_DB_PREFIX}user'), SUM(table_name='${ZT_DB_PREFIX}grouppriv'), SUM(table_name='${ZT_DB_PREFIX}workflow_definition') FROM information_schema.tables WHERE table_schema='${ZT_DB_NAME}' AND table_name IN ('${ZT_DB_PREFIX}user', '${ZT_DB_PREFIX}grouppriv', '${ZT_DB_PREFIX}workflow_definition')" 2>/dev/null || true)"
+    [[ "$table_counts" == $'1\t1\t1' ]] || return 1
+
+    local data_counts
+    data_counts="$("${app_mysql[@]}" -Nse "SELECT (SELECT COUNT(*) FROM \`${ZT_DB_PREFIX}user\` WHERE account='${ZT_ADMIN_ACCOUNT}'), (SELECT COUNT(*) FROM \`${ZT_DB_PREFIX}grouppriv\` WHERE module='statetransition')" 2>/dev/null || true)"
+    [[ "$data_counts" == $'1\t5' ]]
+}
+
+ensure_runtime_dirs
 
 echo "Waiting for MySQL at ${ZT_DB_HOST}:${ZT_DB_PORT}..."
 for attempt in $(seq 1 60); do
@@ -29,17 +64,14 @@ for attempt in $(seq 1 60); do
     sleep 2
 done
 
-# Quick exit: if the admin user already exists, the database is initialized.
-admin_exists="$("${root_mysql[@]}" -Nse "SELECT COUNT(*) FROM \`${ZT_DB_NAME}\`.\`${ZT_DB_PREFIX}user\` WHERE account='${ZT_ADMIN_ACCOUNT}'" 2>/dev/null || echo 0)"
-if [[ "$admin_exists" != 0 ]]; then
-    echo "Database already initialized; skipping."
+if fast_ready; then
+    echo 'Database already ready; skipping initialization.'
     exit 0
 fi
 
 "${root_mysql[@]}" -e "CREATE DATABASE IF NOT EXISTS \`${ZT_DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE USER IF NOT EXISTS '${ZT_DB_USER}'@'%' IDENTIFIED BY '${ZT_DB_PASSWORD//\'/\'\'}'; GRANT ALL PRIVILEGES ON \`${ZT_DB_NAME}\`.* TO '${ZT_DB_USER}'@'%'; FLUSH PRIVILEGES;"
 
 export MYSQL_PWD="$ZT_DB_PASSWORD"
-app_mysql=("$mysql_client" --protocol=TCP --ssl=0 -h "$ZT_DB_HOST" -P "$ZT_DB_PORT" -u "$ZT_DB_USER" --default-character-set=utf8mb4 "$ZT_DB_NAME")
 
 render_sql()
 {
@@ -67,6 +99,12 @@ done
 if [[ -f /var/www/html/module/statetransition/db/install.sql ]] && ! table_exists workflow_definition; then
     echo 'Installing statetransition schema...'
     render_sql /var/www/html/module/statetransition/db/install.sql | "${app_mysql[@]}"
+fi
+
+admin_exists="$("${app_mysql[@]}" -Nse "SELECT COUNT(*) FROM \`${ZT_DB_PREFIX}user\` WHERE account='${ZT_ADMIN_ACCOUNT}'")"
+if [[ "$admin_exists" != 0 ]]; then
+    echo "ZenTao administrator ${ZT_ADMIN_ACCOUNT} already exists; database schema checks completed."
+    exit 0
 fi
 
 password_hash="$(php -r 'echo md5(getenv("ZT_ADMIN_PASSWORD"));')"

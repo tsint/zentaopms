@@ -891,6 +891,16 @@ class statetransitionModel extends model
     public function renderMermaid(array $definition, string $currentStatus = ''): string
     {
         $lines = array('stateDiagram-v2');
+        $lang  = $this->getLangCode();
+
+        foreach($definition['statuses'] ?? array() as $status)
+        {
+            $key = (string)($status['key'] ?? '');
+            if($key === '') continue;
+
+            $label = $this->pickLabel($status['label'] ?? array(), $lang, $key);
+            $lines[] = '    state "' . $this->escapeMermaidLabel($label) . '" as ' . $key;
+        }
 
         /* Entries → from [*]. */
         foreach($definition['entries'] ?? array() as $entry)
@@ -902,8 +912,7 @@ class statetransitionModel extends model
         foreach($definition['transitions'] ?? array() as $tr)
         {
             if(!$tr['enabled']) continue;
-            $label = $tr['action'];
-            if(!empty($tr['branch'])) $label .= '/' . $tr['branch'];
+            $label = $this->getTransitionMermaidLabel($tr, $lang);
             $lines[] = "    {$tr['fromStatus']} --> {$tr['toStatus']} : {$label}";
         }
 
@@ -914,6 +923,49 @@ class statetransitionModel extends model
             $lines[] = "    classDef current fill:#fff3cd,stroke:#f39c12,stroke-width:2px";
         }
         return implode("\n", $lines);
+    }
+
+    /**
+     * Get display text for a Mermaid transition edge.
+     *
+     * Prefer the configured transition display name, then custom button text, then
+     * the localized action name. This keeps the diagram readable while preserving
+     * status keys for Mermaid ids and click mapping.
+     *
+     * @param  array  $transition
+     * @param  string $lang
+     * @access private
+     * @return string
+     */
+    private function getTransitionMermaidLabel(array $transition, string $lang): string
+    {
+        $action = (string)($transition['action'] ?? '');
+        $label  = $this->pickLabel($transition['label'] ?? array(), $lang, '');
+        if($label === '') $label = $this->pickLabel($transition['buttonLabel'] ?? array(), $lang, '');
+        if($label !== '') return $this->escapeMermaidLabel($label);
+
+        $actionList = $this->lang->statetransition->actionList ?? array();
+        $label = $actionList[$action] ?? $action;
+        if(!empty($transition['branch']))
+        {
+            $branch = (string)$transition['branch'];
+            $branchList = $this->lang->statetransition->branchList ?? array();
+            $label .= '/' . ($branchList[$branch] ?? $branch);
+        }
+
+        return $this->escapeMermaidLabel($label);
+    }
+
+    /**
+     * Escape text used as a Mermaid label.
+     *
+     * @param  string $label
+     * @access private
+     * @return string
+     */
+    private function escapeMermaidLabel(string $label): string
+    {
+        return str_replace(array('\\', '"', "\r", "\n"), array('\\\\', "'", ' ', ' '), $label);
     }
 
     /**

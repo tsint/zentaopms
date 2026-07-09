@@ -35,6 +35,7 @@
             users:      JSON.parse(root.dataset.users || '{}'),
             colorPresets: JSON.parse(root.dataset.colorPresets || '[]'),
             actions:    JSON.parse(root.dataset.actions || '{}'),
+            branches:   JSON.parse(root.dataset.branches || '{}'),
             systemStatuses: JSON.parse(root.dataset.systemStatuses || '[]'),
             saveUrl:    root.dataset.saveUrl,
             browseUrl:  root.dataset.browseUrl,
@@ -57,13 +58,35 @@
     }
     function isSystemStatus(key) { return state.systemStatuses.indexOf(key) !== -1; }
     function actionLabel(action) { return state.actions[action] || action; }
+    function branchLabel(branch) { return state.branches[branch] || branch; }
     function edgeLabel(tr) {
         if(tr.label && typeof tr.label === 'object' && (tr.label.zh_cn || tr.label.en)) return tr.label.zh_cn || tr.label.en;
         const al = actionLabel(tr.action);
-        return tr.branch ? al + '/' + tr.branch : al;
+        return tr.branch ? al + '/' + branchLabel(tr.branch) : al;
+    }
+    function mermaidLabel(text) {
+        return String(text || '').replace(/\\/g, '\\\\').replace(/"/g, "'").replace(/[\r\n]/g, ' ');
+    }
+    function localizedLabel(labelMap, fallback) {
+        if(labelMap && typeof labelMap === 'object') return labelMap.zh_cn || labelMap.en || fallback;
+        return fallback;
+    }
+    function mermaidStatusLabel(key, def) {
+        return localizedLabel(def && def.label, statusLabel(key) || key);
+    }
+    function mermaidEdgeLabel(tr) {
+        let label = localizedLabel(tr.label, '');
+        if(!label) label = localizedLabel(tr.buttonLabel, '');
+        if(label) return mermaidLabel(label);
+        if(!label) label = actionLabel(tr.action);
+        if(tr.branch) label += '/' + branchLabel(tr.branch);
+        return mermaidLabel(label);
     }
     function entries() { return state.definition.entries || []; }
     function setEntries(arr) { state.definition.entries = arr; }
+    function transitionKey(tr) {
+        return tr.fromStatus + '-to-' + tr.toStatus + '-via-' + tr.action + (tr.branch ? '-' + tr.branch : '');
+    }
     function showToast(msg, kind) {
         kind = kind || 'loading';
         let t = document.getElementById('workflowToast');
@@ -79,25 +102,15 @@
     /* === Mermaid rendering === */
     function generateMermaidSource(def) {
         const lines = ['stateDiagram-v2'];
+        for(const s of (def.statuses || [])) {
+            if(!s.key) continue;
+            lines.push('    state "' + mermaidLabel(mermaidStatusLabel(s.key, s)) + '" as ' + s.key);
+        }
         for(const entry of (def.entries || [])) lines.push('    [*] --> ' + entry);
-        const usedStatuses = new Set();
         for(const tr of (def.transitions || [])) {
             if(!tr.enabled) continue;
-            const label = tr.action + (tr.branch ? '/' + tr.branch : '');
+            const label = mermaidEdgeLabel(tr);
             lines.push('    ' + tr.fromStatus + ' --> ' + tr.toStatus + ' : ' + label);
-            usedStatuses.add(tr.fromStatus);
-            usedStatuses.add(tr.toStatus);
-        }
-        /* Standalone state declarations for unused statuses (forces mermaid to render them).
-           Mermaid stateDiagram-v2 only renders states that appear in a transition or are
-           explicitly declared. Without this, an isolated custom status would be invisible. */
-        for(const s of (def.statuses || [])) {
-            if(usedStatuses.has(s.key)) continue;
-            /* Check if this status is an entry (already shown via [*] → X). */
-            if((def.entries || []).indexOf(s.key) !== -1) continue;
-            /* Mermaid stateDiagram-v2: "Label" as stateId */
-            const lbl = (s.label && (s.label.zh_cn || s.label.en)) || s.key;
-            lines.push('    state "' + String(lbl).replace(/"/g, "'") + '" as ' + s.key);
         }
         return lines.join('\n');
     }
@@ -143,8 +156,8 @@
      * Strategy:
      *   1. Pair paths[i] with labels[i] by index (they correspond).
      *   2. Skip pairs where label text is empty (entry edges — no transition).
-     *   3. For remaining pairs, match the label text to a transition's
-     *      `action` or `action/branch` to find the transition.key.
+     *   3. For remaining pairs, match the label text to the same display text
+     *      used when generating Mermaid to find the transition.key.
      *   4. Set data-edge-key on BOTH the path and the label.
      */
     function wireEdges() {
@@ -164,7 +177,7 @@
         function findTransitionByText(text) {
             const tr = enabledTransitions.find(t => {
                 if(usedKeys.has(t.key)) return false;
-                const tText = t.action + (t.branch ? '/' + t.branch : '');
+                const tText = mermaidEdgeLabel(t);
                 return tText === text;
             });
             if(tr) usedKeys.add(tr.key);
@@ -292,6 +305,7 @@
         empty.classList.add('hidden');
         editor.classList.remove('hidden');
         const labelStr = (tr.label && (tr.label.zh_cn || tr.label.en)) || '';
+        setVal('edgeAction', tr.action || '');
         setVal('edgeLabel', labelStr);
         setCheckboxGroup('edgeRoles', tr.roles || []);
         setCheckboxGroup('edgeAccounts', tr.accounts || []);
@@ -460,13 +474,42 @@
         renderMatrix();
         renderList();
     }
+    function updateSelectedTransitionAction(value) {
+        if(!state.selectedEdgeKey) return;
+        const tr = (state.definition.transitions || []).find(t => t.key === state.selectedEdgeKey);
+        if(!tr) return;
+
+        const oldKey = tr.key;
+        const oldAction = tr.action;
+        const oldBranch = tr.branch;
+        tr.action = value;
+        tr.branch = null;
+        const newKey = transitionKey(tr);
+
+        const duplicate = (state.definition.transitions || []).some(t => t !== tr && (t.key === newKey || (t.enabled && t.fromStatus === tr.fromStatus && t.action === tr.action && (t.branch || null) === (tr.branch || null))));
+        if(duplicate) {
+            tr.action = oldAction;
+            tr.branch = oldBranch;
+            tr.key = oldKey;
+            setVal('edgeAction', tr.action || '');
+            showToast('同一状态和动作只能配置一条启用的流转', 'error');
+            return;
+        }
+
+        tr.key = newKey;
+        state.selectedEdgeKey = newKey;
+        syncDataset();
+        fullRender();
+    }
     function updateSelectedTransitionLabel(value) {
         if(!state.selectedEdgeKey) return;
         const tr = (state.definition.transitions || []).find(t => t.key === state.selectedEdgeKey);
         if(!tr) return;
         tr.label = {zh_cn: value, en: value};
+        syncDataset();
         renderMatrix();
         renderList();
+        renderMermaid();
     }
     /* === Save === */
     async function save() {
@@ -538,6 +581,8 @@
         /* Edit panel */
         const deleteTrBtn = $('#deleteTransition');
         if(deleteTrBtn) deleteTrBtn.addEventListener('click', deleteSelectedTransition);
+        const edgeActionEl = $('#edgeAction');
+        if(edgeActionEl) edgeActionEl.addEventListener('change', e => updateSelectedTransitionAction(e.target.value));
         const edgeLabelEl = $('#edgeLabel');
         if(edgeLabelEl) edgeLabelEl.addEventListener('input', e => updateSelectedTransitionLabel(e.target.value));
         /* Roles/accounts are now checkbox groups — listen on the container div for change events. */

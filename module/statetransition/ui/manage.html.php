@@ -24,6 +24,7 @@ $roleListJSON   = json_encode(array_values(array_filter($roleList, fn($v, $k) =>
 $usersJSON      = json_encode($users);
 $colorJSON      = json_encode($colorPresets);
 $actionsJSON    = json_encode(array_combine($actions, array_map(fn($a) => $this->lang->statetransition->actionList[$a] ?? $a, $actions)));
+$branchesJSON   = json_encode($this->lang->statetransition->branchList ?? array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 $systemStatusJSON = json_encode($systemStatuses);
 $mermaidSource  = $this->statetransition->renderMermaid($definition);
 
@@ -60,6 +61,7 @@ ob_start();
      data-users="<?php echo htmlspecialchars($usersJSON, ENT_QUOTES); ?>"
      data-color-presets="<?php echo htmlspecialchars($colorJSON, ENT_QUOTES); ?>"
      data-actions="<?php echo htmlspecialchars($actionsJSON, ENT_QUOTES); ?>"
+     data-branches="<?php echo htmlspecialchars($branchesJSON, ENT_QUOTES); ?>"
      data-system-statuses="<?php echo htmlspecialchars($systemStatusJSON, ENT_QUOTES); ?>"
      data-save-url="<?php echo $this->createLink('statetransition', 'manage', "objectType={$objectType}&productID={$productID}"); ?>"
      data-browse-url="<?php echo $this->createLink('statetransition', 'browse', "objectType={$objectType}&productID={$productID}"); ?>"
@@ -253,7 +255,15 @@ ob_start();
         <section id="ruleEditor" class="hidden">
             <h3><?php echo htmlspecialchars($this->lang->statetransition->transitionRule); ?></h3>
             <div class="workflow-field">
-                <label><?php echo htmlspecialchars($this->lang->statetransition->label); ?></label>
+                <label><?php echo htmlspecialchars($this->lang->statetransition->action); ?></label>
+                <select id="edgeAction">
+                    <?php foreach($actions as $a): ?>
+                    <option value="<?php echo htmlspecialchars($a); ?>"><?php echo htmlspecialchars($this->lang->statetransition->actionList[$a] ?? $a); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="workflow-field">
+                <label><?php echo htmlspecialchars($this->lang->statetransition->transitionName); ?></label>
                 <input type="text" id="edgeLabel">
             </div>
             <div class="workflow-field">

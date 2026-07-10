@@ -101,6 +101,30 @@ fast_ready()
     [[ "$data_counts" == $'1\t5' ]]
 }
 
+app_can_connect()
+{
+    export MYSQL_PWD="$DB_PASSWORD"
+    "${app_mysql[@]}" -e 'SELECT 1' >/dev/null 2>&1
+}
+
+try_root_connect()
+{
+    local candidate
+    for candidate in "$@"; do
+        export MYSQL_PWD="$candidate"
+        if "${root_mysql[@]}" -e 'SELECT 1' >/dev/null 2>&1; then
+            DB_ROOT_PASSWORD="$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+sql_escape()
+{
+    printf "%s" "$1" | sed "s/'/''/g"
+}
+
 # 等待 MySQL 就绪
 echo "Waiting for MySQL at ${DB_HOST}:${DB_PORT}..."
 root_password_candidates=("$DB_ROOT_PASSWORD")
@@ -108,20 +132,28 @@ if [[ -z "$DB_ROOT_PASSWORD" && -n "$DB_PASSWORD" ]]; then
     root_password_candidates+=("$DB_PASSWORD")
 fi
 
+app_ready=false
 root_ready=false
 for attempt in $(seq 1 30); do
-    for candidate in "${root_password_candidates[@]}"; do
-        export MYSQL_PWD="$candidate"
-        if "${root_mysql[@]}" -e 'SELECT 1' >/dev/null 2>&1; then
-            DB_ROOT_PASSWORD="$candidate"
-            root_ready=true
-            break 2
-        fi
-    done
-    if [[ "$attempt" == 30 ]]; then echo 'MySQL did not become ready in time.' >&2; exit 1; fi
+    if app_can_connect; then
+        app_ready=true
+        break
+    fi
+    if try_root_connect "${root_password_candidates[@]}"; then
+        root_ready=true
+        break
+    fi
+    if [[ "$attempt" == 30 ]]; then
+        cat >&2 <<EOF
+MySQL did not become ready with the configured credentials.
+Checked app user '${DB_USER}' for database '${DB_NAME}' and root user '${DB_ROOT_USER}'.
+If this environment reuses an existing MySQL data directory, DB_ROOT_PASSWORD must match
+the password stored in that data directory, or the app user must already exist.
+EOF
+        exit 1
+    fi
     sleep 2
 done
-[[ "$root_ready" == true ]] || { echo 'MySQL did not become ready in time.' >&2; exit 1; }
 echo "✓ MySQL 连接正常"
 
 if fast_ready; then
@@ -142,16 +174,34 @@ table_exists()
 }
 
 # 创建数据库和用户
-echo "→ 创建数据库和用户"
-export MYSQL_PWD="$DB_ROOT_PASSWORD"
-"${root_mysql[@]}" <<SQL
+if [[ "$app_ready" != true ]]; then
+    if [[ "$root_ready" != true ]]; then
+        cat >&2 <<EOF
+数据库还不能使用应用账号 '${DB_USER}' 连接，且 root 登录失败。
+这通常表示 MySQL 数据目录之前用另一个 root 密码初始化过。
+请设置 DB_ROOT_PASSWORD 为已有数据目录里的真实 root 密码，或在需要全新数据库时重置数据目录。
+EOF
+        exit 1
+    fi
+
+    db_user_sql="$(sql_escape "$DB_USER")"
+    db_password_sql="$(sql_escape "$DB_PASSWORD")"
+    echo "→ 创建数据库和用户"
+    export MYSQL_PWD="$DB_ROOT_PASSWORD"
+    "${root_mysql[@]}" <<SQL
 CREATE DATABASE IF NOT EXISTS \`$DB_NAME\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASSWORD';
-CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD';
-GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'%';
-GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';
+CREATE USER IF NOT EXISTS '${db_user_sql}'@'%' IDENTIFIED BY '${db_password_sql}';
+CREATE USER IF NOT EXISTS '${db_user_sql}'@'localhost' IDENTIFIED BY '${db_password_sql}';
+GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '${db_user_sql}'@'%';
+GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '${db_user_sql}'@'localhost';
 FLUSH PRIVILEGES;
 SQL
+
+    if ! app_can_connect; then
+        echo "已创建数据库/用户，但应用账号 '${DB_USER}' 仍无法连接 '${DB_NAME}'。" >&2
+        exit 1
+    fi
+fi
 
 # 导入核心 schema
 if ! table_exists user; then

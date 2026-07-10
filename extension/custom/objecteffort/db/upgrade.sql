@@ -3,4 +3,8 @@ ALTER TABLE `zt_effort` MODIFY `left` decimal(10,2) NOT NULL DEFAULT 0.00;
 ALTER TABLE `zt_taskestimate` MODIFY `left` decimal(10,2) NOT NULL DEFAULT 0.00;
 ALTER TABLE `zt_taskteam` MODIFY `left` decimal(10,2) NOT NULL DEFAULT 0.00;
 ALTER TABLE `zt_burn` MODIFY `left` decimal(10,2) NOT NULL DEFAULT 0.00;
+UPDATE `zt_objecteffort` SET `estimate` = 0 WHERE `estimate` < 0;
+UPDATE `zt_objecteffort` SET `consumed` = 0 WHERE `consumed` < 0;
+ALTER TABLE `zt_objecteffort` MODIFY `estimate` decimal(12,2) unsigned NOT NULL DEFAULT 0.00;
+ALTER TABLE `zt_objecteffort` MODIFY `consumed` decimal(12,2) unsigned NOT NULL DEFAULT 0.00;
 ALTER TABLE `zt_objecteffort` MODIFY `left` decimal(12,2) NOT NULL DEFAULT 0.00;

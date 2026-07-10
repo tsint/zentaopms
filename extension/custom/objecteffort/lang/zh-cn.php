@@ -23,6 +23,7 @@ $lang->objecteffort->error->objectType = '对象类型无效。';
 $lang->objecteffort->error->object     = '对象不存在或已删除。';
 $lang->objecteffort->error->closed     = '已关闭对象不能登记工时。';
 $lang->objecteffort->error->date       = '日期不能为空，且不能晚于今天。';
+$lang->objecteffort->error->estimate   = '预计必须为大于等于 0 的数字。';
 $lang->objecteffort->error->consumed   = '耗时必须为大于 0 的数字。';
 $lang->objecteffort->error->left       = '剩余必须为数字。';
 $lang->objecteffort->error->leftZeroEstimate = '预计工时为 0 时，剩余工时不能为负数。';

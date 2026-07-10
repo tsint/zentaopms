@@ -3,14 +3,23 @@ services:
     image: mysql:8.0
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: zentao123456
+      MYSQL_ROOT_PASSWORD: "${ZT_DB_ROOT_PASSWORD:-zentao123456}"
       MYSQL_ROOT_HOST: "%"
+      MYSQL_DATABASE: "${ZT_DB_NAME:-zentao}"
+      MYSQL_USER: "${ZT_DB_USER:-zentao}"
+      MYSQL_PASSWORD: "${ZT_DB_PASSWORD:-zentao123456}"
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --default-authentication-plugin=mysql_native_password
+      - --max-allowed-packet=256M
+      - --net-read-timeout=120
+      - --net-write-timeout=120
+      - --wait-timeout=28800
     volumes:
+      # MySQL refuses to initialize if a bind-mounted datadir contains stray or partial files.
       - /opt/zentao-db:/var/lib/mysql
+      #- zentao-db:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
       interval: 10s
@@ -29,12 +38,13 @@ services:
     ports:
       - "0.0.0.0:8080:80"
     environment:
-      ZT_AUTO_INIT: "true"
+      # false: use install.php and optional demo data. true: run custom dev/CI database init.
+      ZT_AUTO_INIT: "${ZT_AUTO_INIT:-false}"
       ZT_DB_HOST: db
-      ZT_DB_NAME: zentao
-      ZT_DB_USER: zentao
-      ZT_DB_PASSWORD: zentao123456
-      ZT_DB_ROOT_PASSWORD: zentao123456
+      ZT_DB_NAME: "${ZT_DB_NAME:-zentao}"
+      ZT_DB_USER: "${ZT_DB_USER:-zentao}"
+      ZT_DB_PASSWORD: "${ZT_DB_PASSWORD:-zentao123456}"
+      ZT_DB_ROOT_PASSWORD: "${ZT_DB_ROOT_PASSWORD:-zentao123456}"
       ZT_ADMIN_ACCOUNT: admin
       ZT_ADMIN_PASSWORD: Admin1234!
       ZT_COMPANY_NAME: My Company
@@ -45,3 +55,4 @@ services:
 volumes:
   zentao-data:
   zentao-tmp:
+  #zentao-db:

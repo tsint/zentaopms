@@ -8,6 +8,7 @@ cid=0
 
 - Bug 登记工时后返回 ID 大于 0 @1
 - 非法耗时被拒绝 consumed 字段报错属性consumed @耗时必须为大于 0 的数字。
+- 负预计被拒绝 estimate 字段报错属性estimate @预计必须为大于等于 0 的数字。
 - 未来日期被拒绝属性date @日期不能为空，且不能晚于今天。
 - 关闭对象被拒绝属性objectID @已关闭对象不能登记工时。
 - Story 登记工时后返回 ID 大于 0 @1
@@ -87,8 +88,8 @@ $tester->dao->query("CREATE TABLE IF NOT EXISTS `zt_objecteffort` (
   `execution` mediumint unsigned NOT NULL DEFAULT 0,
   `account` varchar(30) NOT NULL,
   `date` date NOT NULL,
-  `estimate` decimal(12,2) NOT NULL DEFAULT 0.00,
-  `consumed` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `estimate` decimal(12,2) unsigned NOT NULL DEFAULT 0.00,
+  `consumed` decimal(12,2) unsigned NOT NULL DEFAULT 0.00,
   `left` decimal(12,2) NOT NULL DEFAULT 0.00,
   `work` text NOT NULL,
   `createdBy` varchar(30) NOT NULL,
@@ -143,6 +144,16 @@ $invalidEffort->left     = 1;
 $invalidEffort->work     = '非法工时';
 $objectEffort->record('bug', 900001, $invalidEffort);
 $invalidErrors = dao::getError();
+dao::$errors = array();
+
+$negativeEstimateEffort = new stdclass();
+$negativeEstimateEffort->date     = helper::today();
+$negativeEstimateEffort->estimate = -1;
+$negativeEstimateEffort->consumed = 1;
+$negativeEstimateEffort->left     = 1;
+$negativeEstimateEffort->work     = '负预计';
+$objectEffort->record('bug', 900001, $negativeEstimateEffort);
+$negativeEstimateErrors = dao::getError();
 dao::$errors = array();
 
 $futureEffort = clone $bugEffort;
@@ -263,6 +274,7 @@ $burnAfterClose = $tester->dao->select('estimate, consumed, `left`')->from(TABLE
 
 r($bugEffortID > 0) && p() && e('1');                                                 // Bug 登记工时后返回 ID 大于 0
 r($invalidErrors) && p('consumed') && e('耗时必须为大于 0 的数字。');                  // 非法耗时被拒绝 consumed 字段报错
+r($negativeEstimateErrors) && p('estimate') && e('预计必须为大于等于 0 的数字。');     // 负预计被拒绝 estimate 字段报错
 r($futureErrors) && p('date') && e('日期不能为空，且不能晚于今天。');                 // 未来日期被拒绝
 r($closedErrors) && p('objectID') && e('已关闭对象不能登记工时。');                   // 关闭对象被拒绝
 r($storyEffortID > 0) && p() && e('1');                                               // Story 登记工时后返回 ID 大于 0

@@ -472,31 +472,35 @@ EOT;
 
         $changes = [];
         $clearDB = $this->session->myConfig['clearDB'] ?? 0;
-        $dbFile  = $this->app->getAppRoot() . 'db' . DS . 'zentao.sql';
-        $sqls    = explode(';', file_get_contents($dbFile));
+        $sqls    = [];
 
-        foreach($sqls as $key => $sql)
+        $installFiles = array(
+            $this->app->getAppRoot() . 'db' . DS . 'zentao.sql',
+            $this->app->getAppRoot() . 'extension' . DS . 'custom' . DS . 'objecteffort' . DS . 'db' . DS . 'install.sql',
+            $this->app->getAppRoot() . 'extension' . DS . 'custom' . DS . 'workflowflowchart' . DS . 'db' . DS . 'install.sql',
+            $this->app->getAppRoot() . 'module' . DS . 'statetransition' . DS . 'db' . DS . 'install.sql'
+        );
+
+        foreach($installFiles as $fileIndex => $dbFile)
         {
-            $sql = trim($sql);
-            if(empty($sql))
+            if(!is_file($dbFile)) continue;
+
+            foreach(explode(';', file_get_contents($dbFile)) as $sql)
             {
-                unset($sqls[$key]);
-                continue;
+                $sql = trim($sql);
+                if(empty($sql)) continue;
+
+                if($fileIndex == 0 && strpos($sql, '-- DROP') !== false && $clearDB) $sql = trim(str_replace('--', '', $sql));
+                if(strpos($sql, '--') === 0) continue;
+
+                $sql     = $this->install->replaceContantsInSQL($sql);
+                $sql     = $this->install->appendMySQLTableOptions($sql);
+                $changes = array_merge($changes, $this->install->getSemanticChangesBySQL($sql));
+
+                $sqls[] = $sql;
             }
-
-            if(strpos($sql, '-- DROP') !== false && $clearDB) $sql = trim(str_replace('--', '', $sql));
-            if(strpos($sql, '--') === 0)
-            {
-                unset($sqls[$key]);
-                continue;
-            }
-
-            $sql     = $this->install->replaceContantsInSQL($sql);
-            $sql     = $this->install->appendMySQLTableOptions($sql);
-            $changes = array_merge($changes, $this->install->getSemanticChangesBySQL($sql));
-
-            $sqls[$key] = $sql;
         }
-        return ['sqls' => array_values($sqls), 'changes' => $changes];
+
+        return ['sqls' => $sqls, 'changes' => $changes];
     }
 }

@@ -23,6 +23,7 @@ $lang->objecteffort->error->objectType = 'Invalid object type.';
 $lang->objecteffort->error->object     = 'Object does not exist or has been deleted.';
 $lang->objecteffort->error->closed     = 'Closed objects cannot record effort.';
 $lang->objecteffort->error->date       = 'Date is required and cannot be later than today.';
+$lang->objecteffort->error->estimate   = 'Estimate hours must be a number greater than or equal to 0.';
 $lang->objecteffort->error->consumed   = 'Consumed hours must be a number greater than 0.';
 $lang->objecteffort->error->left       = 'Left hours must be a number.';
 $lang->objecteffort->error->leftZeroEstimate = 'Left hours cannot be negative when the estimate is 0.';

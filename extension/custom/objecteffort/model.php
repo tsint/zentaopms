@@ -213,7 +213,11 @@ class objecteffortModel extends model
             dao::$errors['left'] = $this->lang->objecteffort->error->left;
             return false;
         }
-        if(!is_numeric($estimate) || $estimate < 0) $estimate = 0;
+        if(!is_numeric($estimate) || $estimate < 0)
+        {
+            dao::$errors['estimate'] = $this->lang->objecteffort->error->estimate;
+            return false;
+        }
         if($left !== '' && (float)$left < 0)
         {
             $effectiveEstimate = (float)$estimate;

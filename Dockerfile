@@ -11,7 +11,6 @@ ENV IS_CONTAINER=true \
     ZT_DB_ENCODING=utf8mb4 \
     ZT_DEFAULT_LANG=zh-cn \
     ZT_TIMEZONE=Asia/Shanghai \
-    ZT_INSTALLED=true \
     ZT_AUTO_INIT=false
 
 RUN apk add --no-cache \
@@ -46,7 +45,9 @@ COPY docker/entrypoint.sh docker/init-db.sh /usr/local/bin/
 
 RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/init-db.sh \
     && mkdir -p tmp data/upload www/data/upload config /etc/nginx/http.d \
-    && rm -f config/my.php config/db.php www/install.php www/upgrade.php \
+    && cp www/install.php.tmp www/install.php \
+    && cp www/upgrade.php.tmp www/upgrade.php \
+    && rm -f config/my.php config/db.php \
     && chown -R www-data:www-data tmp data/upload www/data config \
     && chmod -R ug+rwX tmp data/upload www/data config
 

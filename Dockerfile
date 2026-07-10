@@ -1,19 +1,26 @@
 FROM php:8.3-fpm-alpine
 
+ARG ALPINE_MIRROR=https://mirrors.aliyun.com/alpine
+
 ENV IS_CONTAINER=true \
     ZT_DB_DRIVER=mysql \
     ZT_DB_HOST=db \
     ZT_DB_PORT=3306 \
     ZT_DB_NAME=zentao \
     ZT_DB_USER=zentao \
-    ZT_DB_PASSWORD=zentao \
     ZT_DB_PREFIX=zt_ \
     ZT_DB_ENCODING=utf8mb4 \
     ZT_DEFAULT_LANG=zh-cn \
     ZT_TIMEZONE=Asia/Shanghai \
     ZT_AUTO_INIT=false
 
-RUN apk add --no-cache \
+RUN set -eux; \
+    alpine_version="$(cut -d. -f1,2 /etc/alpine-release)"; \
+    printf '%s\n' \
+        "${ALPINE_MIRROR}/v${alpine_version}/main" \
+        "${ALPINE_MIRROR}/v${alpine_version}/community" \
+        > /etc/apk/repositories; \
+    apk add --no-cache \
         bash curl freetype icu-libs libjpeg-turbo libpng libxml2 libzip \
         mysql-client nginx supervisor tzdata \
     && apk add --no-cache --virtual .build-deps \

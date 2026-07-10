@@ -10,6 +10,20 @@ export MYSQL_DB="${MYSQL_DB:-${ZT_DB_NAME:-zentao}}"
 export MYSQL_USER="${MYSQL_USER:-${ZT_DB_USER:-zentao}}"
 export MYSQL_PASSWORD="${MYSQL_PASSWORD:-${ZT_DB_PASSWORD:-zentao}}"
 
+export ZT_DB_DRIVER="${ZT_DB_DRIVER:-mysql}"
+export ZT_DB_HOST="${ZT_DB_HOST:-$MYSQL_HOST}"
+export ZT_DB_PORT="${ZT_DB_PORT:-$MYSQL_PORT}"
+export ZT_DB_NAME="${ZT_DB_NAME:-$MYSQL_DB}"
+export ZT_DB_USER="${ZT_DB_USER:-$MYSQL_USER}"
+export ZT_DB_PREFIX="${ZT_DB_PREFIX:-zt_}"
+export ZT_DB_ENCODING="${ZT_DB_ENCODING:-utf8mb4}"
+export ZT_DEFAULT_LANG="${ZT_DEFAULT_LANG:-zh-cn}"
+export ZT_TIMEZONE="${ZT_TIMEZONE:-Asia/Shanghai}"
+export ZT_AUTO_INIT="${ZT_AUTO_INIT:-false}"
+if [[ -z "${ZT_DB_PASSWORD+x}" ]]; then
+    export ZT_DB_PASSWORD="$MYSQL_PASSWORD"
+fi
+
 image_version()
 {
     sed -n "s/^\$config->version[[:space:]]*=[[:space:]]*'\([^']*\)'.*/\1/p" /var/www/html/config/config.php | head -n 1

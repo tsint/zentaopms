@@ -741,7 +741,7 @@ class statetransitionModel extends model
     {
         if(!$this->config->statetransition->globalEnabled) return array();
 
-        $row = $this->getEffectiveDefinition($objectType, $productID);
+        $row = $this->getDefinition($objectType, $productID);
         if($row === null || !$row['enabled']) return array();
 
         $definition   = $row['definition'];
@@ -800,6 +800,126 @@ class statetransitionModel extends model
             );
         }
         return $out;
+    }
+
+    /**
+     * Filter native detail-page actions by the stored workflow definition.
+     *
+     * Only workflow-controlled status actions are filtered. Non-status actions
+     * such as edit, copy, subdivide, createTask and recordWorkhour are preserved.
+     *
+     * @param  string $objectType
+     * @param  int    $productID
+     * @param  string $fromStatus
+     * @param  array  $actions
+     * @access public
+     * @return array
+     */
+    public function filterDetailActions(string $objectType, int $productID, string $fromStatus, array $actions): array
+    {
+        if(!$this->config->statetransition->globalEnabled) return $actions;
+
+        $row = $this->getDefinition($objectType, $productID);
+        if($row === null || !$row['enabled']) return $actions;
+
+        $workflowActions = array_flip($this->config->statetransition->actions[$objectType] ?? array());
+        if(empty($workflowActions)) return $actions;
+
+        $allowedActions = $this->getAllowedStoredActions($row['definition'], $fromStatus);
+        foreach($actions as $key => $action)
+        {
+            if(!is_array($action))
+            {
+                unset($actions[$key]);
+                continue;
+            }
+            if(isset($action['type']) && $action['type'] === 'divider') continue;
+
+            $candidateActions = $this->getWorkflowActionAliases($this->extractDetailActionName($action));
+            if(empty($candidateActions)) continue;
+
+            $isWorkflowAction = false;
+            $isAllowed        = false;
+            foreach($candidateActions as $actionName)
+            {
+                if(!isset($workflowActions[$actionName])) continue;
+
+                $isWorkflowAction = true;
+                if(isset($allowedActions[$actionName]))
+                {
+                    $isAllowed = true;
+                    break;
+                }
+            }
+
+            if($isWorkflowAction && !$isAllowed) unset($actions[$key]);
+        }
+
+        return array_values($actions);
+    }
+
+    /**
+     * Get enabled stored transition actions from a status, keyed by action.
+     *
+     * @param  array  $definition
+     * @param  string $fromStatus
+     * @access private
+     * @return array
+     */
+    private function getAllowedStoredActions(array $definition, string $fromStatus): array
+    {
+        $allowed = array();
+        foreach($definition['transitions'] ?? array() as $tr)
+        {
+            if(!$tr['enabled']) continue;
+            if($tr['fromStatus'] !== $fromStatus) continue;
+            if(!$this->checkActor($tr, null)) continue;
+
+            $action = strtolower((string)$tr['action']);
+            if($action !== '') $allowed[$action] = true;
+        }
+        return $allowed;
+    }
+
+    /**
+     * Extract action name from buildOperateMenu item.
+     *
+     * @param  array $action
+     * @access private
+     * @return string
+     */
+    private function extractDetailActionName(array $action): string
+    {
+        foreach(array('name', 'key', 'id') as $field)
+        {
+            if(!empty($action[$field])) return strtolower((string)$action[$field]);
+        }
+
+        $url = (string)($action['url'] ?? '');
+        if($url !== '' && preg_match('/[?&]f=([^&]+)/', $url, $matches)) return strtolower($matches[1]);
+        if($url !== '' && preg_match('/\/([a-zA-Z0-9_]+)\.html(?:[?#]|$)/', $url, $matches)) return strtolower($matches[1]);
+
+        return '';
+    }
+
+    /**
+     * Map native UI action names to workflow action names.
+     *
+     * @param  string $actionName
+     * @access private
+     * @return array
+     */
+    private function getWorkflowActionAliases(string $actionName): array
+    {
+        $actionName = strtolower($actionName);
+        if($actionName === '') return array();
+
+        $aliases = array(
+            'submitreview' => array('submitreview'),
+            'recall'       => array('recallreview', 'recallchange'),
+        );
+
+        return $aliases[$actionName] ?? array($actionName);
     }
 
     /**

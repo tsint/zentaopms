@@ -85,6 +85,7 @@ if(!$bug->deleted && $canModify)
         if($app->getClientLang() == 'en')  $actions = array_merge($actions, $operateList['suffixActions']);
         if($app->getClientLang() != 'en') $actions = array_merge($actions, array(array('type' => 'divider')), $operateList['suffixActions']);
     }
+    $actions = $this->loadModel('statetransition')->filterDetailActions('bug', (int)$bug->product, $bug->status, $actions);
 
     /* Inject workflow custom buttons (transitions allowed by workflow but not natively accessible). */
     $existingNames = array();

@@ -220,6 +220,7 @@ if(!$story->deleted && $canModify)
 $actions    = $story->deleted || !$canModify ? array() : $this->loadModel('common')->buildOperateMenu($story, $story->type);
 $hasDivider = !empty($actions['mainActions']) && !empty($actions['suffixActions']);
 if(!empty($actions)) $actions = array_merge($actions['mainActions'], $hasDivider ? array(array('type' => 'divider')) : array(), $actions['suffixActions']);
+if(!$story->deleted && $canModify) $actions = $this->loadModel('statetransition')->filterDetailActions($story->type, (int)$story->product, $story->status, $actions);
 
 /* Inject workflow custom buttons for transitions the user can't trigger natively.
    This bridges the gap: worker may lack priv for story-review but the workflow

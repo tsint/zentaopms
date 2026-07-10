@@ -72,6 +72,7 @@ if(!$task->deleted && common::canModify('execution', $execution))
 $actions             = !$task->deleted && common::canModify('execution', $execution) ? $this->loadModel('common')->buildOperateMenu($task) : array();
 $hasDivider          = !empty($actions['mainActions']) && !empty($actions['suffixActions']);
 if(!empty($actions)) $actions = array_merge($actions['mainActions'], $hasDivider ? array(array('type' => 'divider')) : array(), $actions['suffixActions']);
+if(!$task->deleted && common::canModify('execution', $execution)) $actions = $this->loadModel('statetransition')->filterDetailActions('task', 0, $task->status, $actions);
 
 /* Inject workflow custom buttons (transitions allowed by workflow but not natively accessible). */
 if(!$task->deleted && common::canModify('execution', $execution))

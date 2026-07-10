@@ -21,6 +21,7 @@ Run against an already-started ZenTao dev server:
 ```bash
 node module/statetransition/test/ui/browse_mermaid_tabs_test.mjs
 node module/statetransition/test/ui/mermaid_repeat_switch_test.mjs
+node module/statetransition/test/ui/detail_actions_filter_test.mjs
 ```
 
 For ER/UR coverage, provide DB connection values if they are not the defaults:
@@ -28,6 +29,20 @@ For ER/UR coverage, provide DB connection values if they are not the defaults:
 ```bash
 DB_HOST=127.0.0.1 DB_USER=zentao DB_PASSWORD=zentao123456 DB_NAME=zentao \
   node module/statetransition/test/ui/er_ur_object_types_mermaid_test.mjs
+```
+
+To let the detail action test create its own fixtures inside a Docker Compose DB container:
+
+```bash
+BASE_URL=http://127.0.0.1:8080 DB_CONTAINER=zentaopms-db-1 DB_ROOT_PASSWORD=Root1234! \
+  node module/statetransition/test/ui/detail_actions_filter_test.mjs
+```
+
+To temporarily enable ER/UR object types during that test and restore the original switches afterwards:
+
+```bash
+BASE_URL=http://127.0.0.1:8080 DB_CONTAINER=zentaopms-db-1 E2E_ENABLE_ER_UR=1 \
+  node module/statetransition/test/ui/detail_actions_filter_test.mjs
 ```
 
 ## Cleanup

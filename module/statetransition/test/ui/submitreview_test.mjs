@@ -10,7 +10,9 @@
  *      (NOT the entry edge [*]→draft which has no data-edge-key)
  *   5. Verifies the right panel shows the submitreview transition details
  */
-import { chromium } from 'playwright';
+import {loadPlaywright} from './playwright-loader.mjs';
+
+const { chromium } = await loadPlaywright();
 
 const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
 const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();

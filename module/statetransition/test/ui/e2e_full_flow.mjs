@@ -9,7 +9,9 @@
  *
  * Run: node module/statetransition/test/ui/e2e_full_flow.mjs
  */
-import { chromium } from 'playwright';
+import {loadPlaywright} from './playwright-loader.mjs';
+
+const { chromium } = await loadPlaywright();
 import { writeFileSync } from 'fs';
 
 const BASE = process.env.E2E_BASE_URL || 'http://127.0.0.1:8080';

@@ -12,7 +12,9 @@
  *   8. Add new transition
  *   9. Save definition
  */
-import { chromium } from 'playwright';
+import {loadPlaywright} from './playwright-loader.mjs';
+
+const { chromium } = await loadPlaywright();
 
 const results = [];
 function check(name, ok, detail = '') {
@@ -38,7 +40,7 @@ await page.waitForTimeout(10000);
 let iframe = page.frames().find(f => f.name() === 'app-admin');
 if (iframe) {
   const browseState = await iframe.evaluate(() => {
-    const div = document.querySelector('.statetransition-flow .mermaid');
+    const div = document.querySelector('.statetransition-flow .statetransition-mermaid, .statetransition-flow .mermaid');
     const svg = div?.querySelector('svg');
     return { hasSvg: !!svg, paths: svg?.querySelectorAll('path').length || 0 };
   });

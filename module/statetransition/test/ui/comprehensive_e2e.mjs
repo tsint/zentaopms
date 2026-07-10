@@ -3,7 +3,9 @@
  * Tests the complete user journey: add status, add transition, edit, save, reload,
  * delete, reset — for both global (productID=0) and product scope (productID=4).
  */
-import { chromium } from 'playwright';
+import {loadPlaywright} from './playwright-loader.mjs';
+
+const { chromium } = await loadPlaywright();
 
 const results = [];
 function check(name, ok, detail = '') {

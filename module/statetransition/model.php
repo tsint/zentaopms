@@ -1004,7 +1004,8 @@ class statetransitionModel extends model
         $html .= "<h4>" . htmlspecialchars($this->lang->statetransition->flowDiagram);
         if($currentStatus !== '') $html .= " <small>" . htmlspecialchars($this->lang->statetransition->currentStatus) . ": {$currentText}</small>";
         $html .= "</h4>";
-        $html .= "<div class='mermaid'>" . htmlspecialchars($mermaid) . "</div>";
+        $source = htmlspecialchars($mermaid, ENT_QUOTES);
+        $html .= "<div class='statetransition-mermaid' data-mermaid-source='{$source}'>" . htmlspecialchars($mermaid) . "</div>";
         /* Admin can configure. */
         if(common::hasPriv('statetransition', 'browse'))
         {

@@ -6,7 +6,9 @@
  * BEFORE fix (no navGroup->statetransition = 'admin'): navigates to my/index (FAIL)
  * AFTER fix: stays on statetransition/browse, page contains 状态流转 (PASS)
  */
-import { chromium } from 'playwright';
+import {loadPlaywright} from './playwright-loader.mjs';
+
+const { chromium } = await loadPlaywright();
 import { writeFileSync } from 'fs';
 
 const BASE = process.env.E2E_BASE_URL || 'http://127.0.0.1:8080';

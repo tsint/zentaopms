@@ -14,7 +14,9 @@
  *   10. Open story detail again
  *   11. Verify 'change' button is VISIBLE again (no role restriction)
  */
-import { chromium } from 'playwright';
+import {loadPlaywright} from './playwright-loader.mjs';
+
+const { chromium } = await loadPlaywright();
 
 const results = [];
 function check(name, ok, detail = '') {

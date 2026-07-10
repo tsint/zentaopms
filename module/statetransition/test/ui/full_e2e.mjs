@@ -1,4 +1,6 @@
-import { chromium } from 'playwright';
+import {loadPlaywright} from './playwright-loader.mjs';
+
+const { chromium } = await loadPlaywright();
 
 const results = [];
 function check(name, ok, detail = '') {
@@ -23,7 +25,7 @@ console.log('\n--- Test 1: Browse first-time mermaid ---');
 await page.goto('http://127.0.0.1:8080/index.php?m=statetransition&f=browse&objectType=story&productID=0&_single=1', { waitUntil: 'load', timeout: 30000 });
 await page.waitForTimeout(5000);
 const t1 = await page.evaluate(() => {
-  const div = document.querySelector('.statetransition-flow .mermaid');
+  const div = document.querySelector('.statetransition-flow .statetransition-mermaid, .statetransition-flow .mermaid');
   const svg = div?.querySelector('svg');
   return { hasSvg: !!svg, pathCount: svg?.querySelectorAll('path').length || 0 };
 });
@@ -35,7 +37,7 @@ for (const type of ['story', 'epic', 'requirement', 'bug', 'task']) {
   await page.goto(`http://127.0.0.1:8080/index.php?m=statetransition&f=browse&objectType=${type}&productID=0&_single=1`, { waitUntil: 'load', timeout: 30000 });
   await page.waitForTimeout(3000);
   const r = await page.evaluate(() => {
-    const div = document.querySelector('.statetransition-flow .mermaid');
+    const div = document.querySelector('.statetransition-flow .statetransition-mermaid, .statetransition-flow .mermaid');
     const svg = div?.querySelector('svg');
     return { hasSvg: !!svg, paths: svg?.querySelectorAll('path').length || 0 };
   });

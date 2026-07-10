@@ -1,8 +1,9 @@
 /**
  * Regression test for statetransition browse tabs repeatedly rendering Mermaid.
  */
-const playwrightModule = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
-const { chromium } = playwrightModule.default || playwrightModule;
+import {loadPlaywright} from './playwright-loader.mjs';
+
+const { chromium } = await loadPlaywright();
 
 const BASE = process.env.E2E_BASE_URL || 'http://localhost:8080';
 const PASSWORDS = (process.env.E2E_PASSWORDS || 'Admin1234!,123456').split(',');
@@ -69,6 +70,22 @@ async function diagramState() {
   });
 }
 
+async function visibleBrowseTabs() {
+  const frame = await findBrowseFrame();
+  return frame.evaluate(() => {
+    const tabs = Array.from(document.querySelectorAll('a[href*="m=statetransition"][href*="f=browse"][href*="objectType="]'));
+    const seen = new Set();
+    return tabs.map(link => {
+      const url = new URL(link.href, location.href);
+      return {type: url.searchParams.get('objectType'), text: link.textContent.replace(/\s+/g, ' ').trim()};
+    }).filter(tab => {
+      if(!tab.type || seen.has(tab.type)) return false;
+      seen.add(tab.type);
+      return true;
+    });
+  });
+}
+
 check('Login as admin', await login(), page.url());
 
 await page.goto(`${BASE}/index.php?m=statetransition&f=browse&objectType=story&productID=0`, {
@@ -80,13 +97,10 @@ let state = await diagramState();
 check('Initial story browse diagram renders', state.hasDiagram && state.hasSvg && state.hasSource, JSON.stringify(state));
 check('Browse diagram is not globally auto-runnable', !state.hasGlobalMermaidClass, JSON.stringify(state));
 
-const tabs = [
-  {type: 'story', text: '研发需求'},
-  {type: 'bug', text: 'Bug'},
-  {type: 'task', text: '任务'}
-];
+const tabs = await visibleBrowseTabs();
+check('Browse tab list discovered', tabs.length >= 3, JSON.stringify(tabs));
 let expected = tabs[0];
-for(let i = 0; i < 18; i++) {
+for(let i = 0; i < tabs.length * 6; i++) {
   expected = tabs[i % tabs.length];
   const frame = await findBrowseFrame();
   await frame.locator(`a[href*="m=statetransition"][href*="f=browse"][href*="objectType=${expected.type}"]`).first().click({timeout: 10000});

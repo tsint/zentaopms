@@ -171,6 +171,20 @@ class statetransitionModelTest extends baseTest
     }
 
     /**
+     * Run renderFlowHtml().
+     *
+     * @param  string $objectType
+     * @param  int    $productID
+     * @param  string $currentStatus
+     * @access public
+     * @return string
+     */
+    public function renderFlowHtmlTest(string $objectType, int $productID, string $currentStatus): string
+    {
+        return $this->instance->renderFlowHtml($objectType, $productID, $currentStatus);
+    }
+
+    /**
      * Run saveDefinition() and return summary.
      *
      * @param  string $objectType

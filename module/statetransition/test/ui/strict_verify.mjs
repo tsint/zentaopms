@@ -1,4 +1,6 @@
-import { chromium } from 'playwright';
+import {loadPlaywright} from './playwright-loader.mjs';
+
+const { chromium } = await loadPlaywright();
 
 const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
 const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
@@ -15,7 +17,7 @@ await page.goto('http://127.0.0.1:8080/index.php?m=statetransition&f=browse&obje
 await page.waitForTimeout(5000);
 
 const bug3 = await page.evaluate(() => {
-  const div = document.querySelector('.statetransition-flow .mermaid');
+  const div = document.querySelector('.statetransition-flow .statetransition-mermaid, .statetransition-flow .mermaid');
   const svg = div?.querySelector('svg');
   return {
     hasMermaidDiv: !!div,

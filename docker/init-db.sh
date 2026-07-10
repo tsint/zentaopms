@@ -18,7 +18,6 @@ set -euo pipefail
 [[ "$ZT_ADMIN_ACCOUNT" =~ ^[A-Za-z0-9._-]+$ ]] || { echo 'ZT_ADMIN_ACCOUNT contains unsupported characters.' >&2; exit 2; }
 (( ${#ZT_ADMIN_PASSWORD} >= 6 )) || { echo 'ZT_ADMIN_PASSWORD must contain at least 6 characters.' >&2; exit 2; }
 
-export MYSQL_PWD="$ZT_DB_ROOT_PASSWORD"
 mysql_client="$(command -v mariadb || command -v mysql)"
 mysql_ssl_opt=(--ssl=0)
 if "$mysql_client" --no-defaults --help 2>&1 | grep -q -- '--ssl-mode'; then
@@ -55,12 +54,61 @@ fast_ready()
     [[ "$data_counts" == $'1\t5' ]]
 }
 
+app_can_connect()
+{
+    export MYSQL_PWD="$ZT_DB_PASSWORD"
+    "${app_mysql[@]}" -e 'SELECT 1' >/dev/null 2>&1
+}
+
+try_root_connect()
+{
+    local candidate
+    for candidate in "$@"; do
+        export MYSQL_PWD="$candidate"
+        if "${root_mysql[@]}" -e 'SELECT 1' >/dev/null 2>&1; then
+            ZT_DB_ROOT_PASSWORD="$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+sql_escape()
+{
+    printf "%s" "$1" | sed "s/'/''/g"
+}
+
 ensure_runtime_dirs
 
 echo "Waiting for MySQL at ${ZT_DB_HOST}:${ZT_DB_PORT}..."
+root_password_candidates=("$ZT_DB_ROOT_PASSWORD")
+if [[ -n "${MYSQL_ROOT_PASSWORD:-}" && "$MYSQL_ROOT_PASSWORD" != "$ZT_DB_ROOT_PASSWORD" ]]; then
+    root_password_candidates+=("$MYSQL_ROOT_PASSWORD")
+fi
+if [[ -n "$ZT_DB_PASSWORD" && "$ZT_DB_PASSWORD" != "$ZT_DB_ROOT_PASSWORD" ]]; then
+    root_password_candidates+=("$ZT_DB_PASSWORD")
+fi
+
+app_ready=false
+root_ready=false
 for attempt in $(seq 1 60); do
-    if "${root_mysql[@]}" -e 'SELECT 1' >/dev/null 2>&1; then break; fi
-    if [[ "$attempt" == 60 ]]; then echo 'MySQL did not become ready in time.' >&2; exit 1; fi
+    if app_can_connect; then
+        app_ready=true
+        break
+    fi
+    if try_root_connect "${root_password_candidates[@]}"; then
+        root_ready=true
+        break
+    fi
+    if [[ "$attempt" == 60 ]]; then
+        cat >&2 <<EOF
+MySQL did not become ready with the configured credentials.
+Checked app user '${ZT_DB_USER}' for database '${ZT_DB_NAME}' and root user '${ZT_DB_ROOT_USER}'.
+If this deployment reuses an existing MySQL data directory, MYSQL_ROOT_PASSWORD/ ZT_DB_ROOT_PASSWORD
+must match the password stored in that data directory, or the app user must already exist.
+EOF
+        exit 1
+    fi
     sleep 2
 done
 
@@ -69,7 +117,32 @@ if fast_ready; then
     exit 0
 fi
 
-"${root_mysql[@]}" -e "CREATE DATABASE IF NOT EXISTS \`${ZT_DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE USER IF NOT EXISTS '${ZT_DB_USER}'@'%' IDENTIFIED BY '${ZT_DB_PASSWORD//\'/\'\'}'; GRANT ALL PRIVILEGES ON \`${ZT_DB_NAME}\`.* TO '${ZT_DB_USER}'@'%'; FLUSH PRIVILEGES;"
+if [[ "$app_ready" != true ]]; then
+    if [[ "$root_ready" != true ]]; then
+        cat >&2 <<EOF
+Database is not initialized for app user '${ZT_DB_USER}', and root login failed.
+This usually means the MySQL volume was initialized earlier with a different root password.
+Fix by setting ZT_DB_ROOT_PASSWORD to the real existing root password, or by resetting/recreating
+the MySQL data volume when a fresh database is intended.
+EOF
+        exit 1
+    fi
+
+    db_user_sql="$(sql_escape "$ZT_DB_USER")"
+    db_password_sql="$(sql_escape "$ZT_DB_PASSWORD")"
+    export MYSQL_PWD="$ZT_DB_ROOT_PASSWORD"
+    "${root_mysql[@]}" <<SQL
+CREATE DATABASE IF NOT EXISTS \`${ZT_DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '${db_user_sql}'@'%' IDENTIFIED BY '${db_password_sql}';
+GRANT ALL PRIVILEGES ON \`${ZT_DB_NAME}\`.* TO '${db_user_sql}'@'%';
+FLUSH PRIVILEGES;
+SQL
+
+    if ! app_can_connect; then
+        echo "Created database/user, but app user '${ZT_DB_USER}' still cannot connect to '${ZT_DB_NAME}'." >&2
+        exit 1
+    fi
+fi
 
 export MYSQL_PWD="$ZT_DB_PASSWORD"
 

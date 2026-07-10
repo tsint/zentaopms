@@ -5,8 +5,9 @@
  * container must not keep the global `.mermaid` class, otherwise ZenTao SPA
  * script reinjection can make Mermaid parse the rendered SVG/CSS as source.
  */
-const playwrightModule = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
-const { chromium } = playwrightModule.default || playwrightModule;
+import {loadPlaywright} from './playwright-loader.mjs';
+
+const { chromium } = await loadPlaywright();
 
 const BASE = process.env.E2E_BASE_URL || 'http://127.0.0.1:8080';
 const PASSWORDS = (process.env.E2E_PASSWORDS || 'Admin1234!,123456').split(',');

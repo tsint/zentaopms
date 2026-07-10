@@ -12,7 +12,9 @@
  *   - Reload, verify reviewing IN entries
  *   - Reset
  */
-import { chromium } from 'playwright';
+import {loadPlaywright} from './playwright-loader.mjs';
+
+const { chromium } = await loadPlaywright();
 
 const results = [];
 function check(name, ok, detail = '') {

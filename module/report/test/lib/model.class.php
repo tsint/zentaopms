@@ -343,6 +343,167 @@ class reportModelTest extends baseTest
     }
 
     /**
+     * Test global effort summary.
+     *
+     * @param  array        $filters
+     * @access public
+     * @return object|array
+     */
+    public function getGlobalEffortSummaryTest(array $filters = array()): object|array
+    {
+        $object = $this->instance->getGlobalEffortSummary($filters);
+
+        if(dao::isError()) return dao::getError();
+
+        return $object;
+    }
+
+    /**
+     * Test global effort distribution.
+     *
+     * @param  string       $dimension
+     * @param  array        $filters
+     * @access public
+     * @return string|array
+     */
+    public function getGlobalEffortDistributionTest(string $dimension, array $filters = array()): string|array
+    {
+        $objects = $this->instance->getGlobalEffortDistribution($dimension, $filters);
+
+        if(dao::isError()) return dao::getError();
+
+        $result = array();
+        foreach($objects as $object) $result[] = "{$object->dimension}:{$object->records}:{$object->consumed}";
+        return implode(',', $result);
+    }
+
+    /**
+     * Test global effort health.
+     *
+     * @param  array        $filters
+     * @access public
+     * @return object|array
+     */
+    public function getGlobalEffortHealthTest(array $filters = array()): object|array
+    {
+        $object = $this->instance->getGlobalEffortHealth($filters);
+
+        if(dao::isError()) return dao::getError();
+
+        return $object;
+    }
+
+    /**
+     * Test global effort CSV.
+     *
+     * @param  array        $filters
+     * @access public
+     * @return string|array
+     */
+    public function buildGlobalEffortCSVTest(array $filters = array()): string|array
+    {
+        $csv = $this->instance->buildGlobalEffortCSV($filters);
+
+        if(dao::isError()) return dao::getError();
+
+        return $csv;
+    }
+
+    /**
+     * Test global effort cost and progress.
+     *
+     * @param  string       $scope
+     * @param  array        $filters
+     * @access public
+     * @return string|array
+     */
+    public function getGlobalEffortCostProgressTest(string $scope, array $filters = array()): string|array
+    {
+        $objects = $this->instance->getGlobalEffortCostProgress($scope, $filters);
+
+        if(dao::isError()) return dao::getError();
+
+        $result = array();
+        foreach($objects as $object) $result[] = "{$object->scopeID}:{$object->objects}:{$object->consumed}:{$object->left}:{$object->progress}:{$object->overrunObjects}:{$object->riskLevel}";
+        return implode(',', $result);
+    }
+
+    /**
+     * Test global effort management metrics.
+     *
+     * @param  array        $filters
+     * @access public
+     * @return object|array
+     */
+    public function getGlobalEffortManagementMetricsTest(array $filters = array()): object|array
+    {
+        $object = $this->instance->getGlobalEffortManagementMetrics($filters);
+
+        if(dao::isError()) return dao::getError();
+
+        return $object;
+    }
+
+    /**
+     * Test global effort object type distribution.
+     *
+     * @param  array        $filters
+     * @access public
+     * @return string|array
+     */
+    public function getGlobalEffortObjectTypeDistributionTest(array $filters = array()): string|array
+    {
+        $objects = $this->instance->getGlobalEffortObjectTypeDistribution($filters);
+
+        if(dao::isError()) return dao::getError();
+
+        $result = array();
+        foreach($objects as $object) $result[] = "{$object->type}:{$object->label}:{$object->consumed}:{$object->percent}";
+        return implode(',', $result);
+    }
+
+    /**
+     * Test global effort stale objects.
+     *
+     * @param  array        $filters
+     * @access public
+     * @return string|array
+     */
+    public function getGlobalEffortStaleObjectsTest(array $filters = array()): string|array
+    {
+        $objects = $this->instance->getGlobalEffortStaleObjects($filters);
+
+        if(dao::isError()) return dao::getError();
+
+        $result = array();
+        foreach($objects as $object) $result[] = "{$object->objectType}:{$object->objectID}:{$object->staleDays}";
+        return implode(',', $result);
+    }
+
+    /**
+     * Test global effort account stacked distribution.
+     *
+     * @param  array        $filters
+     * @access public
+     * @return string|array
+     */
+    public function getGlobalEffortAccountStackTest(array $filters = array()): string|array
+    {
+        $objects = $this->instance->getGlobalEffortAccountStack($filters);
+
+        if(dao::isError()) return dao::getError();
+
+        $result = array();
+        foreach($objects as $object)
+        {
+            $segments = array();
+            foreach($object->segments as $segment) $segments[] = "{$segment->type}:{$segment->consumed}";
+            $result[] = "{$object->account}:{$object->total}:" . implode('|', $segments);
+        }
+        return implode(',', $result);
+    }
+
+    /**
      * 测试获取本年度用户相关的每个产品的创建的需求和计划，关闭的需求数据。
      * Test get count of created story,plan and closed story by accounts every product in this year.
      *

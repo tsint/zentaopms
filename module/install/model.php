@@ -465,6 +465,10 @@ class installModel extends model
                 $table = str_replace('zt_', $this->config->db->prefix, $table);
                 if(!$this->dbh->query($table)) return false;
             }
+
+            $groupTable     = $this->config->db->prefix . 'group';
+            $groupPrivTable = $this->config->db->prefix . 'grouppriv';
+            $this->dbh->query("REPLACE INTO `{$groupPrivTable}` (`group`, `module`, `method`) SELECT `id`, 'report', 'globalEffort' FROM `{$groupTable}`");
         }
         catch(Error $e)
         {

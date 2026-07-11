@@ -592,6 +592,7 @@ $lang->bi->menu->screen = array('link' => "{$lang->screen->common}|screen|browse
 $lang->bi->menu->pivot  = array('link' => "{$lang->pivot->common}|pivot|preview");
 $lang->bi->menu->chart  = array('link' => "{$lang->chart->common}|chart|preview");
 $lang->bi->menu->metric = array('link' => "{$lang->metric->common}|metric|preview");
+$lang->bi->menu->globalEffort = array('link' => "全局工时|report|globalEffort");
 
 $lang->bi->dividerMenu = ',metric,';
 
@@ -600,6 +601,7 @@ $lang->bi->menuOrder[5]  = 'screen';
 $lang->bi->menuOrder[10] = 'pivot';
 $lang->bi->menuOrder[15] = 'chart';
 $lang->bi->menuOrder[20] = 'metric';
+$lang->bi->menuOrder[25] = 'globalEffort';
 
 /* Company menu.*/
 $lang->company->menu              = new stdclass();

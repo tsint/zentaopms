@@ -128,4 +128,63 @@ class report extends control
         $this->view->account = $account;
         $this->display();
     }
+
+    /**
+     * Global effort statistics and risk analysis.
+     *
+     * @access public
+     * @return void
+     */
+    public function globalEffort()
+    {
+        $query = array();
+        parse_str($_SERVER['QUERY_STRING'] ?? '', $query);
+
+        $filters       = $this->reportZen->buildGlobalEffortFilters();
+        $detailFilters = $this->reportZen->buildGlobalEffortDetailFilters($filters);
+        if(isset($query['export']) && $query['export'] == 'csv')
+        {
+            $csv = $this->report->buildGlobalEffortCSV($detailFilters);
+            return $this->fetch('file', 'sendDownHeader', array('fileName' => 'global_effort_' . date('Ymd_His'), 'fileType' => 'csv', 'content' => $csv));
+        }
+
+        $this->app->loadClass('pager', true);
+        $pager = new pager(isset($query['recTotal']) ? (int)$query['recTotal'] : 0, !empty($query['recPerPage']) ? (int)$query['recPerPage'] : 20, !empty($query['pageID']) ? (int)$query['pageID'] : 1);
+
+        $this->view->title           = $this->lang->report->globalEffort->common;
+        $this->view->filters         = $filters;
+        $this->view->detailFilters   = $detailFilters;
+        $this->view->summary         = $this->report->getGlobalEffortSummary($filters);
+        $this->view->health          = $this->report->getGlobalEffortHealth($filters);
+        $this->view->management      = $this->report->getGlobalEffortManagementMetrics($filters);
+        $this->view->objectTypes     = $this->report->getGlobalEffortObjectTypeDistribution($filters);
+        $this->view->staleObjects    = $this->report->getGlobalEffortStaleObjects($filters);
+        $this->view->accountStack    = $this->report->getGlobalEffortAccountStack($filters);
+        $this->view->productProgress = $this->report->getGlobalEffortCostProgress('product', $filters);
+        $this->view->projectProgress = $this->report->getGlobalEffortCostProgress('project', $filters);
+        $this->view->records         = $this->report->getGlobalEffortRecords($detailFilters, $pager);
+        $this->view->pager           = $pager;
+        $this->view->productLines    = array(0 => $this->lang->all) + $this->dao->select('id,name')->from(TABLE_MODULE)->where('type')->eq('line')->andWhere('deleted')->eq('0')->orderBy('`order`')->fetchPairs();
+        $this->view->programs        = array(0 => $this->lang->all) + $this->dao->select('id,name')->from(TABLE_PROJECT)->where('type')->eq('program')->andWhere('deleted')->eq('0')->fetchPairs();
+        $this->view->products        = array(0 => $this->lang->all) + $this->dao->select('id,name')->from(TABLE_PRODUCT)->where('deleted')->eq('0')->fetchPairs();
+        $this->view->projects        = array(0 => $this->lang->all) + $this->dao->select('id,name')->from(TABLE_PROJECT)->where('type')->eq('project')->andWhere('deleted')->eq('0')->fetchPairs();
+        $this->view->executions      = array(0 => $this->lang->all) + $this->dao->select('id,name')->from(TABLE_EXECUTION)->where('type')->in('sprint,stage,kanban')->andWhere('deleted')->eq('0')->fetchPairs();
+        $this->view->users           = array('' => $this->lang->all) + $this->loadModel('user')->getPairs('noletter|nodeleted');
+        $this->view->depts           = array(0 => $this->lang->all) + $this->loadModel('dept')->getOptionMenu();
+
+        $this->display();
+    }
+
+    /**
+     * Export global effort records as CSV.
+     *
+     * @access public
+     * @return void
+     */
+    public function exportGlobalEffortCSV()
+    {
+        $filters = $this->reportZen->buildGlobalEffortDetailFilters($this->reportZen->buildGlobalEffortFilters());
+        $csv     = $this->report->buildGlobalEffortCSV($filters);
+        $this->fetch('file', 'sendDownHeader', array('fileName' => 'global_effort_' . date('Ymd_His'), 'fileType' => 'csv', 'content' => $csv));
+    }
 }

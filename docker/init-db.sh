@@ -80,6 +80,69 @@ sql_escape()
 
 ensure_runtime_dirs
 
+ensure_bi_builtin_data()
+{
+    export MYSQL_PWD="$ZT_DB_PASSWORD"
+    local has_bi_tables
+    has_bi_tables="$("${app_mysql[@]}" -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${ZT_DB_NAME}' AND table_name IN ('${ZT_DB_PREFIX}dimension', '${ZT_DB_PREFIX}screen')" 2>/dev/null || true)"
+    [[ "$has_bi_tables" == 2 ]] || return 0
+
+    echo 'Ensuring BI built-in data...'
+    "${app_mysql[@]}" <<SQL
+REPLACE INTO \`${ZT_DB_PREFIX}dimension\` (id, name, code, \`desc\`, createdBy, createdDate, editedBy, editedDate, deleted) VALUES
+(1, '宏观管理维度', 'macro', '', 'system', '2023-04-27 20:22:16', '', NULL, '0'),
+(2, '效能管理维度', 'efficiency', '', 'system', '2023-04-27 20:22:16', '', NULL, '0'),
+(3, '质量管理维度', 'quality', '', 'system', '2023-04-27 20:22:16', '', NULL, '0');
+REPLACE INTO \`${ZT_DB_PREFIX}grouppriv\` (\`group\`, module, method)
+SELECT id, 'report', 'globalEffort' FROM \`${ZT_DB_PREFIX}group\`;
+SQL
+
+    PROJECT_ROOT="/var/www/html" DB_PREFIX="$ZT_DB_PREFIX" php <<'PHP' | "${app_mysql[@]}"
+<?php
+$root   = getenv('PROJECT_ROOT');
+$prefix = getenv('DB_PREFIX');
+$ids    = array(1, 2, 3, 4, 5, 6, 7, 8, 1001);
+
+$quote = function($value)
+{
+    if($value === null) return 'NULL';
+    return "'" . str_replace("'", "''", (string)$value) . "'";
+};
+
+foreach($ids as $id)
+{
+    $file = $root . "/module/bi/json/screen{$id}.json";
+    if(!is_file($file)) continue;
+
+    $screen = json_decode(file_get_contents($file));
+    if(!$screen) continue;
+
+    $scheme = isset($screen->scheme) ? json_encode($screen->scheme, JSON_UNESCAPED_UNICODE) : null;
+    $values = array(
+        (int)$screen->id,
+        (int)$screen->dimension,
+        $quote($screen->name ?? ''),
+        $quote($screen->desc ?? ''),
+        $quote($screen->acl ?? 'open'),
+        isset($screen->whitelist) ? $quote($screen->whitelist) : 'NULL',
+        $quote($screen->cover ?? ''),
+        $quote($scheme),
+        "'published'",
+        (int)($screen->builtin ?? 1),
+        "'system'",
+        'NOW()',
+        "''",
+        'NULL',
+        '0'
+    );
+
+    echo "REPLACE INTO `{$prefix}screen` (`id`, `dimension`, `name`, `desc`, `acl`, `whitelist`, `cover`, `scheme`, `status`, `builtin`, `createdBy`, `createdDate`, `editedBy`, `editedDate`, `deleted`) VALUES (" . implode(', ', $values) . ");\n";
+}
+PHP
+
+    echo 'BI built-in data is ready.'
+}
+
 echo "Waiting for MySQL at ${ZT_DB_HOST}:${ZT_DB_PORT}..."
 root_password_candidates=("$ZT_DB_ROOT_PASSWORD")
 if [[ -n "${MYSQL_ROOT_PASSWORD:-}" && "$MYSQL_ROOT_PASSWORD" != "$ZT_DB_ROOT_PASSWORD" ]]; then
@@ -113,6 +176,7 @@ EOF
 done
 
 if fast_ready; then
+    ensure_bi_builtin_data
     echo 'Database already ready; skipping initialization.'
     exit 0
 fi
@@ -161,6 +225,8 @@ if ! table_exists user; then
     render_sql /var/www/html/db/zentao.sql | "${app_mysql[@]}"
 fi
 
+ensure_bi_builtin_data
+
 for extension in objecteffort workflowflowchart; do
     install_sql="/var/www/html/extension/custom/${extension}/db/install.sql"
     if [[ -f "$install_sql" ]] && ! table_exists "$extension"; then
@@ -176,6 +242,7 @@ fi
 
 admin_exists="$("${app_mysql[@]}" -Nse "SELECT COUNT(*) FROM \`${ZT_DB_PREFIX}user\` WHERE account='${ZT_ADMIN_ACCOUNT}'")"
 if [[ "$admin_exists" != 0 ]]; then
+    ensure_bi_builtin_data
     echo "ZenTao administrator ${ZT_ADMIN_ACCOUNT} already exists; database schema checks completed."
     exit 0
 fi
@@ -193,4 +260,5 @@ REPLACE INTO \`${ZT_DB_PREFIX}config\` (vision, owner, module, section, \`key\`,
 ('', 'system', 'common', 'safe', 'modifyPasswordFirstLogin', '0'),
 ('', 'system', 'common', 'global', 'cron', '1');
 SQL
+ensure_bi_builtin_data
 echo "Created ZenTao administrator: ${ZT_ADMIN_ACCOUNT}"

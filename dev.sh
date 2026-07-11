@@ -133,9 +133,9 @@ for i in {1..15}; do
 done
 
 # 自动打开浏览器（可选）
-if command -v xdg-open >/dev/null && [[ -z "${NO_OPEN_BROWSER:-}" ]]; then
-    (sleep 1; xdg-open "http://${HOST}:${PORT}/" >/dev/null 2>&1) &
-fi
+# if command -v xdg-open >/dev/null && [[ -z "${NO_OPEN_BROWSER:-}" ]]; then
+#     (sleep 1; xdg-open "http://${HOST}:${PORT}/" >/dev/null 2>&1) &
+# fi
 
 # 实时打印日志
 tail -f "$LOG_FILE"

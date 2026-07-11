@@ -459,6 +459,569 @@ class reportModel extends model
     }
 
     /**
+     * Get global effort summary.
+     *
+     * @param  array  $filters
+     * @access public
+     * @return object
+     */
+    public function getGlobalEffortSummary(array $filters = array()): object
+    {
+        $sql = $this->buildGlobalEffortDataSQL($filters);
+
+        $summary = $this->dao->query("SELECT COUNT(1) AS records, ROUND(SUM(consumed), 2) AS consumed, COUNT(DISTINCT IF(product > 0, product, NULL)) AS productCount, COUNT(DISTINCT IF(project > 0, project, NULL)) AS projectCount, COUNT(DISTINCT IF(objectType = 'task', objectID, NULL)) AS taskCount, COUNT(DISTINCT IF(objectType IN ('requirement', 'story'), objectID, NULL)) AS requirementCount, COUNT(DISTINCT IF(account != '', account, NULL)) AS userCount FROM ($sql) t")->fetch();
+
+        $summary->records          = (int)$summary->records;
+        $summary->consumed         = $summary->consumed === null ? 0 : round((float)$summary->consumed, 2);
+        $summary->productCount     = (int)$summary->productCount;
+        $summary->projectCount     = (int)$summary->projectCount;
+        $summary->taskCount        = (int)$summary->taskCount;
+        $summary->requirementCount = (int)$summary->requirementCount;
+        $summary->userCount        = (int)$summary->userCount;
+
+        return $summary;
+    }
+
+    /**
+     * Get global effort distribution by dimension.
+     *
+     * @param  string $dimension
+     * @param  array  $filters
+     * @access public
+     * @return array
+     */
+    public function getGlobalEffortDistribution(string $dimension = 'product', array $filters = array()): array
+    {
+        $fieldMap = array(
+            'product'     => 'product',
+            'project'     => 'project',
+            'execution'   => 'execution',
+            'task'        => 'objectID',
+            'requirement' => 'objectID',
+            'account'     => 'account',
+            'objectType'  => 'objectType',
+            'date'        => 'date'
+        );
+        if(!isset($fieldMap[$dimension])) $dimension = 'product';
+
+        if($dimension == 'task')        $filters['objectType'] = 'task';
+        if($dimension == 'requirement') $filters['objectType'] = 'requirement';
+
+        $sql   = $this->buildGlobalEffortDataSQL($filters);
+        $field = $fieldMap[$dimension];
+        $rows  = $this->dao->query("SELECT $field AS dimension, COUNT(1) AS records, ROUND(SUM(consumed), 2) AS consumed FROM ($sql) t GROUP BY $field ORDER BY consumed DESC, records DESC, dimension ASC")->fetchAll();
+
+        $total = 0.0;
+        foreach($rows as $row) $total += (float)$row->consumed;
+        foreach($rows as $row)
+        {
+            $row->dimension = (string)$row->dimension;
+            $row->records   = (int)$row->records;
+            $row->consumed  = round((float)$row->consumed, 2);
+            $row->percent   = $total > 0 ? round($row->consumed / $total, 4) : 0;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Get global effort health and early risk indicators.
+     *
+     * @param  array  $filters
+     * @access public
+     * @return object
+     */
+    public function getGlobalEffortHealth(array $filters = array()): object
+    {
+        $sql     = $this->buildGlobalEffortDataSQL($filters);
+        $summary = $this->dao->query("SELECT ROUND(SUM(consumed), 2) AS totalConsumed, COUNT(DISTINCT account) AS activeUsers, COUNT(DISTINCT date) AS activeDays FROM ($sql) t")->fetch();
+
+        $health = new stdclass();
+        $health->totalConsumed   = $summary && $summary->totalConsumed !== null ? round((float)$summary->totalConsumed, 2) : 0;
+        $health->activeUsers     = $summary ? (int)$summary->activeUsers : 0;
+        $health->activeDays      = $summary ? (int)$summary->activeDays : 0;
+        $health->avgHoursPerUser = $health->activeUsers > 0 ? round($health->totalConsumed / $health->activeUsers, 2) : 0;
+        $health->avgHoursPerDay  = $health->activeDays > 0 ? round($health->totalConsumed / $health->activeDays, 2) : 0;
+
+        $overload = $this->dao->query("SELECT COUNT(1) AS overloadDays FROM (SELECT account, date, SUM(consumed) AS dayConsumed FROM ($sql) t GROUP BY account, date HAVING dayConsumed > 8) d")->fetch();
+        $health->overloadDays = $overload ? (int)$overload->overloadDays : 0;
+
+        $topAccount = $this->dao->query("SELECT account, ROUND(SUM(consumed), 2) AS consumed FROM ($sql) t GROUP BY account ORDER BY consumed DESC, account ASC LIMIT 1")->fetch();
+        $health->topAccount         = $topAccount ? (string)$topAccount->account : '';
+        $health->topAccountConsumed = $topAccount ? round((float)$topAccount->consumed, 2) : 0;
+        $health->topAccountShare    = $health->totalConsumed > 0 ? round($health->topAccountConsumed / $health->totalConsumed, 4) : 0;
+
+        $health->riskLevel = 'low';
+        if($health->overloadDays > 0 || $health->topAccountShare >= 0.4) $health->riskLevel = 'medium';
+        if($health->overloadDays >= 3 || $health->topAccountShare >= 0.6) $health->riskLevel = 'high';
+
+        return $health;
+    }
+
+    /**
+     * Get product or project cost/progress indicators.
+     *
+     * @param  string $scope product|project
+     * @param  array  $filters
+     * @access public
+     * @return array
+     */
+    public function getGlobalEffortCostProgress(string $scope = 'project', array $filters = array()): array
+    {
+        if(!in_array($scope, array('product', 'project'))) $scope = 'project';
+
+        $groups = array();
+        foreach($this->getGlobalEffortRecords($filters) as $row)
+        {
+            $scopeID = (int)$row->{$scope};
+            if($scopeID <= 0) continue;
+
+            if(!isset($groups[$scopeID]))
+            {
+                $groups[$scopeID] = (object)array(
+                    'scope'          => $scope,
+                    'scopeID'        => $scopeID,
+                    'consumed'       => 0.0,
+                    'left'           => 0.0,
+                    'objects'        => 0,
+                    'overrunObjects' => 0,
+                    'progress'       => 0.0,
+                    'riskLevel'      => 'low',
+                    'objectMap'      => array()
+                );
+            }
+
+            $groups[$scopeID]->consumed += (float)$row->consumed;
+
+            $objectKey = "{$row->source}:{$row->objectType}:{$row->objectID}";
+            if(!isset($groups[$scopeID]->objectMap[$objectKey]))
+            {
+                $groups[$scopeID]->objectMap[$objectKey] = (object)array('left' => (float)$row->left, 'date' => $row->date, 'id' => (int)$row->id);
+            }
+            else
+            {
+                $latest = $groups[$scopeID]->objectMap[$objectKey];
+                if($row->date > $latest->date || ($row->date == $latest->date && (int)$row->id > $latest->id))
+                {
+                    $latest->left = (float)$row->left;
+                    $latest->date = $row->date;
+                    $latest->id   = (int)$row->id;
+                }
+            }
+        }
+
+        foreach($groups as $group)
+        {
+            $group->objects = count($group->objectMap);
+            foreach($group->objectMap as $object)
+            {
+                $group->left += (float)$object->left;
+                if((float)$object->left < 0) $group->overrunObjects++;
+            }
+
+            $positiveLeft    = max(0, $group->left);
+            $group->consumed = round($group->consumed, 2);
+            $group->left     = round($group->left, 2);
+            $group->progress = ($group->consumed + $positiveLeft) > 0 ? round($group->consumed / ($group->consumed + $positiveLeft), 2) : 0;
+
+            $group->riskLevel = 'low';
+            if($group->progress < 0.3 && $group->left > $group->consumed) $group->riskLevel = 'medium';
+            if($group->overrunObjects > 0) $group->riskLevel = 'high';
+
+            unset($group->objectMap);
+        }
+
+        usort($groups, function($a, $b)
+        {
+            if($a->consumed == $b->consumed) return $a->scopeID <=> $b->scopeID;
+            return $a->consumed < $b->consumed ? 1 : -1;
+        });
+
+        return $groups;
+    }
+
+    /**
+     * Get management summary metrics for global effort.
+     *
+     * @param  array  $filters
+     * @access public
+     * @return object
+     */
+    public function getGlobalEffortManagementMetrics(array $filters = array()): object
+    {
+        $records = $this->getGlobalEffortRecords($filters);
+
+        $metrics = (object)array('totalConsumed' => 0.0, 'estimatedConsumed' => 0.0, 'estimatedTotal' => 0.0, 'estimatedPercent' => 0.0);
+        $taskIDs = array();
+        foreach($records as $record)
+        {
+            $metrics->totalConsumed += (float)$record->consumed;
+            if($record->objectType == 'task') $taskIDs[(int)$record->objectID] = (int)$record->objectID;
+        }
+
+        $taskEstimates = array();
+        if($taskIDs)
+        {
+            $tasks = $this->dao->select('id,estimate')->from(TABLE_TASK)->where('id')->in($taskIDs)->andWhere('deleted')->eq('0')->fetchPairs('id', 'estimate');
+            foreach($tasks as $taskID => $estimate)
+            {
+                if((float)$estimate > 0) $taskEstimates[(int)$taskID] = (float)$estimate;
+            }
+        }
+
+        foreach($records as $record)
+        {
+            if($record->objectType != 'task') continue;
+            if(!isset($taskEstimates[(int)$record->objectID])) continue;
+            $metrics->estimatedConsumed += (float)$record->consumed;
+        }
+        foreach($taskEstimates as $estimate) $metrics->estimatedTotal += $estimate;
+
+        $metrics->totalConsumed     = round($metrics->totalConsumed, 2);
+        $metrics->estimatedConsumed = round($metrics->estimatedConsumed, 2);
+        $metrics->estimatedTotal    = round($metrics->estimatedTotal, 2);
+        $metrics->estimatedPercent  = $metrics->estimatedTotal > 0 ? round($metrics->estimatedConsumed / $metrics->estimatedTotal, 2) : 0;
+
+        return $metrics;
+    }
+
+    /**
+     * Get object type distribution for global effort.
+     *
+     * @param  array  $filters
+     * @access public
+     * @return array
+     */
+    public function getGlobalEffortObjectTypeDistribution(array $filters = array()): array
+    {
+        $groups = array();
+        $total  = 0.0;
+        foreach($this->getGlobalEffortRecords($filters) as $record)
+        {
+            $type = $this->normalizeGlobalEffortObjectType((string)$record->objectType);
+            if(!isset($groups[$type])) $groups[$type] = (object)array('type' => $type, 'label' => $this->getGlobalEffortObjectTypeLabel($type), 'consumed' => 0.0, 'percent' => 0.0);
+            $groups[$type]->consumed += (float)$record->consumed;
+            $total += (float)$record->consumed;
+        }
+
+        foreach($groups as $group)
+        {
+            $group->consumed = round($group->consumed, 2);
+            $group->percent  = $total > 0 ? round($group->consumed / $total, 4) : 0;
+        }
+
+        usort($groups, function($a, $b)
+        {
+            if($a->consumed == $b->consumed) return strcmp($a->type, $b->type);
+            return $a->consumed < $b->consumed ? 1 : -1;
+        });
+
+        return $groups;
+    }
+
+    /**
+     * Get stale objects in selected effort range.
+     *
+     * @param  array  $filters
+     * @access public
+     * @return array
+     */
+    public function getGlobalEffortStaleObjects(array $filters = array()): array
+    {
+        $threshold = !empty($filters['staleDays']) ? (int)$filters['staleDays'] : 5;
+        $end       = !empty($filters['end']) ? $filters['end'] : date('Y-m-d');
+        $endTime   = strtotime($end);
+
+        $objects = array();
+        foreach($this->getGlobalEffortRecords($filters) as $record)
+        {
+            $key = "{$record->objectType}:{$record->objectID}";
+            if(!isset($objects[$key])) $objects[$key] = (object)array('objectType' => (string)$record->objectType, 'objectID' => (int)$record->objectID, 'dates' => array());
+            $objects[$key]->dates[] = $record->date;
+        }
+
+        $staleObjects = array();
+        foreach($objects as $object)
+        {
+            $dates = array_values(array_unique($object->dates));
+            sort($dates);
+
+            $maxGap = 0;
+            for($i = 1; $i < count($dates); $i++)
+            {
+                $gap = (int)floor((strtotime($dates[$i]) - strtotime($dates[$i - 1])) / 86400);
+                if($gap > $maxGap) $maxGap = $gap;
+            }
+
+            if($dates && $endTime)
+            {
+                $lastGap = (int)floor(($endTime - strtotime(end($dates))) / 86400);
+                if($lastGap > $maxGap) $maxGap = $lastGap;
+            }
+
+            if($maxGap > $threshold)
+            {
+                $staleObjects[] = (object)array('objectType' => $object->objectType, 'objectID' => $object->objectID, 'staleDays' => $maxGap);
+            }
+        }
+
+        usort($staleObjects, function($a, $b)
+        {
+            if($a->staleDays == $b->staleDays) return strcmp($a->objectType . $a->objectID, $b->objectType . $b->objectID);
+            return $a->staleDays < $b->staleDays ? 1 : -1;
+        });
+
+        return $staleObjects;
+    }
+
+    /**
+     * Get account stacked effort distribution.
+     *
+     * @param  array  $filters
+     * @access public
+     * @return array
+     */
+    public function getGlobalEffortAccountStack(array $filters = array()): array
+    {
+        $accounts = array();
+        foreach($this->getGlobalEffortRecords($filters) as $record)
+        {
+            $account = (string)$record->account;
+            $type    = $this->normalizeGlobalEffortObjectType((string)$record->objectType);
+            if(!isset($accounts[$account])) $accounts[$account] = (object)array('account' => $account, 'total' => 0.0, 'segments' => array());
+            if(!isset($accounts[$account]->segments[$type])) $accounts[$account]->segments[$type] = (object)array('type' => $type, 'label' => $this->getGlobalEffortObjectTypeLabel($type), 'consumed' => 0.0, 'percent' => 0.0);
+
+            $accounts[$account]->total += (float)$record->consumed;
+            $accounts[$account]->segments[$type]->consumed += (float)$record->consumed;
+        }
+
+        foreach($accounts as $account)
+        {
+            $account->total = round($account->total, 2);
+            foreach($account->segments as $segment)
+            {
+                $segment->consumed = round($segment->consumed, 2);
+                $segment->percent  = $account->total > 0 ? round($segment->consumed / $account->total, 4) : 0;
+            }
+            $segments = array_values($account->segments);
+            usort($segments, function($a, $b)
+            {
+                if($a->consumed == $b->consumed) return strcmp($a->type, $b->type);
+                return $a->consumed < $b->consumed ? 1 : -1;
+            });
+            $account->segments = $segments;
+        }
+
+        $accounts = array_values($accounts);
+        usort($accounts, function($a, $b)
+        {
+            if($a->total == $b->total) return strcmp($a->account, $b->account);
+            return $a->total < $b->total ? 1 : -1;
+        });
+
+        return $accounts;
+    }
+
+    /**
+     * Get global effort records.
+     *
+     * @param  array       $filters
+     * @param  object|null $pager
+     * @access public
+     * @return array
+     */
+    public function getGlobalEffortRecords(array $filters = array(), ?object $pager = null): array
+    {
+        $sql      = $this->buildGlobalEffortDataSQL($filters);
+        $limitSQL = '';
+        if($pager)
+        {
+            $offset   = max(0, ((int)$pager->pageID - 1) * (int)$pager->recPerPage);
+            $limitSQL = ' LIMIT ' . $offset . ', ' . (int)$pager->recPerPage;
+        }
+
+        $rows = $this->dao->query("SELECT * FROM ($sql) t ORDER BY date DESC, id DESC$limitSQL")->fetchAll();
+        foreach($rows as $row)
+        {
+            $row->product  = (int)$row->product;
+            $row->project  = (int)$row->project;
+            $row->execution = (int)$row->execution;
+            $row->objectID = (int)$row->objectID;
+            $row->consumed = round((float)$row->consumed, 2);
+            $row->left     = round((float)$row->left, 2);
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Build global effort CSV.
+     *
+     * @param  array  $filters
+     * @access public
+     * @return string
+     */
+    public function buildGlobalEffortCSV(array $filters = array()): string
+    {
+        $fields = array('来源', '日期', '产品', '项目', '执行', '对象类型', '对象ID', '人员', '耗时', '剩余', '工作内容');
+        $handle = fopen('php://temp', 'r+');
+        fwrite($handle, "\xEF\xBB\xBF");
+        fputcsv($handle, $fields);
+
+        foreach($this->getGlobalEffortRecords($filters) as $row)
+        {
+            fputcsv($handle, array($row->source, $row->date, $row->product, $row->project, $row->execution, $row->objectType, $row->objectID, $row->account, $row->consumed, $row->left, str_replace(array("\r", "\n"), ' ', (string)$row->work)));
+        }
+
+        rewind($handle);
+        $csv = stream_get_contents($handle);
+        fclose($handle);
+
+        return $csv === false ? '' : $csv;
+    }
+
+    /**
+     * Build SQL of global effort records.
+     *
+     * @param  array  $filters
+     * @access private
+     * @return string
+     */
+    private function buildGlobalEffortDataSQL(array $filters = array()): string
+    {
+        $where = $this->buildGlobalEffortWhere($filters, 'date', 'objectType', 'objectID', 'product', 'project', 'execution', 'account');
+        $sqls  = array();
+        $sqls[] = "SELECT 'effort' AS source, id, objectType, objectID, CAST(product AS UNSIGNED) AS product, project, execution, account, work, date, consumed, `left` FROM " . TABLE_EFFORT . " WHERE $where";
+
+        if($this->hasObjectEffortTable())
+        {
+            $objectWhere = $this->buildGlobalEffortWhere($filters, 'date', 'objectType', 'objectID', 'product', 'project', 'execution', 'account');
+            $sqls[] = "SELECT 'objecteffort' AS source, id, objectType, objectID, product, project, execution, account, work, date, consumed, `left` FROM " . $this->getObjectEffortTable() . " WHERE $objectWhere";
+        }
+
+        return implode(' UNION ALL ', $sqls);
+    }
+
+    /**
+     * Build global effort where SQL.
+     *
+     * @param  array  $filters
+     * @param  string $dateField
+     * @param  string $objectTypeField
+     * @param  string $productField
+     * @param  string $projectField
+     * @param  string $executionField
+     * @param  string $accountField
+     * @access private
+     * @return string
+     */
+    private function buildGlobalEffortWhere(array $filters, string $dateField, string $objectTypeField, string $objectIDField, string $productField, string $projectField, string $executionField, string $accountField): string
+    {
+        $conditions = array('deleted = 0');
+
+        if(!empty($filters['begin']))     $conditions[] = "$dateField >= " . $this->dbh->quote($filters['begin']);
+        if(!empty($filters['end']))       $conditions[] = "$dateField <= " . $this->dbh->quote($filters['end']);
+        if(!empty($filters['productLine']))
+        {
+            $productIDs = $this->dao->select('id')->from(TABLE_PRODUCT)->where('line')->eq((int)$filters['productLine'])->andWhere('deleted')->eq('0')->fetchPairs('id', 'id');
+            $conditions[] = $productIDs ? "CAST($productField AS UNSIGNED) IN (" . implode(',', array_map('intval', $productIDs)) . ")" : '1 = 0';
+        }
+        if(!empty($filters['product']))   $conditions[] = "CAST($productField AS UNSIGNED) = " . (int)$filters['product'];
+        if(!empty($filters['program']))
+        {
+            $program = $this->dao->select('id,path')->from(TABLE_PROJECT)->where('id')->eq((int)$filters['program'])->andWhere('type')->eq('program')->andWhere('deleted')->eq('0')->fetch();
+            $projectIDs = array();
+            if($program)
+            {
+                $projectIDs = $this->dao->select('id')->from(TABLE_PROJECT)
+                    ->where('deleted')->eq('0')
+                    ->andWhere('type')->in('project,sprint,stage,kanban')
+                    ->andWhere("(parent = " . (int)$program->id . " OR path LIKE " . $this->dbh->quote("%,{$program->id},%") . ')')
+                    ->fetchPairs('id', 'id');
+            }
+            $conditions[] = $projectIDs ? "$projectField IN (" . implode(',', array_map('intval', $projectIDs)) . ")" : '1 = 0';
+        }
+        if(!empty($filters['project']))   $conditions[] = "$projectField = " . (int)$filters['project'];
+        if(!empty($filters['execution'])) $conditions[] = "$executionField = " . (int)$filters['execution'];
+
+        if(!empty($filters['account']))
+        {
+            $accounts = is_array($filters['account']) ? $filters['account'] : array($filters['account']);
+            $accounts = array_map(array($this->dbh, 'quote'), $accounts);
+            $conditions[] = "$accountField IN (" . implode(',', $accounts) . ")";
+        }
+
+        if(!empty($filters['objectType']) && !empty($filters['objectID']) && !empty($filters['includeRelated']) && $filters['objectType'] == 'story')
+        {
+            $taskIDs = $this->dao->select('id')->from(TABLE_TASK)->where('story')->eq((int)$filters['objectID'])->andWhere('deleted')->eq('0')->fetchPairs('id', 'id');
+            $quotedType = $this->dbh->quote($filters['objectType']);
+            $relatedConditions = array("($objectTypeField = $quotedType AND $objectIDField = " . (int)$filters['objectID'] . ")");
+            if($taskIDs) $relatedConditions[] = "($objectTypeField = 'task' AND $objectIDField IN (" . implode(',', array_map('intval', $taskIDs)) . "))";
+            $conditions[] = '(' . implode(' OR ', $relatedConditions) . ')';
+        }
+        elseif(!empty($filters['objectType']))
+        {
+            $conditions[] = "$objectTypeField = " . $this->dbh->quote($filters['objectType']);
+            if(!empty($filters['objectID'])) $conditions[] = "$objectIDField = " . (int)$filters['objectID'];
+        }
+        elseif(!empty($filters['objectID']))
+        {
+            $conditions[] = "$objectIDField = " . (int)$filters['objectID'];
+        }
+
+        return implode(' AND ', $conditions);
+    }
+
+    /**
+     * Normalize object type for management charts.
+     *
+     * @param  string $objectType
+     * @access private
+     * @return string
+     */
+    private function normalizeGlobalEffortObjectType(string $objectType): string
+    {
+        return in_array($objectType, array('epic', 'requirement', 'story', 'bug', 'task')) ? $objectType : 'other';
+    }
+
+    /**
+     * Get label of normalized object type.
+     *
+     * @param  string $objectType
+     * @access private
+     * @return string
+     */
+    private function getGlobalEffortObjectTypeLabel(string $objectType): string
+    {
+        $labels = array('epic' => '业务需求', 'requirement' => '用户需求', 'story' => '研发需求', 'bug' => 'Bug', 'task' => '任务', 'other' => '其他');
+        return zget($labels, $objectType, $objectType);
+    }
+
+    /**
+     * Get object effort table.
+     *
+     * @access private
+     * @return string
+     */
+    private function getObjectEffortTable(): string
+    {
+        return defined('TABLE_OBJECTEFFORT') ? TABLE_OBJECTEFFORT : '`' . $this->config->db->prefix . 'objecteffort`';
+    }
+
+    /**
+     * Check object effort table exists.
+     *
+     * @access private
+     * @return bool
+     */
+    private function hasObjectEffortTable(): bool
+    {
+        $table = trim($this->getObjectEffortTable(), '`');
+        $row   = $this->dbh->query('SHOW TABLES LIKE ' . $this->dbh->quote($table))->fetch();
+        return !empty($row);
+    }
+
+    /**
      * 获取用户某年的产品下创建的需求、计划，创建和关闭的需求数量统计。
      * Get count of created story,plan and closed story by accounts every product in this year.
      *

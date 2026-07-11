@@ -12,6 +12,107 @@ declare(strict_types=1);
 class reportZen extends report
 {
     /**
+     * Build global effort filters from request.
+     *
+     * @access public
+     * @return array
+     */
+    public function buildGlobalEffortFilters(): array
+    {
+        $query = array();
+        parse_str($_SERVER['QUERY_STRING'] ?? '', $query);
+
+        $filters = array();
+        $dateRange = isset($query['dateRange']) ? (string)$query['dateRange'] : '';
+        if(in_array($dateRange, array('week', 'month', 'quarter')))
+        {
+            list($filters['begin'], $filters['end']) = $this->getGlobalEffortDateRange($dateRange);
+            $filters['dateRange'] = $dateRange;
+        }
+
+        foreach(array('begin', 'end', 'objectType', 'account') as $field)
+        {
+            if(isset($query[$field]) && $query[$field] !== '') $filters[$field] = (string)$query[$field];
+        }
+        if($dateRange == 'custom') $filters['dateRange'] = 'custom';
+        if($dateRange == 'all')
+        {
+            unset($filters['begin'], $filters['end']);
+            $filters['dateRange'] = 'all';
+        }
+
+        foreach(array('productLine', 'product', 'program', 'project', 'execution', 'objectID', 'dept', 'team', 'staleDays') as $field)
+        {
+            if(isset($query[$field]) && (int)$query[$field] > 0) $filters[$field] = (int)$query[$field];
+        }
+        if(!empty($query['includeRelated'])) $filters['includeRelated'] = 1;
+
+        if(!empty($filters['dept']) && empty($filters['account']))
+        {
+            $accounts = $this->dao->select('account')->from(TABLE_USER)->where('dept')->eq((int)$filters['dept'])->andWhere('deleted')->eq('0')->fetchPairs('account', 'account');
+            $filters['account'] = $accounts ? array_values($accounts) : array('__empty_dept__');
+        }
+
+        return $filters;
+    }
+
+    /**
+     * Build detail filters on top of the global effort filters.
+     *
+     * @param  array  $filters
+     * @access public
+     * @return array
+     */
+    public function buildGlobalEffortDetailFilters(array $filters): array
+    {
+        $query = array();
+        parse_str($_SERVER['QUERY_STRING'] ?? '', $query);
+
+        $detailFilters = $filters;
+        if(!empty($query['detailDate']))
+        {
+            $detailFilters['begin']      = (string)$query['detailDate'];
+            $detailFilters['end']        = (string)$query['detailDate'];
+            $detailFilters['detailDate'] = (string)$query['detailDate'];
+        }
+        if(!empty($query['detailAccount']))
+        {
+            $detailFilters['account']       = (string)$query['detailAccount'];
+            $detailFilters['detailAccount'] = (string)$query['detailAccount'];
+        }
+        foreach(array('detailProduct' => 'product', 'detailProject' => 'project') as $queryField => $filterField)
+        {
+            if(isset($query[$queryField]) && (int)$query[$queryField] > 0)
+            {
+                $detailFilters[$filterField] = (int)$query[$queryField];
+                $detailFilters[$queryField]  = (int)$query[$queryField];
+            }
+        }
+
+        return $detailFilters;
+    }
+
+    /**
+     * Get the begin and end date for a dynamic global effort range.
+     *
+     * @param  string $dateRange
+     * @access private
+     * @return array
+     */
+    private function getGlobalEffortDateRange(string $dateRange): array
+    {
+        if($dateRange == 'week') return array(date('Y-m-d', strtotime('monday this week')), date('Y-m-d', strtotime('sunday this week')));
+        if($dateRange == 'month') return array(date('Y-m-01'), date('Y-m-t'));
+
+        $month = (int)date('n');
+        $year  = (int)date('Y');
+        $first = (int)(floor(($month - 1) / 3) * 3 + 1);
+        $begin = sprintf('%04d-%02d-01', $year, $first);
+        $end   = date('Y-m-t', strtotime(sprintf('%04d-%02d-01', $year, $first + 2)));
+        return array($begin, $end);
+    }
+
+    /**
      * 获取每日提醒邮件的内容。
      * Get the content of daily reminder mail.
      *

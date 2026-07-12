@@ -1,6 +1,7 @@
 <?php include '../../common/view/header.lite.html.php';?>
 <?php
 $geLang    = $lang->report->globalEffort;
+$canExport = common::hasPriv('report', 'exportGlobalEffortCSV');
 $query     = array('export' => 'csv', 'onlybody' => 'yes') + $filters;
 $exportURL = $this->createLink('report', 'globalEffort') . '&' . http_build_query($query);
 $riskName  = function($risk) use ($geLang) {return zget($geLang->riskList, $risk, $risk);};
@@ -67,7 +68,9 @@ body.m-report-globaleffort > #main {height: auto !important; min-height: calc(10
         <?php echo html::select('dimension', $geLang->dimensionList, $dimension, "class='form-control'");?>
       </div>
       <button type='submit' class='btn btn-primary'><?php echo $geLang->filter;?></button>
+      <?php if($canExport):?>
       <?php echo html::a($exportURL, $geLang->exportCSV, '', "id='exportGlobalEffortCSV' class='btn btn-secondary'");?>
+      <?php endif;?>
     </form>
 
     <div class='section'>

@@ -90,7 +90,7 @@ if($group->role == 'limited')
 }
 else
 {
-    $params        = "type=byPackage&param=$groupID&nav=%s&version=$version";
+    $params        = "type=byPackage&groupID=$groupID&nav=%s&version=$version";
     $mainNavItems  = null;
     $i             = 0;
     $dropDownItems = array();
@@ -345,13 +345,13 @@ else
                     a
                     (
                         setClass('btn switchBtn text-primary'),
-                        set::href(inlink('managePriv', "type=byPackage&param=$groupID&nav=$nav&version=$version")),
+                        set::href(inlink('managePriv', "type=byPackage&groupID=$groupID&nav=$nav&version=$version")),
                         html("<i class='icon-has-authority-pack'></i>")
                     ),
                     a
                     (
                         setClass('btn switchBtn'),
-                        set::href(inlink('managePriv', "type=byGroup&param=$groupID&nav=$nav&version=$version")),
+                        set::href(inlink('managePriv', "type=byGroup&groupID=$groupID&nav=$nav&version=$version")),
                         html("<i class='icon-without-authority-pack'></i>")
                     )
                 ),

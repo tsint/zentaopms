@@ -1,6 +1,7 @@
 <?php
 /* Open daily reminder.*/
 $config->report                          = new stdclass();
+$config->excludeDropmenuList[]           = 'report-globaleffort';
 $config->report->dailyreminder           = new stdclass();
 $config->report->dailyreminder->bug      = true;
 $config->report->dailyreminder->task     = true;

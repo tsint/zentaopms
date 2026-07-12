@@ -144,6 +144,8 @@ class report extends control
         $detailFilters = $this->reportZen->buildGlobalEffortDetailFilters($filters);
         if(isset($query['export']) && $query['export'] == 'csv')
         {
+            if(!common::hasPriv('report', 'exportGlobalEffortCSV')) $this->loadModel('common')->deny('report', 'exportGlobalEffortCSV');
+
             $csv = $this->report->buildGlobalEffortCSV($detailFilters);
             return $this->fetch('file', 'sendDownHeader', array('fileName' => 'global_effort_' . date('Ymd_His'), 'fileType' => 'csv', 'content' => $csv));
         }
@@ -152,6 +154,7 @@ class report extends control
         $pager = new pager(isset($query['recTotal']) ? (int)$query['recTotal'] : 0, !empty($query['recPerPage']) ? (int)$query['recPerPage'] : 20, !empty($query['pageID']) ? (int)$query['pageID'] : 1);
 
         $this->view->title           = $this->lang->report->globalEffort->common;
+        unset($this->lang->switcherMenu);
         $this->view->filters         = $filters;
         $this->view->detailFilters   = $detailFilters;
         $this->view->summary         = $this->report->getGlobalEffortSummary($filters);
@@ -183,6 +186,8 @@ class report extends control
      */
     public function exportGlobalEffortCSV()
     {
+        if(!common::hasPriv('report', 'exportGlobalEffortCSV')) $this->loadModel('common')->deny('report', 'exportGlobalEffortCSV');
+
         $filters = $this->reportZen->buildGlobalEffortDetailFilters($this->reportZen->buildGlobalEffortFilters());
         $csv     = $this->report->buildGlobalEffortCSV($filters);
         $this->fetch('file', 'sendDownHeader', array('fileName' => 'global_effort_' . date('Ymd_His'), 'fileType' => 'csv', 'content' => $csv));

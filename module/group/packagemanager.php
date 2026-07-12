@@ -291,6 +291,10 @@ $config->group->subset->screen = new stdclass();
 $config->group->subset->screen->order = 840;
 $config->group->subset->screen->nav   = 'bi';
 
+$config->group->subset->globalEffort = new stdclass();
+$config->group->subset->globalEffort->order = 845;
+$config->group->subset->globalEffort->nav   = 'bi';
+
 $config->group->subset->pivot = new stdclass();
 $config->group->subset->pivot->order = 850;
 $config->group->subset->pivot->nav   = 'bi';
@@ -3529,6 +3533,18 @@ $config->group->package->screenDataPermission->order  = 20;
 $config->group->package->screenDataPermission->subset = 'screen';
 $config->group->package->screenDataPermission->privs  = array();
 $config->group->package->screenDataPermission->privs['screen-allAnnualData'] = array('edition' => 'open,biz,max,ipd', 'vision' => 'rnd', 'order' => 35, 'depend' => array('screen-annualData'), 'recommend' => array());
+
+$config->group->package->browseGlobalEffort = new stdclass();
+$config->group->package->browseGlobalEffort->order  = 5;
+$config->group->package->browseGlobalEffort->subset = 'globalEffort';
+$config->group->package->browseGlobalEffort->privs  = array();
+$config->group->package->browseGlobalEffort->privs['report-globalEffort'] = array('edition' => 'open,biz,max,ipd', 'vision' => 'rnd', 'order' => 5, 'depend' => array(), 'recommend' => array('report-exportGlobalEffortCSV'));
+
+$config->group->package->exportGlobalEffort = new stdclass();
+$config->group->package->exportGlobalEffort->order  = 10;
+$config->group->package->exportGlobalEffort->subset = 'globalEffort';
+$config->group->package->exportGlobalEffort->privs  = array();
+$config->group->package->exportGlobalEffort->privs['report-exportGlobalEffortCSV'] = array('edition' => 'open,biz,max,ipd', 'vision' => 'rnd', 'order' => 10, 'depend' => array('report-globalEffort'), 'recommend' => array());
 
 $config->group->package->browsePivot = new stdclass();
 $config->group->package->browsePivot->order  = 5;

@@ -4,6 +4,7 @@ namespace zin;
 
 $geLang     = $lang->report->globalEffort;
 $colors     = $geLang->objectTypeColors;
+$canExport  = common::hasPriv('report', 'exportGlobalEffortCSV');
 $exportArgs = array('export' => 'csv', 'onlybody' => 'yes') + $detailFilters;
 $exportURL  = $this->createLink('report', 'globalEffort') . '&' . http_build_query($exportArgs);
 $dateRange  = zget($filters, 'dateRange', (!empty($filters['begin']) || !empty($filters['end']) ? 'custom' : 'all'));
@@ -109,7 +110,9 @@ ob_start();
     </div>
     <div class='actions'>
       <button type='submit' class='btn btn-primary'><?php echo $geLang->filter;?></button>
+      <?php if($canExport):?>
       <?php echo \html::a($exportURL, $geLang->exportCSV, '', "id='exportGlobalEffortCSV' class='btn btn-secondary'");?>
+      <?php endif;?>
     </div>
   </form>
 
@@ -215,6 +218,9 @@ ob_start();
 <script>
 document.addEventListener('DOMContentLoaded', function()
 {
+    const dimensionDropmenu = document.querySelector('#heading #dropmenu[data-fetcher*="m=dimension"], #heading #dropmenu[data-fetcher*="module=report"][data-fetcher*="method=globaleffort"]');
+    if(dimensionDropmenu) dimensionDropmenu.remove();
+
     const exportButton = document.getElementById('exportGlobalEffortCSV');
     if(!exportButton) return;
 

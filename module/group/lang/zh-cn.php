@@ -552,6 +552,11 @@ $lang->group->package->browseScreen          = '浏览大屏';
 $lang->group->package->manageScreen          = '创建维护大屏';
 $lang->group->package->deleteScreen          = '删除大屏';
 $lang->group->package->screenDataPermission  = '大屏数据权限';
+$lang->group->package->browseGlobalEffort    = '查看全局工时';
+$lang->group->package->exportGlobalEffort    = '导出全局工时';
+
+$lang->globalEffort = new stdclass();
+$lang->globalEffort->common = '全局工时';
 $lang->group->package->browsePivot           = '浏览透视表';
 $lang->group->package->designPivot           = '设计透视表';
 $lang->group->package->exportPivot           = '导出透视表';

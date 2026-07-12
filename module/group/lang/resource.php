@@ -1869,6 +1869,11 @@ $lang->metric->methodOrder[5]  = 'details';
 
 /* Report . */
 $lang->resource->report = new stdclass();
+$lang->resource->report->globalEffort          = 'globalEffortAction';
+$lang->resource->report->exportGlobalEffortCSV = 'exportGlobalEffortCSVAction';
+
+$lang->report->methodOrder[5]  = 'globalEffort';
+$lang->report->methodOrder[10] = 'exportGlobalEffortCSV';
 
 /* Search. */
 $lang->resource->search = new stdclass();

@@ -79,6 +79,9 @@ $lang->report->conditions    = '筛选条件：';
 $lang->report->closedProduct = '关闭' . $lang->productCommon;
 $lang->report->overduePlan   = "过期计划";
 
+$lang->report->globalEffortAction          = '查看全局工时';
+$lang->report->exportGlobalEffortCSVAction = '导出全局工时 CSV';
+
 $lang->report->globalEffort = new stdclass();
 $lang->report->globalEffort->common            = '全局工时统计';
 $lang->report->globalEffort->summary           = '全局概览';

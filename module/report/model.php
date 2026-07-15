@@ -469,11 +469,22 @@ class reportModel extends model
     {
         $sql = $this->buildGlobalEffortDataSQL($filters);
 
-        $summary = $this->dao->query("SELECT COUNT(1) AS records, ROUND(SUM(consumed), 2) AS consumed, COUNT(DISTINCT IF(product > 0, product, NULL)) AS productCount, COUNT(DISTINCT IF(project > 0, project, NULL)) AS projectCount, COUNT(DISTINCT IF(objectType = 'task', objectID, NULL)) AS taskCount, COUNT(DISTINCT IF(objectType IN ('requirement', 'story'), objectID, NULL)) AS requirementCount, COUNT(DISTINCT IF(account != '', account, NULL)) AS userCount FROM ($sql) t")->fetch();
+        $summary = $this->dao->query("SELECT COUNT(1) AS records, ROUND(SUM(consumed), 2) AS consumed, COUNT(DISTINCT IF(project > 0, project, NULL)) AS projectCount, COUNT(DISTINCT IF(objectType = 'task', objectID, NULL)) AS taskCount, COUNT(DISTINCT IF(objectType IN ('requirement', 'story'), objectID, NULL)) AS requirementCount, COUNT(DISTINCT IF(account != '', account, NULL)) AS userCount FROM ($sql) t")->fetch();
+
+        /* Count distinct product IDs from comma-wrapped text (ZenTao stores zt_effort.product as ',id,id,'). */
+        $productIDSet = array();
+        foreach($this->dao->query("SELECT DISTINCT product FROM ($sql) t WHERE product IS NOT NULL AND product <> ''")->fetchAll() as $row)
+        {
+            foreach(explode(',', trim((string)$row->product, ',')) as $productID)
+            {
+                $productID = (int)$productID;
+                if($productID > 0) $productIDSet[$productID] = true;
+            }
+        }
 
         $summary->records          = (int)$summary->records;
         $summary->consumed         = $summary->consumed === null ? 0 : round((float)$summary->consumed, 2);
-        $summary->productCount     = (int)$summary->productCount;
+        $summary->productCount     = count($productIDSet);
         $summary->projectCount     = (int)$summary->projectCount;
         $summary->taskCount        = (int)$summary->taskCount;
         $summary->requirementCount = (int)$summary->requirementCount;
@@ -924,9 +935,18 @@ class reportModel extends model
         if(!empty($filters['productLine']))
         {
             $productIDs = $this->dao->select('id')->from(TABLE_PRODUCT)->where('line')->eq((int)$filters['productLine'])->andWhere('deleted')->eq('0')->fetchPairs('id', 'id');
-            $conditions[] = $productIDs ? "CAST($productField AS UNSIGNED) IN (" . implode(',', array_map('intval', $productIDs)) . ")" : '1 = 0';
+            if(!$productIDs)
+            {
+                $conditions[] = '1 = 0';
+            }
+            else
+            {
+                $productClauses = array();
+                foreach($productIDs as $productID) $productClauses[] = "FIND_IN_SET(" . (int)$productID . ", $productField) > 0";
+                $conditions[] = '(' . implode(' OR ', $productClauses) . ')';
+            }
         }
-        if(!empty($filters['product']))   $conditions[] = "CAST($productField AS UNSIGNED) = " . (int)$filters['product'];
+        if(!empty($filters['product']))   $conditions[] = "FIND_IN_SET(" . (int)$filters['product'] . ", $productField) > 0";
         if(!empty($filters['program']))
         {
             $program = $this->dao->select('id,path')->from(TABLE_PROJECT)->where('id')->eq((int)$filters['program'])->andWhere('type')->eq('program')->andWhere('deleted')->eq('0')->fetch();

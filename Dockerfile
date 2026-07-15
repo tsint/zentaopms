@@ -56,7 +56,15 @@ RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/init-db.sh \
     && cp www/upgrade.php.tmp www/upgrade.php \
     && rm -f config/my.php config/db.php \
     && chown -R www-data:www-data tmp data/upload www/data config \
-    && chmod -R ug+rwX tmp data/upload www/data config
+    && chmod -R ug+rwX tmp data/upload www/data config \
+    && apk add --no-cache openjdk17-jre \
+    && export MINIFY_JS_PATH="/var/www/html/misc/minifyJS.php" \
+    && export MINIFY_CSS_PATH="/var/www/html/misc/minifyCSS.php" \
+    && export YUICOMPRESSOR_JAR="/var/www/html/misc/yuicompressor-2.4.8.jar" \
+    && chmod +x misc/minifyJS.php misc/minifyCSS.php \
+    && cd misc && php minifyfront.php \
+    && apk del --no-cache openjdk17-jre \
+    && rm -f /var/www/html/misc/yuicompressor-2.4.8.jar /var/www/html/misc/minifyJS.php /var/www/html/misc/minifyCSS.php
 
 VOLUME ["/var/www/html/www/data", "/var/www/html/tmp"]
 EXPOSE 80

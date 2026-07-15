@@ -32,13 +32,23 @@ foreach($rows as $row)
 }
 
 su('admin');
-
 /**
-
 title=测试 reportModel->getGlobalEffortManagement();
-cid=global-effort
-pid=1
+timeout=0
+cid=0
 
+- 总工时和实际/预估
+ - 属性totalConsumed @28
+ - 属性estimatedConsumed @13
+ - 属性estimatedTotal @30
+ - 属性estimatedPercent @0.43
+- 对象类型分布 @task:任务:13:0.4643,bug:Bug:6:0.2143,story:研发需求:4:0.1429,requirement:用户需求:3:0.1071,epic:业务需求:2:0.0714
+
+- 停滞对象 @epic:1001:30,requirement:2001:29,story:3001:28,bug:4001:27,task:9001:21,task:9002:15
+
+- 人员堆叠分布 @dev1:12:task:5|story:4|requirement:3,admin:10:task:8|epic:2,test1:6:bug:6
+
+- 勾选关联对象时包含需求关联任务属性totalConsumed @9
 */
 
 $report  = new reportModelTest();

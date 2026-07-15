@@ -917,7 +917,7 @@ class reportModel extends model
      */
     private function buildGlobalEffortWhere(array $filters, string $dateField, string $objectTypeField, string $objectIDField, string $productField, string $projectField, string $executionField, string $accountField): string
     {
-        $conditions = array('deleted = 0');
+        $conditions = array("deleted = '0'");
 
         if(!empty($filters['begin']))     $conditions[] = "$dateField >= " . $this->dbh->quote($filters['begin']);
         if(!empty($filters['end']))       $conditions[] = "$dateField <= " . $this->dbh->quote($filters['end']);

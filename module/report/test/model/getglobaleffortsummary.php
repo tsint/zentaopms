@@ -26,13 +26,28 @@ foreach($rows as $i => $row)
 }
 
 su('admin');
-
 /**
-
 title=测试 reportModel->getGlobalEffortSummary();
-cid=global-effort
-pid=1
+timeout=0
+cid=0
 
+- 全局汇总包含任务和需求工时
+ - 属性records @7
+ - 属性consumed @35
+ - 属性productCount @3
+ - 属性projectCount @4
+ - 属性taskCount @4
+ - 属性requirementCount @2
+ - 属性userCount @3
+- 用户需求与研发需求独立统计
+ - 属性records @1
+ - 属性consumed @6
+ - 属性taskCount @0
+ - 属性requirementCount @1
+- 按人员筛选
+ - 属性records @3
+ - 属性consumed @15
+ - 属性userCount @1
 */
 
 $report = new reportModelTest();

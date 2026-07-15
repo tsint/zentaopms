@@ -25,13 +25,16 @@ foreach($rows as $i => $row)
 }
 
 su('admin');
-
 /**
-
 title=测试 reportModel->getGlobalEffortDistribution();
-cid=global-effort
-pid=1
+timeout=0
+cid=0
 
+- 按产品分布 @1:4:14,2:2:13,3:1:8
+
+- 按人员分布 @dev1:3:17,admin:3:10,test1:1:8
+
+- 按用户需求分布 @201:1:6
 */
 
 $report  = new reportModelTest();

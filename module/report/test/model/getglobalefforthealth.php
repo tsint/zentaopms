@@ -23,13 +23,23 @@ foreach($rows as $i => $row)
 }
 
 su('admin');
-
 /**
-
 title=测试 reportModel->getGlobalEffortHealth();
-cid=global-effort
-pid=1
+timeout=0
+cid=0
 
+- 健康分析基础指标
+ - 属性activeUsers @3
+ - 属性activeDays @4
+ - 属性totalConsumed @25
+ - 属性avgHoursPerUser @8.33
+ - 属性avgHoursPerDay @6.25
+- 超负荷和高集中度风险
+ - 属性overloadDays @1
+ - 属性topAccount @admin
+ - 属性topAccountConsumed @20
+ - 属性topAccountShare @0.8
+ - 属性riskLevel @high
 */
 
 $report = new reportModelTest();

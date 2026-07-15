@@ -21,13 +21,15 @@ foreach($rows as $i => $row)
 }
 
 su('admin');
-
 /**
-
 title=测试 reportModel->buildGlobalEffortCSV();
-cid=global-effort
-pid=1
+timeout=0
+cid=0
 
+- CSV 包含表头 @1
+- CSV 带 UTF-8 BOM，避免 Excel 打开中文标题乱码 @1
+- CSV 用户需求筛选不混入研发需求 @1
+- 需求筛选排除任务工时 @1
 */
 
 $report = new reportModelTest();

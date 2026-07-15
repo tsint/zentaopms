@@ -23,13 +23,14 @@ foreach($rows as $i => $row)
 }
 
 su('admin');
-
 /**
-
 title=测试 reportModel->getGlobalEffortCostProgress();
-cid=global-effort
-pid=1
+timeout=0
+cid=0
 
+- 项目成本进度风险 @11:2:9:4:0.69:1:high,21:2:3:21:0.13:0:medium
+
+- 产品成本进度风险 @1:2:9:4:0.69:1:high,2:2:3:21:0.13:0:medium
 */
 
 $report  = new reportModelTest();

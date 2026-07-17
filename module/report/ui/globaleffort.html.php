@@ -59,6 +59,9 @@ ob_start();
 #globalEffortPage .table {margin-bottom: 0;}
 #globalEffortPage .table-wrap {overflow-x: auto;}
 #globalEffortPage .table-wrap .table {min-width: 960px;}
+#globalEffortPage .table th,
+#globalEffortPage .table td {text-align: center; vertical-align: middle;}
+#globalEffortPage .table td:last-child {text-align: left;}
 #globalEffortPage details summary {cursor: pointer; color: #2563eb;}
 #globalEffortPage details .work-body {white-space: pre-wrap; margin-top: 6px; color: #374151;}
 @media (max-width: 900px) {
@@ -95,7 +98,7 @@ ob_start();
           <div class='field'><label><?php echo $lang->executionCommon;?></label><?php echo \html::select('execution', $executions, $value($filters, 'execution', 0), "class='form-control'");?></div>
           <div class='field'><label><?php echo $geLang->objectType;?></label><?php echo \html::select('objectType', $geLang->objectTypeList, $value($filters, 'objectType'), "class='form-control'");?></div>
           <div class='field'><label><?php echo $geLang->objectID;?></label><?php echo \html::input('objectID', $value($filters, 'objectID'), "class='form-control'");?></div>
-          <div class='field'><label><?php echo $geLang->includeRelated;?></label><?php echo \html::checkbox('includeRelated', array(1 => $geLang->includeRelated), !empty($filters['includeRelated']) ? 1 : 0);?></div>
+          <div class='field'><label><?php echo $geLang->includeRelated;?></label><label class='checkbox-inline' style='display:inline-flex;align-items:center;gap:6px;height:32px;'><input type='checkbox' name='includeRelated' value='1'<?php echo !empty($filters['includeRelated']) ? ' checked' : '';?>/> <?php echo $geLang->includeRelated;?></label></div>
         </div>
       </div>
       <div class='filter-block'>

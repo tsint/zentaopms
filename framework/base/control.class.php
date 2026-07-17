@@ -241,7 +241,12 @@ class baseControl
             }
 
             $referer = helper::safe64Encode($uri);
-            $this->locate(helper::createLink('user', 'login', "referer=$referer"));
+            $loginLink = helper::createLink('user', 'login', "referer=$referer");
+            if($this->app->clientDevice == 'mobile' && $this->config->installed)
+            {
+                $loginLink = helper::createLink('app', 'login', "referer=$referer");
+            }
+            $this->locate($loginLink);
         }
 
         /**

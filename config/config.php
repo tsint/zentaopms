@@ -234,14 +234,18 @@ if($config->inContainer || $config->inQuickon)
     $config->default->lang = getEnvData('ZT_DEFAULT_LANG', 'zh-cn');
 }
 
+/* 禅道配置文件。zentaopms settings. */
+$zentaopmsConfig = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'zentaopms.php';
+if(file_exists($zentaopmsConfig)) include $zentaopmsConfig;
+
+/* 引用缓存的配置。 Include the cache config file. */
+$cacheConfig = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'cache.php';
+if(file_exists($cacheConfig)) include $cacheConfig;
+
 /* 引用自定义的配置。 Include the custom config file. */
 $myConfigRoot = (defined('RUN_MODE') and in_array(RUN_MODE, array('test', 'uitest'))) ? dirname(dirname(__FILE__)) . DIRECTORY_SEPARATOR . 'test' . DIRECTORY_SEPARATOR . 'config' : dirname(__FILE__);
 $myConfig = $myConfigRoot . DIRECTORY_SEPARATOR . 'my.php';
 if(file_exists($myConfig)) include $myConfig;
-
-/* 禅道配置文件。zentaopms settings. */
-$zentaopmsConfig = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'zentaopms.php';
-if(file_exists($zentaopmsConfig)) include $zentaopmsConfig;
 
 /* 禅道userview配置文件。zentaopms userview settings. */
 $userViewConfig = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'userview.php';
@@ -250,10 +254,6 @@ if(file_exists($userViewConfig)) include $userViewConfig;
 /* 数据表格操作配置文件。dtable actions settings. */
 $actionsMapConfig = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'actionsmap.php';
 if(file_exists($actionsMapConfig)) include $actionsMapConfig;
-
-/* 引用缓存的配置。 Include the cache config file. */
-$cacheConfig = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'cache.php';
-if(file_exists($cacheConfig)) include $cacheConfig;
 
 /* Include extension config files. */
 $extConfigFiles = glob(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'ext/*.php');

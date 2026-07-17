@@ -30,13 +30,13 @@ services:
     #build:
     #  context: .
     #  dockerfile: Dockerfile
-    image: zentao:v1
+    image: zentao:v1.10
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     ports:
-      - "0.0.0.0:8080:80"
+      - "0.0.0.0:80:80"
     environment:
       # false: use install.php and optional demo data. true: run custom dev/CI database init.
       ZT_AUTO_INIT: "${ZT_AUTO_INIT:-false}"

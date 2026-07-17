@@ -1254,7 +1254,12 @@ eof;
                 }
 
                 $referer = helper::safe64Encode($uri);
-                helper::end(js::locate(helper::createLink('user', 'login', "referer=$referer")));
+                $loginLink = helper::createLink('user', 'login', "referer=$referer");
+                if($this->app->clientDevice == 'mobile' && $this->config->installed)
+                {
+                    $loginLink = helper::createLink('app', 'login', "referer=$referer");
+                }
+                helper::end(js::locate($loginLink));
             }
         }
         catch(EndResponseException $endResponseException)

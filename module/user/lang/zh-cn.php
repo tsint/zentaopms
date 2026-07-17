@@ -258,6 +258,7 @@ $lang->user->error->url              = "网址不正确，请联系管理员";
 $lang->user->error->verify           = "用户名或密码错误";
 $lang->user->error->verifyPassword   = "验证失败，请检查您的系统登录密码是否正确";
 $lang->user->error->originalPassword = "原密码不正确";
+$lang->user->error->samePassword     = "新密码不能与原密码相同";
 $lang->user->error->companyEmpty     = "公司名称不能为空！";
 $lang->user->error->noAccess         = "该人员和你不是同一部门，你无权访问该人员的工作信息。";
 $lang->user->error->accountEmpty     = '用户名不能为空！';

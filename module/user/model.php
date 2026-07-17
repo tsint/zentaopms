@@ -141,6 +141,12 @@ class userModel extends model
 
         if($user->password1 != $user->password2) dao::$errors['password1'][] = $this->lang->error->passwordsame;
 
+        /* Check if new password is the same as the original password. */
+        if(isset($user->originalPassword) && substr($user->originalPassword, 0, 32) == substr($user->password1, 0, 32))
+        {
+            dao::$errors['password1'][] = $this->lang->user->error->samePassword;
+        }
+
         if(!empty($this->config->safe->changeWeak))
         {
             if(!isset($this->config->safe->weak)) $this->app->loadConfig('admin');

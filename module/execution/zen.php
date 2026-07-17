@@ -29,7 +29,7 @@ class executionZen extends execution
      * @access protected
      * @return void
      */
-    protected function assignBugVars(object $execution, object $project, int $productID, string $branch, array $products, string $orderBy, string $type, int $param, string $build, array $bugs, object $pager)
+    protected function assignBugVars(object $execution, object|false $project, int $productID, string $branch, array $products, string $orderBy, string $type, int $param, string $build, array $bugs, object $pager)
     {
         $this->loadModel('product');
         $this->loadModel('tree');
@@ -260,8 +260,8 @@ class executionZen extends execution
             }
         }
 
-        $project = $this->loadModel('project')->getByID($execution->project);
-        if(!($execution->type == 'stage' && in_array($execution->attribute, array('mix', 'request', 'design'))) && $project->multiple) $project->storyType = 'story';
+        $project = !empty($execution->project) ? $this->loadModel('project')->getByID($execution->project) : false;
+        if($project && !($execution->type == 'stage' && in_array($execution->attribute, array('mix', 'request', 'design'))) && $project->multiple) $project->storyType = 'story';
 
         $productPairs = $this->loadModel('product')->getProductPairsByProject($execution->id); // Get execution's product.
         if(empty($productID)) $productID = (int)key($productPairs);
@@ -284,7 +284,7 @@ class executionZen extends execution
         $this->view->users             = $this->loadModel('user')->getPairs('noletter');
         $this->view->multiBranch       = $multiBranch;
         $this->view->execution         = $execution;
-        $this->view->gradeMenu         = $this->loadModel('story')->getGradeMenu($storyType, $project);
+        $this->view->gradeMenu         = $this->loadModel('story')->getGradeMenu($storyType, $project ?: null);
         $this->view->maxGradeGroup     = $this->story->getMaxGradeGroup();
         $this->view->gradeGroup        = $gradeGroup;
         $this->view->showGrades        = isset($this->config->execution->showGrades) ? $this->config->execution->showGrades : $this->story->getDefaultShowGrades($this->view->gradeMenu);
@@ -367,7 +367,7 @@ class executionZen extends execution
 
         if(!isset($_SESSION['limitedExecutions'])) $this->execution->getLimitedExecution();
 
-        $project = $this->project->getByID($execution->project);
+        $project = !empty($execution->project) ? $this->project->getByID($execution->project) : false;
 
         $this->view->hasFrozenStories = $this->project->hasFrozenObject($execution->project, 'SRS');
 
@@ -791,7 +791,7 @@ class executionZen extends execution
      */
     protected function buildImportBugSearchForm(object $execution, int $queryID, array $products, array $executions, array $projects)
     {
-        $project = $this->loadModel('project')->getByID($execution->project);
+        $project = !empty($execution->project) ? $this->loadModel('project')->getByID($execution->project) : false;
 
         $this->config->bug->search['actionURL'] = $this->createLink('execution', 'importBug', "executionID=$execution->id&browseType=bySearch&param=myQueryID");
         $this->config->bug->search['queryID']   = $queryID;

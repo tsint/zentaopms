@@ -151,7 +151,15 @@ class userTao extends userModel
     {
         try
         {
+            /* Skip if the IM user device table does not exist (IM module may not be installed). */
+            $table = TABLE_IM_USERDEVICE;
+            $exists = $this->dao->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = " . $this->dao->quote($table))->fetchColumn();
+            if(!$exists) return;
+
             $this->dao->delete()->from(TABLE_IM_USERDEVICE)->where('user')->eq($userID)->exec();
-        } catch (Exception $e) {}
+        }
+        catch(\Throwable $e)
+        {
+        }
     }
 }

@@ -215,6 +215,7 @@ $config->openMethods[] = 'misc.installevent';
 $config->openMethods[] = 'sso.bind';
 $config->openMethods[] = 'sso.feishuauthen';
 $config->openMethods[] = 'sso.feishulogin';
+$config->openMethods[] = 'app.login';
 $config->openMethods[] = 'sso.getfeishusso';
 $config->openMethods[] = 'sso.gettodolist';
 $config->openMethods[] = 'sso.login';
@@ -374,6 +375,7 @@ $config->logonMethods[] = 'stage.updateorder';
 $config->openModules = array();
 $config->openModules[] = 'install';
 $config->openModules[] = 'upgrade';
+$config->openModules[] = 'app';
 
 /* Define the tables. */
 define('TABLE_AUTOCACHE',     '`' . $config->db->prefix . 'autocache`');

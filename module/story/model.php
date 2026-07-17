@@ -1431,9 +1431,21 @@ class storyModel extends model
      */
     public function recallReview(int $storyID): void
     {
-        $oldStory    = $this->fetchById($storyID);
-        $isChanged   = $oldStory->changedBy ? true : false;
+        /* Start output buffering to capture any PHP errors/warnings. */
+        ob_start();
+
+        $oldStory = $this->fetchById($storyID);
+        if(empty($oldStory))
+        {
+            ob_end_clean();
+            return;
+        }
+
+        $isChanged   = !empty($oldStory->changedBy);
         $twinsIdList = $storyID . ($oldStory->twins ? ",{$oldStory->twins}" : '');
+
+        /* Ensure objectType is valid. */
+        $objectType = !empty($oldStory->type) ? $oldStory->type : 'story';
 
         $story = new stdclass();
         $story->status = $isChanged ? 'changing' : 'draft';
@@ -1441,7 +1453,11 @@ class storyModel extends model
         /* Workflow guard (PRD §6). For recallReview, target status may be 'draft' or 'changing' depending on history;
            workflow should define both draft and changing as valid targets from reviewing. */
         $comment = isset($_POST['comment']) ? (string)$_POST['comment'] : '';
-        $target = $this->loadModel('statetransition')->applyWorkflowTransition($oldStory->type, (int)$oldStory->product, $storyID, $oldStory->status, 'recallreview', null, $comment, $story->status);
+        $target = $this->loadModel('statetransition')->applyWorkflowTransition($objectType, (int)$oldStory->product, $storyID, $oldStory->status, 'recallreview', null, $comment, $story->status);
+
+        /* Clear any buffered errors. */
+        ob_end_clean();
+
         if($target === null) return;
         $story->status = $target;
 

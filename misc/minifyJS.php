@@ -10,7 +10,7 @@ if($argc < 3)
     exit(1);
 }
 
-$input = $argv[1];
+$input  = $argv[1];
 $output = $argv[2];
 
 // Get YUICompressor JAR path from environment or use default
@@ -24,15 +24,22 @@ if(!file_exists($input))
     exit(1);
 }
 
+if(!file_exists($yuicompressor))
+{
+    echo "Error: YUICompressor JAR does not exist: $yuicompressor\n";
+    exit(1);
+}
+
 // Build Java command
-$cmd = "java -jar $yuicompressor --type js -o $output $input 2>&1";
+$cmd = 'java -jar ' . escapeshellarg($yuicompressor) . ' --type js -o ' . escapeshellarg($output) . ' ' . escapeshellarg($input) . ' 2>&1';
 
 // Execute
-$result = shell_exec($cmd);
-
-if($result && strpos($result, 'Exception') !== false)
+$outputLines = array();
+$code        = 0;
+exec($cmd, $outputLines, $code);
+if($code !== 0)
 {
-    echo "Error compressing file:\n$result\n";
+    echo "Error compressing file:\n" . implode("\n", $outputLines) . "\n";
     exit(1);
 }
 

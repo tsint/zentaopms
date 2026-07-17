@@ -12,7 +12,7 @@ if($tester->dbh->query('SHOW TABLES LIKE ' . $tester->dbh->quote($objectEffortTa
 $rows = array(
     array('task',        101, 1, 11, 111, 'admin', '2026-07-01', 3, 7),
     array('task',        101, 1, 11, 111, 'admin', '2026-07-02', 2, 5),
-    array('task',        102, 1, 11, 111, 'dev1',  '2026-07-03', 4, -1),
+    array('task',        102, ',1,2,', 11, 111, 'dev1',  '2026-07-03', 4, -1),
     array('requirement', 201, 2, 21, 211, 'dev1',  '2026-07-04', 2, 12),
     array('story',       202, 2, 21, 211, 'test1', '2026-07-05', 1, 9),
 );
@@ -30,11 +30,11 @@ cid=0
 
 - 项目成本进度风险 @11:2:9:4:0.69:1:high,21:2:3:21:0.13:0:medium
 
-- 产品成本进度风险 @1:2:9:4:0.69:1:high,2:2:3:21:0.13:0:medium
+- 产品成本进度风险 @1:2:9:4:0.69:1:high,2:3:7:20:0.26:1:high
 */
 
 $report  = new reportModelTest();
 $filters = array('begin' => '2026-07-01', 'end' => '2026-07-31');
 
 r($report->getGlobalEffortCostProgressTest('project', $filters)) && p() && e('11:2:9:4:0.69:1:high,21:2:3:21:0.13:0:medium'); // 项目成本进度风险
-r($report->getGlobalEffortCostProgressTest('product', $filters)) && p() && e('1:2:9:4:0.69:1:high,2:2:3:21:0.13:0:medium');  // 产品成本进度风险
+r($report->getGlobalEffortCostProgressTest('product', $filters)) && p() && e('1:2:9:4:0.69:1:high,2:3:7:20:0.26:1:high');  // 产品成本进度风险

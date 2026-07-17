@@ -22,12 +22,15 @@ cid=19660
 - app 中的是否强制修改免密重置为 false。 @0
 - app 中的强制修改密码原因重置为空。 @0
 - session 中的密码修改成功。 @1
+- 新旧密码相同，返回 false。属性result @0
+- 新旧密码相同，提示错误信息。第errors条的password1属性 @新密码不能与原密码相同
 
 */
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/model.class.php';
 
-zenData('user')->gen(1);
+global $tester;
+$tester->dao->update(TABLE_USER)->set('password')->eq(md5('123456'))->where('account')->eq('admin')->exec();
 
 su('admin');
 
@@ -78,3 +81,10 @@ r($app->user->modifyPassword)        && p() && e(0); // app 中的是否强制�
 r($app->user->modifyPasswordReason)  && p() && e(0); // app 中的强制修改密码原因重置为空。
 
 r($_SESSION['user']->password == $password) && p() && e(1); // session 中的密码修改成功。
+
+$random   = updateSessionRandom();
+$original = md5($app->user->password . $random);
+$user6    = (object)array('originalPassword' => $original, 'password' => $app->user->password, 'password1' => $app->user->password . $random, 'password2' => $app->user->password . $random, 'passwordStrength' => 0, 'passwordLength' => 6);
+$result   = $userTest->updatePasswordTest($user6);
+r($result) && p('result')           && e(0);                          // 新旧密码相同，返回 false。
+r($result) && p('errors:password1') && e('新密码不能与原密码相同'); // 新旧密码相同，提示错误信息。

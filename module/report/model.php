@@ -475,11 +475,7 @@ class reportModel extends model
         $productIDSet = array();
         foreach($this->dao->query("SELECT DISTINCT product FROM ($sql) t WHERE product IS NOT NULL AND product <> ''")->fetchAll() as $row)
         {
-            foreach(explode(',', trim((string)$row->product, ',')) as $productID)
-            {
-                $productID = (int)$productID;
-                if($productID > 0) $productIDSet[$productID] = true;
-            }
+            foreach($this->parseGlobalEffortProductIDs($row->product) as $productID) $productIDSet[$productID] = true;
         }
 
         $summary->records          = (int)$summary->records;
@@ -503,6 +499,8 @@ class reportModel extends model
      */
     public function getGlobalEffortDistribution(string $dimension = 'product', array $filters = array()): array
     {
+        if($dimension == 'product') return $this->getGlobalEffortProductDistribution($filters);
+
         $fieldMap = array(
             'product'     => 'product',
             'project'     => 'project',
@@ -533,6 +531,51 @@ class reportModel extends model
         }
 
         return $rows;
+    }
+
+    /**
+     * Get global effort distribution by product.
+     *
+     * @param  array  $filters
+     * @access private
+     * @return array
+     */
+    private function getGlobalEffortProductDistribution(array $filters = array()): array
+    {
+        $groups = array();
+        $total  = 0.0;
+        foreach($this->getGlobalEffortRecords($filters) as $row)
+        {
+            foreach($row->productList as $productID)
+            {
+                if(!isset($groups[$productID])) $groups[$productID] = (object)array('dimension' => (string)$productID, 'records' => 0, 'consumed' => 0.0, 'percent' => 0.0);
+
+                $groups[$productID]->records++;
+                $groups[$productID]->consumed += (float)$row->consumed;
+                $total += (float)$row->consumed;
+            }
+        }
+
+        foreach($groups as $group)
+        {
+            $group->records  = (int)$group->records;
+            $group->consumed = round((float)$group->consumed, 2);
+            $group->percent  = $total > 0 ? round($group->consumed / $total, 4) : 0;
+        }
+
+        $groups = array_values($groups);
+        usort($groups, function($a, $b)
+        {
+            if($a->consumed == $b->consumed)
+            {
+                if($a->records == $b->records) return (int)$a->dimension <=> (int)$b->dimension;
+                return $a->records < $b->records ? 1 : -1;
+            }
+
+            return $a->consumed < $b->consumed ? 1 : -1;
+        });
+
+        return $groups;
     }
 
     /**
@@ -584,39 +627,43 @@ class reportModel extends model
         $groups = array();
         foreach($this->getGlobalEffortRecords($filters) as $row)
         {
-            $scopeID = (int)$row->{$scope};
-            if($scopeID <= 0) continue;
-
-            if(!isset($groups[$scopeID]))
+            $scopeIDList = $scope == 'product' ? $row->productList : array((int)$row->project);
+            foreach($scopeIDList as $scopeID)
             {
-                $groups[$scopeID] = (object)array(
-                    'scope'          => $scope,
-                    'scopeID'        => $scopeID,
-                    'consumed'       => 0.0,
-                    'left'           => 0.0,
-                    'objects'        => 0,
-                    'overrunObjects' => 0,
-                    'progress'       => 0.0,
-                    'riskLevel'      => 'low',
-                    'objectMap'      => array()
-                );
-            }
+                $scopeID = (int)$scopeID;
+                if($scopeID <= 0) continue;
 
-            $groups[$scopeID]->consumed += (float)$row->consumed;
-
-            $objectKey = "{$row->source}:{$row->objectType}:{$row->objectID}";
-            if(!isset($groups[$scopeID]->objectMap[$objectKey]))
-            {
-                $groups[$scopeID]->objectMap[$objectKey] = (object)array('left' => (float)$row->left, 'date' => $row->date, 'id' => (int)$row->id);
-            }
-            else
-            {
-                $latest = $groups[$scopeID]->objectMap[$objectKey];
-                if($row->date > $latest->date || ($row->date == $latest->date && (int)$row->id > $latest->id))
+                if(!isset($groups[$scopeID]))
                 {
-                    $latest->left = (float)$row->left;
-                    $latest->date = $row->date;
-                    $latest->id   = (int)$row->id;
+                    $groups[$scopeID] = (object)array(
+                        'scope'          => $scope,
+                        'scopeID'        => $scopeID,
+                        'consumed'       => 0.0,
+                        'left'           => 0.0,
+                        'objects'        => 0,
+                        'overrunObjects' => 0,
+                        'progress'       => 0.0,
+                        'riskLevel'      => 'low',
+                        'objectMap'      => array()
+                    );
+                }
+
+                $groups[$scopeID]->consumed += (float)$row->consumed;
+
+                $objectKey = "{$row->source}:{$row->objectType}:{$row->objectID}";
+                if(!isset($groups[$scopeID]->objectMap[$objectKey]))
+                {
+                    $groups[$scopeID]->objectMap[$objectKey] = (object)array('left' => (float)$row->left, 'date' => $row->date, 'id' => (int)$row->id);
+                }
+                else
+                {
+                    $latest = $groups[$scopeID]->objectMap[$objectKey];
+                    if($row->date > $latest->date || ($row->date == $latest->date && (int)$row->id > $latest->id))
+                    {
+                        $latest->left = (float)$row->left;
+                        $latest->date = $row->date;
+                        $latest->id   = (int)$row->id;
+                    }
                 }
             }
         }
@@ -854,7 +901,8 @@ class reportModel extends model
         $rows = $this->dao->query("SELECT * FROM ($sql) t ORDER BY date DESC, id DESC$limitSQL")->fetchAll();
         foreach($rows as $row)
         {
-            $row->product  = (int)$row->product;
+            $row->productList = $this->parseGlobalEffortProductIDs($row->product);
+            $row->product     = count($row->productList) == 1 ? (int)current($row->productList) : implode(',', $row->productList);
             $row->project  = (int)$row->project;
             $row->execution = (int)$row->execution;
             $row->objectID = (int)$row->objectID;
@@ -902,7 +950,7 @@ class reportModel extends model
     {
         $where = $this->buildGlobalEffortWhere($filters, 'date', 'objectType', 'objectID', 'product', 'project', 'execution', 'account');
         $sqls  = array();
-        $sqls[] = "SELECT 'effort' AS source, id, objectType, objectID, CAST(product AS UNSIGNED) AS product, project, execution, account, work, date, consumed, `left` FROM " . TABLE_EFFORT . " WHERE $where";
+        $sqls[] = "SELECT 'effort' AS source, id, objectType, objectID, product, project, execution, account, work, date, consumed, `left` FROM " . TABLE_EFFORT . " WHERE $where";
 
         if($this->hasObjectEffortTable())
         {
@@ -1002,6 +1050,25 @@ class reportModel extends model
     private function normalizeGlobalEffortObjectType(string $objectType): string
     {
         return in_array($objectType, array('epic', 'requirement', 'story', 'bug', 'task')) ? $objectType : 'other';
+    }
+
+    /**
+     * Parse product IDs from effort records.
+     *
+     * @param  mixed  $product
+     * @access private
+     * @return array
+     */
+    private function parseGlobalEffortProductIDs($product): array
+    {
+        $productIDList = array();
+        foreach(explode(',', trim((string)$product, ',')) as $productID)
+        {
+            $productID = (int)$productID;
+            if($productID > 0) $productIDList[$productID] = $productID;
+        }
+
+        return array_values($productIDList);
     }
 
     /**

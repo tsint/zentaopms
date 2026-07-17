@@ -11,7 +11,7 @@ if($tester->dbh->query('SHOW TABLES LIKE ' . $tester->dbh->quote($objectEffortTa
 
 $rows = array(
     array('task', 101, 1, 11, 111, 'admin', '2026-07-01', 2, 0),
-    array('task', 102, 1, 11, 111, 'admin', '2026-07-02', 3, 0),
+    array('task', 102, ',1,2,', 11, 111, 'admin', '2026-07-02', 3, 0),
     array('task', 103, 1, 11, 111, 'dev1',  '2026-07-03', 4, 0),
     array('task', 104, 1, 12, 111, 'dev1',  '2026-07-04', 5, 0),
     array('requirement', 201, 2, 21, 211, 'dev1',  '2026-07-05', 6, 0),
@@ -48,6 +48,10 @@ cid=0
  - 属性records @3
  - 属性consumed @15
  - 属性userCount @1
+- 普通工时多产品格式按产品筛选
+ - 属性records @3
+ - 属性consumed @16
+ - 属性productCount @2
 */
 
 $report = new reportModelTest();
@@ -55,3 +59,4 @@ $report = new reportModelTest();
 r($report->getGlobalEffortSummaryTest(array('begin' => '2026-07-01', 'end' => '2026-07-31'))) && p('records,consumed,productCount,projectCount,taskCount,requirementCount,userCount') && e('7,35,3,4,4,2,3'); // 全局汇总包含任务和需求工时
 r($report->getGlobalEffortSummaryTest(array('objectType' => 'requirement', 'begin' => '2026-07-01', 'end' => '2026-07-31'))) && p('records,consumed,taskCount,requirementCount') && e('1,6,0,1'); // 用户需求与研发需求独立统计
 r($report->getGlobalEffortSummaryTest(array('account' => 'dev1', 'begin' => '2026-07-01', 'end' => '2026-07-31'))) && p('records,consumed,userCount') && e('3,15,1'); // 按人员筛选
+r($report->getGlobalEffortSummaryTest(array('product' => 2, 'begin' => '2026-07-01', 'end' => '2026-07-31'))) && p('records,consumed,productCount') && e('3,16,2'); // 普通工时多产品格式按产品筛选

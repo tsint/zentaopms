@@ -228,6 +228,7 @@ $lang->user->error->url              = "網址不正確，請聯繫管理員";
 $lang->user->error->verify           = "用戶名或密碼錯誤";
 $lang->user->error->verifyPassword   = "驗證失敗，請檢查您的系統登錄密碼是否正確";
 $lang->user->error->originalPassword = "原密碼不正確";
+$lang->user->error->samePassword     = "新密碼不能與原密碼相同";
 $lang->user->error->companyEmpty     = "公司名稱不能為空！";
 $lang->user->error->noAccess         = "該人員和你不是同一部門，你無權訪問該人員的工作信息。";
 

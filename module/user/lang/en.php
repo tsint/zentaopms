@@ -258,6 +258,7 @@ $lang->user->error->url              = "Invalid URL. Please contact the administ
 $lang->user->error->verify           = "Incorrect account or password.";
 $lang->user->error->verifyPassword   = "Verification failed. Please check if your system login password is correct.";
 $lang->user->error->originalPassword = "Incorrect current password.";
+$lang->user->error->samePassword     = "The new password cannot be the same as the current password.";
 $lang->user->error->companyEmpty     = "Company name cannot be empty.";
 $lang->user->error->noAccess         = "This user is not in the same department as you. You do not have permission to access their work information.";
 $lang->user->error->accountEmpty     = 'Account cannot be empty.';

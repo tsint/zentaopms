@@ -258,6 +258,7 @@ $lang->user->error->url              = "Invalid address. Please contact your Zen
 $lang->user->error->verify           = "Wrong account or password.";
 $lang->user->error->verifyPassword   = "Vérification en échec. Entrez votre Mot de Passe de Connexion.";
 $lang->user->error->originalPassword = "Ancien Mot de Passe incorrect.";
+$lang->user->error->samePassword     = "Le nouveau mot de passe ne peut pas être identique au mot de passe actuel.";
 $lang->user->error->companyEmpty     = "Company name must be not empty.";
 $lang->user->error->noAccess         = "This user is not from your department. You have no access to this user information.";
 $lang->user->error->accountEmpty     = 'Account must be not empty !';

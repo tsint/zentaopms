@@ -1431,15 +1431,8 @@ class storyModel extends model
      */
     public function recallReview(int $storyID): void
     {
-        /* Start output buffering to capture any PHP errors/warnings. */
-        ob_start();
-
         $oldStory = $this->fetchById($storyID);
-        if(empty($oldStory))
-        {
-            ob_end_clean();
-            return;
-        }
+        if(empty($oldStory)) return;
 
         $isChanged   = !empty($oldStory->changedBy);
         $twinsIdList = $storyID . ($oldStory->twins ? ",{$oldStory->twins}" : '');
@@ -1454,9 +1447,6 @@ class storyModel extends model
            workflow should define both draft and changing as valid targets from reviewing. */
         $comment = isset($_POST['comment']) ? (string)$_POST['comment'] : '';
         $target = $this->loadModel('statetransition')->applyWorkflowTransition($objectType, (int)$oldStory->product, $storyID, $oldStory->status, 'recallreview', null, $comment, $story->status);
-
-        /* Clear any buffered errors. */
-        ob_end_clean();
 
         if($target === null) return;
         $story->status = $target;

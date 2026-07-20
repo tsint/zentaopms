@@ -27,6 +27,7 @@ class systemModel extends model
     public function getList(int $productID, string $status = 'active', string $orderBy = 'id_desc', ?object $pager = null): array
     {
         if(common::isTutorialMode()) return $this->loadModel('tutorial')->getSystemList();
+        if(!$this->hasSystemSchema(array('id', 'name', 'product', 'status', 'deleted'))) return array();
 
         return $this->dao->select('*')->from(TABLE_SYSTEM)
             ->where('deleted')->eq('0')
@@ -50,6 +51,7 @@ class systemModel extends model
     public function getPairs(int $productID = 0, string $integrated = '', string $status = ''): array
     {
         if(common::isTutorialMode()) return $this->loadModel('tutorial')->getSystemPairs();
+        if(!$this->hasSystemSchema(array('id', 'name', 'product', 'status', 'integrated', 'deleted'))) return array();
 
         return $this->dao->select('id, name')->from(TABLE_SYSTEM)
             ->where('deleted')->eq('0')
@@ -68,6 +70,8 @@ class systemModel extends model
     public function getPairsByProducts(array $products): array
     {
         $products = array_values(array_filter($products));
+        if(!$this->hasSystemSchema(array('id', 'name', 'product', 'status', 'integrated', 'deleted'))) return array();
+
         return $this->dao->select('id, name')->from(TABLE_SYSTEM)
             ->where('deleted')->eq('0')
             ->beginIF(!empty($products))->andWhere('product')->in($products)->fi()
@@ -87,10 +91,71 @@ class systemModel extends model
      */
     public function getByIdList(array $idList): array
     {
+        if(!$this->hasSystemSchema(array('id', 'deleted'))) return array();
+
         return $this->dao->select('*')->from(TABLE_SYSTEM)
             ->where('deleted')->eq('0')
             ->andWhere('id')->in($idList)
             ->fetchAll('id');
+    }
+
+    /**
+     * Check whether the system table has the columns needed by a read path.
+     *
+     * @param  array  $columns
+     * @access private
+     * @return bool
+     */
+    private function hasSystemSchema(array $columns): bool
+    {
+        static $schemaStatus = array();
+
+        $table   = trim(TABLE_SYSTEM, '`');
+        $columns = array_unique($columns);
+        sort($columns);
+
+        $cacheKey = $table . ':' . implode(',', $columns);
+        if(isset($schemaStatus[$cacheKey])) return $schemaStatus[$cacheKey];
+
+        try
+        {
+            if(!$this->dbh->tableExist($table))
+            {
+                $this->logSystemSchemaError(sprintf('Table %s does not exist.', TABLE_SYSTEM));
+                return $schemaStatus[$cacheKey] = false;
+            }
+
+            foreach($columns as $column)
+            {
+                $quotedColumn = $this->dbh->quote($column);
+                $field        = $this->dbh->rawQuery('SHOW COLUMNS FROM ' . TABLE_SYSTEM . " LIKE {$quotedColumn}")->fetch();
+                if(!$field)
+                {
+                    $this->logSystemSchemaError(sprintf('Column %s.%s does not exist.', TABLE_SYSTEM, $column));
+                    return $schemaStatus[$cacheKey] = false;
+                }
+            }
+        }
+        catch(Throwable $e)
+        {
+            $this->logSystemSchemaError($e->getMessage());
+            return $schemaStatus[$cacheKey] = false;
+        }
+
+        return $schemaStatus[$cacheKey] = true;
+    }
+
+    /**
+     * Log system schema errors for deployment diagnostics.
+     *
+     * @param  string $message
+     * @access private
+     * @return void
+     */
+    private function logSystemSchemaError(string $message): void
+    {
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        error_log('[ZenTao system schema] ' . $message . ($uri ? " uri={$uri}" : ''));
     }
 
     /**

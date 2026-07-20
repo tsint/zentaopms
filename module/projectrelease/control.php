@@ -70,7 +70,11 @@ class projectrelease extends control
 
         /* 设置菜单。*/
         /* Set menu. */
-        if($projectID)   $this->project->setMenu($projectID);
+        if($projectID)
+        {
+            $menuProjectID = $this->project->setMenu($projectID);
+            if($menuProjectID) $projectID = $menuProjectID;
+        }
         if($executionID) $this->loadModel('execution')->setMenu($executionID, $this->app->rawModule, $this->app->rawMethod);
 
         $this->app->loadClass('pager', true);
@@ -90,6 +94,7 @@ class projectrelease extends control
 
         $project   = $this->project->getByID($projectID);
         $execution = $this->loadModel('execution')->getByID($executionID);
+        if(!$project && !$execution) return $this->send(array('result' => 'fail', 'message' => $this->lang->notFound));
 
         $this->view->title         = (isset($project->name) ? $project->name : $execution->name) . $this->lang->hyphen . $this->lang->release->browse;
         $this->view->products      = $this->product->getPairs('all', 0, '', 'all');

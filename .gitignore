@@ -32,6 +32,7 @@ test/runtime/*
 test/www
 !/**/.gitkeep
 .scannerwork
+.playwright-mcp/
 bin/roadrunner/rr
 rr
 build/*.gz

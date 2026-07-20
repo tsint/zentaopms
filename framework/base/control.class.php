@@ -1056,11 +1056,37 @@ class baseControl
 
         $this->setResponseHeader();
 
+        $renderLevel = ob_get_level();
         ob_start();
-        include $viewFile;
+        try
+        {
+            include $viewFile;
 
-        if(!$context->rendered) \zin\renderPage();
-        $content = ob_get_clean();
+            if(!$context->rendered) \zin\renderPage();
+            $content = ob_get_clean();
+        }
+        catch(EndResponseException $e)
+        {
+            throw $e;
+        }
+        catch(Throwable $e)
+        {
+            while(ob_get_level() > $renderLevel) ob_end_clean();
+            chdir($currentPWD);
+
+            $this->logRenderException($e, $viewFile);
+            helper::setStatus(500);
+            helper::header('X-Zentao-Render-Fatal', '1');
+
+            $message = 'Page rendering failed. Please check PHP error log or tmp/log/php.' . date('Ymd') . '.log.php.';
+            if(!empty($this->config->debug) || getenv('ZT_SHOW_FATAL') === '1')
+            {
+                $message .= "\n" . get_class($e) . ': ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine();
+            }
+
+            echo '<!doctype html><html><head><meta charset="utf-8"><title>500 Internal Server Error</title></head><body><pre>' . htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</pre></body></html>';
+            return;
+        }
 
         ob_start();
         echo $content;
@@ -1070,6 +1096,34 @@ class baseControl
          * At the end, chang the dir to the previous.
          */
         chdir($currentPWD);
+    }
+
+    /**
+     * Log zin render exception details for production diagnostics.
+     *
+     * @param  Throwable $exception
+     * @param  string    $viewFile
+     * @access private
+     * @return void
+     */
+    private function logRenderException(Throwable $exception, string $viewFile): void
+    {
+        $moduleName = $this->app->rawModule ?? $this->moduleName;
+        $methodName = $this->app->rawMethod ?? $this->methodName;
+        $uri        = $_SERVER['REQUEST_URI'] ?? '';
+        $message    = sprintf(
+            '[ZenTao render fatal] %s: %s in %s:%d while rendering %s for %s::%s%s',
+            get_class($exception),
+            $exception->getMessage(),
+            $exception->getFile(),
+            $exception->getLine(),
+            $viewFile,
+            $moduleName,
+            $methodName,
+            $uri ? " uri={$uri}" : ''
+        );
+
+        error_log($message . "\n" . $exception->getTraceAsString());
     }
 
     /**

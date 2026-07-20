@@ -1,8 +1,6 @@
 #!/usr/bin/env php
 <?php
-
 /**
-
 title=测试 releaseModel->getListByCondition();
 timeout=0
 cid=17992
@@ -13,7 +11,6 @@ cid=17992
 - 测试根据包含发布的ID列表获取发布数量 @3
 - 测试根据ID列表获取发布列表信息第2条的name属性 @发布2
 - 测试根据ID列表获取发布数量 @3
-
 */
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 

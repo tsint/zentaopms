@@ -9,10 +9,9 @@ zenData('product')->gen(20);
 zenData('user')->gen(1);
 
 su('admin');
-
 /**
-
 title=测试 projectreleaseModel->getList();
+timeout=0
 cid=17970
 
 - 查询projectID正常存在, type为 all 排序 id_asc 的发布 @9,19
@@ -29,7 +28,6 @@ cid=17970
 
 - 查询projectID不存在,type为all的发布 @0
 - 查询projectID为空,type为all的发布 @8,18
-
 */
 
 $projectID = array(11, 1000, 0);

@@ -3232,9 +3232,6 @@ class baseRouter
         $message = htmlSpecialString($message);
         if(preg_match('/[^\x00-\x80]/', $message)) $message = helper::convertEncoding($message, 'gbk');
 
-        /* Only show error when debug is open. */
-        if(!$this->config->debug) die;
-
         $log  = (new Exception())->getTraceAsString(); /* Print a backtrace like debug_print_backtrace(). */
         $log  = str_replace($this->basePath, '', $log); /* Remove the base path from the backtrace. */
         $log .= "ERROR: $message in $file on line $line";
@@ -3246,6 +3243,19 @@ class baseRouter
 
         /* Change absolute path to relative path. */
         $log = str_replace($this->basePath, '', $log);
+
+        /* Log and return a diagnosable response in production instead of an empty 200 body. */
+        if(!$this->config->debug)
+        {
+            error_log('[ZenTao trigger error] ' . strip_tags(htmlspecialchars_decode($log)));
+            if($exit)
+            {
+                helper::setStatus(500);
+                helper::end('Internal Server Error. Please check PHP error log or tmp/log/php.' . date('Ymd') . '.log.php.');
+            }
+
+            return;
+        }
 
         /* 触发错误(Trigger the error) */
         $exit ? helper::end($log) : trigger_error($log, E_USER_WARNING);
@@ -3264,7 +3274,31 @@ class baseRouter
      */
     public function saveError(int $level, string $message, string $file, int $line)
     {
-        if(empty($this->config->debug))  return true;
+        $isSeriousError = in_array($level, array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR));
+        if(empty($this->config->debug))
+        {
+            if($isSeriousError)
+            {
+                $uri = $this->getURI();
+                $log = sprintf(
+                    '[ZenTao fatal] %s in %s on line %d%s',
+                    strip_tags(htmlspecialchars_decode($message)),
+                    $file,
+                    $line,
+                    empty($uri) ? '' : " when visiting {$uri}"
+                );
+                error_log($log);
+
+                if(PHP_SAPI != 'cli')
+                {
+                    if(!headers_sent()) helper::setStatus(500);
+                    echo 'Internal Server Error. Please check PHP error log or tmp/log/php.' . date('Ymd') . '.log.php.';
+                }
+            }
+
+            return true;
+        }
+
         if(!is_dir($this->logRoot))      return true;
         if(!is_writable($this->logRoot)) return true;
 
@@ -3350,7 +3384,7 @@ class baseRouter
          * 如果是严重错误，由shutdown触发，会停止程序。
          * If error level is serious, die by shutdown function.
          * */
-        if(in_array($level, array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR)))
+        if($isSeriousError)
         {
             if(empty($this->config->debug)) return true;
 

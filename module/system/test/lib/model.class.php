@@ -56,6 +56,20 @@ class systemModelTest extends baseTest
     }
 
     /**
+     * Test getPairs method when the system schema is unavailable.
+     *
+     * @access public
+     * @return int
+     */
+    public function getPairsCountTest(): int
+    {
+        $result = $this->instance->getPairs();
+        if(dao::isError()) return -1;
+
+        return count($result);
+    }
+
+    /**
      * Test restore method.
      *
      * @param  object $instance

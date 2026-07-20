@@ -33,6 +33,7 @@ set -euo pipefail
 PORT="${PORT:-8080}"
 HOST="${HOST:-127.0.0.1}"
 PHP_WORKERS="${PHP_WORKERS:-8}"
+DB_HOST_WAS_SET="${DB_HOST+x}"
 DB_HOST="${DB_HOST:-127.0.0.1}"
 DB_PORT="${DB_PORT:-3306}"
 DB_NAME="${DB_NAME:-zentao}"
@@ -46,6 +47,29 @@ LOG_FILE="$LOG_DIR/dev-server.log"
 PID_FILE="$LOG_DIR/dev-server.pid"
 
 mkdir -p "$LOG_DIR"
+
+discover_compose_db_host()
+{
+    [[ -z "$DB_HOST_WAS_SET" ]] || return 0
+    command -v docker >/dev/null 2>&1 || return 0
+    [[ -f "$PROJECT_ROOT/docker-compose.yaml" || -f "$PROJECT_ROOT/docker-compose.yml" ]] || return 0
+
+    local container_id db_ip
+    container_id="$(cd "$PROJECT_ROOT" && docker compose ps -q db 2>/dev/null || true)"
+    if [[ -z "$container_id" ]]; then
+        echo "→ 未发现运行中的 compose 数据库，启动 db 服务"
+        (cd "$PROJECT_ROOT" && docker compose up -d db >/dev/null)
+        container_id="$(cd "$PROJECT_ROOT" && docker compose ps -q db 2>/dev/null || true)"
+    fi
+
+    if [[ -n "$container_id" ]]; then
+        db_ip="$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$container_id" 2>/dev/null || true)"
+        if [[ -n "$db_ip" ]]; then
+            DB_HOST="$db_ip"
+            echo "→ 使用 Docker Compose 数据库: $DB_HOST:$DB_PORT"
+        fi
+    fi
+}
 
 # 终止旧进程
 if [[ -f "$PID_FILE" ]]; then
@@ -80,9 +104,11 @@ if [[ ${#MISSING[@]} -gt 0 ]]; then
     echo "⚠ 缺少扩展: ${MISSING[*]}（建议安装：sudo apt install php8.3-{pdo_mysql,mbstring,curl,gd}）"
 fi
 
+discover_compose_db_host
+
 # 初始化数据库（首次运行时自动执行）
 if command -v mysql >/dev/null; then
-    "$PROJECT_ROOT/dev-init-db.sh"
+    DB_HOST="$DB_HOST" DB_PORT="$DB_PORT" DB_NAME="$DB_NAME" DB_USER="$DB_USER" DB_PASSWORD="$DB_PASSWORD" "$PROJECT_ROOT/dev-init-db.sh"
 else
     echo "⚠ 未找到 mysql 客户端，跳过数据库检查"
 fi
@@ -113,7 +139,11 @@ php -S "${HOST}:${PORT}" -t "$DOCROOT" >"$LOG_FILE" 2>&1 &
 SERVER_PID=$!
 echo "$SERVER_PID" > "$PID_FILE"
 
+cleanup_done=false
 cleanup() {
+    [[ "$cleanup_done" == false ]] || return 0
+    cleanup_done=true
+
     echo ""
     echo "→ 停止服务器 PID=$SERVER_PID"
     kill "$SERVER_PID" 2>/dev/null || true

@@ -26,6 +26,24 @@ class releaseModelTest extends baseTest
     }
 
     /**
+     * Test getListByCondition method.
+     *
+     * @param  array $idList
+     * @param  int   $includeRelease
+     * @param  bool  $showRelated
+     * @access public
+     * @return int
+     */
+    public function getListByConditionCountTest(array $idList = array(), int $includeRelease = 0, bool $showRelated = false): int
+    {
+        $objects = $this->instance->getListByCondition($idList, $includeRelease, $showRelated);
+
+        if(dao::isError()) return 0;
+
+        return count($objects);
+    }
+
+    /**
      * 创建一个发布。
      * Create a release.
      *

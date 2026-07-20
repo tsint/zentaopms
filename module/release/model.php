@@ -99,6 +99,8 @@ class releaseModel extends model
      */
     public function getListByCondition(array $idList = array(), int $includeRelease = 0, bool $showRelated = false): array
     {
+        if($showRelated && empty($idList) && empty($includeRelease)) return array();
+
         $releases = $this->dao->select('*')->from(TABLE_RELEASE)
             ->where('deleted')->eq(0)
             ->beginIF($idList)->andWhere('id')->in($idList)->fi()

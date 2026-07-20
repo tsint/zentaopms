@@ -19,6 +19,7 @@
 
 set -euo pipefail
 
+DB_HOST_WAS_SET="${DB_HOST+x}"
 DB_HOST="${DB_HOST:-127.0.0.1}"
 DB_PORT="${DB_PORT:-3306}"
 DB_NAME="${DB_NAME:-zentao}"
@@ -31,6 +32,31 @@ ADMIN_ACCOUNT="${ADMIN_ACCOUNT:-admin}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-Admin1234!}"
 
 PROJECT_ROOT="$(dirname "$(readlink -f "$0")")"
+
+discover_compose_db_host()
+{
+    [[ -z "$DB_HOST_WAS_SET" ]] || return 0
+    command -v docker >/dev/null 2>&1 || return 0
+    [[ -f "$PROJECT_ROOT/docker-compose.yaml" || -f "$PROJECT_ROOT/docker-compose.yml" ]] || return 0
+
+    local container_id db_ip
+    container_id="$(cd "$PROJECT_ROOT" && docker compose ps -q db 2>/dev/null || true)"
+    if [[ -z "$container_id" ]]; then
+        echo "→ 未发现运行中的 compose 数据库，启动 db 服务"
+        (cd "$PROJECT_ROOT" && docker compose up -d db >/dev/null)
+        container_id="$(cd "$PROJECT_ROOT" && docker compose ps -q db 2>/dev/null || true)"
+    fi
+
+    if [[ -n "$container_id" ]]; then
+        db_ip="$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$container_id" 2>/dev/null || true)"
+        if [[ -n "$db_ip" ]]; then
+            DB_HOST="$db_ip"
+            echo "→ 使用 Docker Compose 数据库: $DB_HOST:$DB_PORT"
+        fi
+    fi
+}
+
+discover_compose_db_host
 
 [[ "$DB_NAME" =~ ^[A-Za-z0-9_]+$ ]] || { echo 'DB_NAME contains unsupported characters.' >&2; exit 2; }
 [[ "$DB_PREFIX" =~ ^[A-Za-z0-9_]+$ ]] || { echo 'DB_PREFIX contains unsupported characters.' >&2; exit 2; }
@@ -104,6 +130,65 @@ SQL
     echo "✓ 全局工时默认查看权限已就绪"
 }
 
+table_exists()
+{
+    export MYSQL_PWD="$DB_PASSWORD"
+    [[ "$("${app_mysql[@]}" -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DB_NAME}' AND table_name='${DB_PREFIX}$1'")" == 1 ]]
+}
+
+column_exists()
+{
+    export MYSQL_PWD="$DB_PASSWORD"
+    [[ "$("${app_mysql[@]}" -Nse "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='${DB_NAME}' AND table_name='${DB_PREFIX}$1' AND column_name='$2'")" == 1 ]]
+}
+
+index_exists()
+{
+    export MYSQL_PWD="$DB_PASSWORD"
+    [[ "$("${app_mysql[@]}" -Nse "SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema='${DB_NAME}' AND table_name='${DB_PREFIX}$1' AND index_name='$2'")" != 0 ]]
+}
+
+ensure_release_build_schema()
+{
+    export MYSQL_PWD="$DB_PASSWORD"
+
+    echo "→ 补齐发布/构建应用 schema"
+    "${app_mysql[@]}" <<SQL
+CREATE TABLE IF NOT EXISTS \`${DB_PREFIX}system\` (
+  \`id\` int unsigned NOT NULL AUTO_INCREMENT,
+  \`name\` varchar(100) NOT NULL DEFAULT '',
+  \`product\` int unsigned NOT NULL DEFAULT 0,
+  \`integrated\` tinyint unsigned NOT NULL DEFAULT 0,
+  \`latestRelease\` int unsigned NOT NULL DEFAULT 0,
+  \`latestDate\` datetime DEFAULT NULL,
+  \`children\` varchar(255) NOT NULL DEFAULT '',
+  \`status\` varchar(10) NOT NULL DEFAULT 'active',
+  \`desc\` mediumtext DEFAULT NULL,
+  \`createdBy\` varchar(30) NOT NULL DEFAULT '',
+  \`createdDate\` datetime DEFAULT NULL,
+  \`editedBy\` varchar(30) NOT NULL DEFAULT '',
+  \`editedDate\` datetime DEFAULT NULL,
+  \`deleted\` tinyint unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (\`id\`)
+) ENGINE=InnoDB;
+SQL
+
+    if table_exists release; then
+        column_exists release system   || "${app_mysql[@]}" -e "ALTER TABLE \`${DB_PREFIX}release\` ADD \`system\` int unsigned NOT NULL DEFAULT 0 AFTER \`name\`"
+        column_exists release releases || "${app_mysql[@]}" -e "ALTER TABLE \`${DB_PREFIX}release\` ADD \`releases\` varchar(255) NOT NULL DEFAULT '' AFTER \`system\`"
+        index_exists release idx_system || "${app_mysql[@]}" -e "CREATE INDEX \`idx_system\` ON \`${DB_PREFIX}release\`(\`system\`)"
+    fi
+
+    if table_exists build; then
+        column_exists build system || "${app_mysql[@]}" -e "ALTER TABLE \`${DB_PREFIX}build\` ADD \`system\` int unsigned NOT NULL DEFAULT 0 AFTER \`name\`"
+        index_exists build idx_system || "${app_mysql[@]}" -e "CREATE INDEX \`idx_system\` ON \`${DB_PREFIX}build\`(\`system\`)"
+    fi
+
+    index_exists system idx_product || "${app_mysql[@]}" -e "CREATE INDEX \`idx_product\` ON \`${DB_PREFIX}system\`(\`product\`)"
+    index_exists system idx_status  || "${app_mysql[@]}" -e "CREATE INDEX \`idx_status\` ON \`${DB_PREFIX}system\`(\`status\`)"
+    echo "✓ 发布/构建应用 schema 已就绪"
+}
+
 fast_ready()
 {
     export MYSQL_PWD="$DB_PASSWORD"
@@ -174,6 +259,7 @@ echo "✓ MySQL 连接正常"
 if fast_ready; then
     ensure_config
     ensure_global_effort_privilege
+    ensure_release_build_schema
     echo "✓ 数据库已就绪，跳过初始化"
     exit 0
 fi
@@ -181,12 +267,6 @@ fi
 render_sql()
 {
     sed -e "s/__DATABASE__/${DB_NAME}/g" -e "s/\`zt_/\`${DB_PREFIX}/g" -e "s/\`ztv_/\`${DB_PREFIX}v_/g" "$1"
-}
-
-table_exists()
-{
-    export MYSQL_PWD="$DB_PASSWORD"
-    [[ "$("${app_mysql[@]}" -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DB_NAME}' AND table_name='${DB_PREFIX}$1'")" == 1 ]]
 }
 
 # 创建数据库和用户
@@ -227,6 +307,7 @@ if ! table_exists user; then
 fi
 
 ensure_global_effort_privilege
+ensure_release_build_schema
 
 # 安装扩展
 for extension in objecteffort workflowflowchart; do

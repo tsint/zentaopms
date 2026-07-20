@@ -95,6 +95,62 @@ SQL
     echo 'Global effort default view privilege is ready.'
 }
 
+table_exists()
+{
+    [[ "$("${app_mysql[@]}" -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${ZT_DB_NAME}' AND table_name='${ZT_DB_PREFIX}$1'")" == 1 ]]
+}
+
+column_exists()
+{
+    [[ "$("${app_mysql[@]}" -Nse "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='${ZT_DB_NAME}' AND table_name='${ZT_DB_PREFIX}$1' AND column_name='$2'")" == 1 ]]
+}
+
+index_exists()
+{
+    [[ "$("${app_mysql[@]}" -Nse "SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema='${ZT_DB_NAME}' AND table_name='${ZT_DB_PREFIX}$1' AND index_name='$2'")" != 0 ]]
+}
+
+ensure_release_build_schema()
+{
+    export MYSQL_PWD="$ZT_DB_PASSWORD"
+
+    echo 'Ensuring release/build system schema...'
+    "${app_mysql[@]}" <<SQL
+CREATE TABLE IF NOT EXISTS \`${ZT_DB_PREFIX}system\` (
+  \`id\` int unsigned NOT NULL AUTO_INCREMENT,
+  \`name\` varchar(100) NOT NULL DEFAULT '',
+  \`product\` int unsigned NOT NULL DEFAULT 0,
+  \`integrated\` tinyint unsigned NOT NULL DEFAULT 0,
+  \`latestRelease\` int unsigned NOT NULL DEFAULT 0,
+  \`latestDate\` datetime DEFAULT NULL,
+  \`children\` varchar(255) NOT NULL DEFAULT '',
+  \`status\` varchar(10) NOT NULL DEFAULT 'active',
+  \`desc\` mediumtext DEFAULT NULL,
+  \`createdBy\` varchar(30) NOT NULL DEFAULT '',
+  \`createdDate\` datetime DEFAULT NULL,
+  \`editedBy\` varchar(30) NOT NULL DEFAULT '',
+  \`editedDate\` datetime DEFAULT NULL,
+  \`deleted\` tinyint unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (\`id\`)
+) ENGINE=InnoDB;
+SQL
+
+    if table_exists release; then
+        column_exists release system   || "${app_mysql[@]}" -e "ALTER TABLE \`${ZT_DB_PREFIX}release\` ADD \`system\` int unsigned NOT NULL DEFAULT 0 AFTER \`name\`"
+        column_exists release releases || "${app_mysql[@]}" -e "ALTER TABLE \`${ZT_DB_PREFIX}release\` ADD \`releases\` varchar(255) NOT NULL DEFAULT '' AFTER \`system\`"
+        index_exists release idx_system || "${app_mysql[@]}" -e "CREATE INDEX \`idx_system\` ON \`${ZT_DB_PREFIX}release\`(\`system\`)"
+    fi
+
+    if table_exists build; then
+        column_exists build system || "${app_mysql[@]}" -e "ALTER TABLE \`${ZT_DB_PREFIX}build\` ADD \`system\` int unsigned NOT NULL DEFAULT 0 AFTER \`name\`"
+        index_exists build idx_system || "${app_mysql[@]}" -e "CREATE INDEX \`idx_system\` ON \`${ZT_DB_PREFIX}build\`(\`system\`)"
+    fi
+
+    index_exists system idx_product || "${app_mysql[@]}" -e "CREATE INDEX \`idx_product\` ON \`${ZT_DB_PREFIX}system\`(\`product\`)"
+    index_exists system idx_status  || "${app_mysql[@]}" -e "CREATE INDEX \`idx_status\` ON \`${ZT_DB_PREFIX}system\`(\`status\`)"
+    echo 'Release/build system schema is ready.'
+}
+
 echo "Waiting for MySQL at ${ZT_DB_HOST}:${ZT_DB_PORT}..."
 root_password_candidates=("$ZT_DB_ROOT_PASSWORD")
 if [[ -n "${MYSQL_ROOT_PASSWORD:-}" && "$MYSQL_ROOT_PASSWORD" != "$ZT_DB_ROOT_PASSWORD" ]]; then
@@ -129,6 +185,7 @@ done
 
 if fast_ready; then
     ensure_global_effort_privilege
+    ensure_release_build_schema
     echo 'Database already ready; skipping initialization.'
     exit 0
 fi
@@ -167,17 +224,13 @@ render_sql()
     sed -e "s/__DATABASE__/${ZT_DB_NAME}/g" -e "s/\`zt_/\`${ZT_DB_PREFIX}/g" -e "s/\`ztv_/\`${ZT_DB_PREFIX}v_/g" "$1"
 }
 
-table_exists()
-{
-    [[ "$("${app_mysql[@]}" -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${ZT_DB_NAME}' AND table_name='${ZT_DB_PREFIX}$1'")" == 1 ]]
-}
-
 if ! table_exists user; then
     echo 'Importing ZenTao core schema...'
     render_sql /var/www/html/db/zentao.sql | "${app_mysql[@]}"
 fi
 
 ensure_global_effort_privilege
+ensure_release_build_schema
 
 for extension in objecteffort workflowflowchart; do
     install_sql="/var/www/html/extension/custom/${extension}/db/install.sql"

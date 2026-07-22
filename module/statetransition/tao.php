@@ -29,7 +29,8 @@ class statetransitionTao extends statetransitionModel
         $objectType   = $def['_objectType'] ?? '';
         $validTypes   = $config->objectTypes;
         $systemKeys   = $config->systemStatuses[$objectType] ?? array();
-        $allowedActions = $config->actions[$objectType] ?? array();
+        $allowedActions   = $config->actions[$objectType] ?? array();
+        $allowedActionSet = array_flip(array_map('strtolower', array_map('strval', $allowedActions)));
         $keyPattern   = $config->statusKeyPattern;
 
         /* schemaVersion must be present. */
@@ -115,8 +116,9 @@ class statetransitionTao extends statetransitionModel
             }
 
             /* Action must be whitelisted OR custom_*. */
-            $isCustomAction = is_string($action) && str_starts_with($action, 'custom_');
-            if(!$isCustomAction && !in_array($action, $allowedActions))
+            $actionLower    = strtolower((string)$action);
+            $isCustomAction = is_string($action) && str_starts_with($actionLower, 'custom_');
+            if(!$isCustomAction && !isset($allowedActionSet[$actionLower]))
             {
                 $errors[] = array('key' => 'actionInvalid', 'message' => $this->lang->statetransition->errors['actionInvalid'] . ": $action");
                 continue;
@@ -126,7 +128,7 @@ class statetransitionTao extends statetransitionModel
             $enabled = $tr['enabled'] ?? true;
             if($enabled)
             {
-                $tripleKey = $fromStatus . '|' . $action . '|' . ($branch ?? '');
+                $tripleKey = $fromStatus . '|' . $actionLower . '|' . ($branch ?? '');
                 if(isset($seenTriples[$tripleKey]))
                 {
                     $errors[] = array('key' => 'duplicateTransition', 'message' => $this->lang->statetransition->errors['duplicateTransition'] . ": $tripleKey");
@@ -323,11 +325,13 @@ class statetransitionTao extends statetransitionModel
             $lifecycleActions = array(
                 'close'    => array('toStatus' => 'closed',   'label' => array('zh_cn' => '关闭', 'en' => 'Close'),    'icon' => 'off',   'branch' => null),
                 'activate' => array('toStatus' => 'active',   'label' => array('zh_cn' => '激活', 'en' => 'Activate'), 'icon' => 'play',  'branch' => null),
+                'assignTo' => array('toStatus' => null,       'label' => array('zh_cn' => '指派', 'en' => 'Assign'),   'icon' => 'hand-right', 'branch' => null),
             );
         }
         elseif($objectType === 'bug')
         {
             $lifecycleActions = array(
+                'assignTo' => array('toStatus' => null,       'label' => array('zh_cn' => '指派', 'en' => 'Assign'),   'icon' => 'hand-right', 'branch' => null),
                 'resolve'  => array('toStatus' => 'resolved', 'label' => array('zh_cn' => '解决', 'en' => 'Resolve'),  'icon' => 'check', 'branch' => null),
                 'close'    => array('toStatus' => 'closed',   'label' => array('zh_cn' => '关闭', 'en' => 'Close'),    'icon' => 'off',   'branch' => null),
                 'activate' => array('toStatus' => 'active',   'label' => array('zh_cn' => '激活', 'en' => 'Activate'), 'icon' => 'play',  'branch' => null),
@@ -336,6 +340,7 @@ class statetransitionTao extends statetransitionModel
         elseif($objectType === 'task')
         {
             $lifecycleActions = array(
+                'assignTo' => array('toStatus' => null,       'label' => array('zh_cn' => '指派', 'en' => 'Assign'),   'icon' => 'hand-right', 'branch' => null),
                 'close'    => array('toStatus' => 'closed',   'label' => array('zh_cn' => '关闭', 'en' => 'Close'),    'icon' => 'off',   'branch' => null),
                 'activate' => array('toStatus' => 'doing',    'label' => array('zh_cn' => '激活', 'en' => 'Activate'), 'icon' => 'play',  'branch' => null),
             );
@@ -378,10 +383,11 @@ class statetransitionTao extends statetransitionModel
 
                 $maxOrder++;
                 $branchSuffix = $config['branch'] === null ? '' : '-' . $config['branch'];
+                $toStatus     = $config['toStatus'] ?? $statusKey;
                 $transitions[] = array(
-                    'key'             => $statusKey . '-to-' . $config['toStatus'] . '-via-' . $action . $branchSuffix,
+                    'key'             => $statusKey . '-to-' . $toStatus . '-via-' . $action . $branchSuffix,
                     'fromStatus'      => $statusKey,
-                    'toStatus'        => $config['toStatus'],
+                    'toStatus'        => $toStatus,
                     'action'          => $action,
                     'branch'          => $config['branch'],
                     'label'           => $config['label'],
@@ -419,11 +425,12 @@ class statetransitionTao extends statetransitionModel
     protected function findTransitions(array $definition, string $fromStatus, string $action, ?string $branch): array
     {
         $matches = array();
+        $actionLower = strtolower($action);
         foreach($definition['transitions'] ?? array() as $tr)
         {
             if(!$tr['enabled']) continue;
             if($tr['fromStatus'] !== $fromStatus) continue;
-            if($tr['action'] !== $action) continue;
+            if(strtolower((string)$tr['action']) !== $actionLower) continue;
 
             /* Branch matching: if branch is null on either side, treat as wildcard only when both null. */
             $trBranch = array_key_exists('branch', $tr) ? $tr['branch'] : null;
@@ -449,7 +456,7 @@ class statetransitionTao extends statetransitionModel
             {
                 if(!$tr['enabled']) continue;
                 if($tr['fromStatus'] !== $fromStatus) continue;
-                if($tr['action'] !== $action) continue;
+                if(strtolower((string)$tr['action']) !== $actionLower) continue;
                 $matches[] = $tr;
             }
         }

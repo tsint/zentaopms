@@ -72,6 +72,7 @@ $lang->statetransition->actionList           = array(
     'change'         => '变更',
     'recallreview'   => '撤回评审',
     'recallchange'   => '撤回变更',
+    'assignTo'       => '指派',
     'close'          => '关闭',
     'activate'       => '激活',
     'resolve'        => '解决',

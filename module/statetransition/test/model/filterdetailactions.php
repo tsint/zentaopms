@@ -5,11 +5,15 @@ title=测试 statetransitionModel->filterDetailActions();
 timeout=0
 cid=0
 
-- 研发需求草稿仅保留提交评审和非状态动作 @submitReview,subdivide,edit,createTask
-- 用户需求草稿仅保留提交评审和非状态动作 @submitReview,subdivide,edit,createTask
-- 业务需求草稿仅保留提交评审和非状态动作 @submitReview,subdivide,edit,createTask
-- Bug 当前状态仅保留流程允许的状态动作和非状态动作 @resolve,edit
-- 任务当前状态仅保留流程允许的状态动作和非状态动作 @start,edit,recordWorkhour
+- 执行$storyFiltered @submitReview,close,activate,assignTo,subdivide,edit,createTask
+
+- 执行$requirementFiltered @submitReview,close,activate,assignTo,subdivide,edit,createTask
+
+- 执行$epicFiltered @submitReview,close,activate,assignTo,subdivide,edit,createTask
+
+- 执行$bugFiltered @resolve,close,activate,assignTo,edit
+
+- 执行$taskFiltered @start,close,activate,assignTo,edit,recordWorkhour
 */
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/model.class.php';
@@ -26,6 +30,7 @@ $storyActions = array(
     array('name' => 'submitReview'),
     array('name' => 'close'),
     array('name' => 'activate'),
+    array('name' => 'assignTo'),
     array('name' => 'subdivide'),
     array('name' => 'edit'),
     array('name' => 'createTask')
@@ -35,6 +40,7 @@ $bugActions = array(
     array('name' => 'resolve'),
     array('name' => 'close'),
     array('name' => 'activate'),
+    array('name' => 'assignTo'),
     array('name' => 'edit')
 );
 
@@ -42,6 +48,7 @@ $taskActions = array(
     array('name' => 'start'),
     array('name' => 'close'),
     array('name' => 'activate'),
+    array('name' => 'assignTo'),
     array('name' => 'edit'),
     array('name' => 'recordWorkhour')
 );
@@ -90,8 +97,8 @@ $epicFiltered = in_array('epic', $config->statetransition->objectTypes) ? $teste
 $bugFiltered = $tester->statetransition->filterDetailActions('bug', 0, 'active', $bugActions);
 $taskFiltered = $tester->statetransition->filterDetailActions('task', 0, 'wait', $taskActions);
 
-r(actionNames($storyFiltered)) && p() && e('submitReview,subdivide,edit,createTask');
-r(actionNames($requirementFiltered)) && p() && e('submitReview,subdivide,edit,createTask');
-r(actionNames($epicFiltered)) && p() && e('submitReview,subdivide,edit,createTask');
-r(actionNames($bugFiltered)) && p() && e('resolve,edit');
-r(actionNames($taskFiltered)) && p() && e('start,edit,recordWorkhour');
+r(actionNames($storyFiltered)) && p() && e('submitReview,close,activate,assignTo,subdivide,edit,createTask');
+r(actionNames($requirementFiltered)) && p() && e('submitReview,close,activate,assignTo,subdivide,edit,createTask');
+r(actionNames($epicFiltered)) && p() && e('submitReview,close,activate,assignTo,subdivide,edit,createTask');
+r(actionNames($bugFiltered)) && p() && e('resolve,close,activate,assignTo,edit');
+r(actionNames($taskFiltered)) && p() && e('start,close,activate,assignTo,edit,recordWorkhour');

@@ -70,6 +70,7 @@ $lang->statetransition->actionList = array(
     'change'         => 'Change',
     'recallreview'   => 'Recall review',
     'recallchange'   => 'Recall change',
+    'assignTo'       => 'Assign',
     'close'          => 'Close',
     'activate'       => 'Activate',
     'resolve'        => 'Resolve',

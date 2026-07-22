@@ -199,7 +199,7 @@ class statetransition extends control
         $fromStatus = $object->status;
 
         /* Find the transition by key (any transition, not only isCustom). */
-        $row = $this->statetransition->getDefinition($objectType, $productID);
+        $row = $this->statetransition->getEffectiveDefinition($objectType, $productID);
         if($row === null) return $this->send(array('result' => 'fail', 'message' => $this->lang->statetransition->errors['definitionNotFound']));
 
         $transition = null;
@@ -275,18 +275,19 @@ class statetransition extends control
             $resolved['assignedTo'] = $assignedTo;
         }
 
-        /* Always set lastEditedBy/Date. */
+        /* Always set target status and lastEditedBy/Date. */
+        $resolved['status']       = $decision->toStatus;
         $resolved['lastEditedBy']   = $account;
         $resolved['lastEditedDate'] = $now;
 
         /* Build and execute the UPDATE. */
-        $dao = $this->dao->update($tableName)->where('id')->eq($objectID);
+        $dao = $this->dao->update($tableName);
         foreach($resolved as $field => $value)
         {
             if($value === null) $dao->set($field)->eq(null);
             else                $dao->set($field)->eq($value);
         }
-        $dao->exec();
+        $dao->where('id')->eq($objectID)->exec();
 
         /* Track changes for audit log. */
         foreach($resolved as $field => $value)

@@ -546,7 +546,7 @@ class statetransitionModel extends model
     {
         if(!in_array($objectType, $this->config->statetransition->objectTypes, true)) return $status;
 
-        $row = $this->getDefinition($objectType, $productID);
+        $row = $this->getEffectiveDefinition($objectType, $productID);
         if($row === null || !$row['enabled']) return $status;
 
         $definition = $row['definition'];
@@ -568,7 +568,7 @@ class statetransitionModel extends model
      */
     public function getStatusList(string $objectType, int $productID): array
     {
-        $row = $this->getDefinition($objectType, $productID);
+        $row = $this->getEffectiveDefinition($objectType, $productID);
         if($row === null)
         {
             /* Fall back to system lang statusList. */
@@ -741,7 +741,7 @@ class statetransitionModel extends model
     {
         if(!$this->config->statetransition->globalEnabled) return array();
 
-        $row = $this->getDefinition($objectType, $productID);
+        $row = $this->getEffectiveDefinition($objectType, $productID);
         if($row === null || !$row['enabled']) return array();
 
         $definition   = $row['definition'];
@@ -756,6 +756,7 @@ class statetransitionModel extends model
             'change'         => 'change',
             'recallreview'   => 'undo',
             'recallchange'   => 'undo',
+            'assignto'       => 'hand-right',
             'close'          => 'off',
             'activate'       => 'magic',
             'resolve'        => 'ok',
@@ -819,13 +820,13 @@ class statetransitionModel extends model
     {
         if(!$this->config->statetransition->globalEnabled) return $actions;
 
-        $row = $this->getDefinition($objectType, $productID);
+        $row = $this->getEffectiveDefinition($objectType, $productID);
         if($row === null || !$row['enabled']) return $actions;
 
-        $workflowActions = array_flip($this->config->statetransition->actions[$objectType] ?? array());
+        $workflowActions = array_flip(array_map('strtolower', array_map('strval', $this->config->statetransition->actions[$objectType] ?? array())));
         if(empty($workflowActions)) return $actions;
 
-        $allowedActions = $this->getAllowedStoredActions($row['definition'], $fromStatus);
+        $allowedActions = $this->getAllowedActions($row['definition'], $fromStatus);
         foreach($actions as $key => $action)
         {
             if(!is_array($action))
@@ -859,14 +860,14 @@ class statetransitionModel extends model
     }
 
     /**
-     * Get enabled stored transition actions from a status, keyed by action.
+     * Get enabled transition actions from a status, keyed by action.
      *
      * @param  array  $definition
      * @param  string $fromStatus
      * @access private
      * @return array
      */
-    private function getAllowedStoredActions(array $definition, string $fromStatus): array
+    private function getAllowedActions(array $definition, string $fromStatus): array
     {
         $allowed = array();
         foreach($definition['transitions'] ?? array() as $tr)
@@ -957,7 +958,7 @@ class statetransitionModel extends model
     {
         if(!$this->config->statetransition->globalEnabled) return array();
 
-        $row = $this->getDefinition($objectType, $productID);
+        $row = $this->getEffectiveDefinition($objectType, $productID);
         if($row === null || !$row['enabled']) return array();
 
         $definition = $row['definition'];

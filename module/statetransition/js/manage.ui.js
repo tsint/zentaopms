@@ -36,8 +36,10 @@
             colorPresets: JSON.parse(root.dataset.colorPresets || '[]'),
             actions:    JSON.parse(root.dataset.actions || '{}'),
             branches:   JSON.parse(root.dataset.branches || '{}'),
+            actionBranches: JSON.parse(root.dataset.actionBranches || '{}'),
             systemStatuses: JSON.parse(root.dataset.systemStatuses || '[]'),
             saveUrl:    root.dataset.saveUrl,
+            resetUrl:   root.dataset.resetUrl,
             browseUrl:  root.dataset.browseUrl,
             lang:       JSON.parse(root.dataset.lang || '{}'),
             selectedEdgeKey: null,
@@ -57,12 +59,32 @@
         return def ? def.color : '#999';
     }
     function isSystemStatus(key) { return state.systemStatuses.indexOf(key) !== -1; }
+    function defaultStatusDefinition(key) {
+        return (state.defaultDef.statuses || []).find(x => x.key === key) || null;
+    }
     function actionLabel(action) { return state.actions[action] || action; }
     function branchLabel(branch) { return state.branches[branch] || branch; }
+    function actionBranchOptions(action) {
+        const key = String(action || '').toLowerCase();
+        const options = state.actionBranches[key];
+        return Array.isArray(options) ? options : [];
+    }
+    function defaultBranchForAction(action) {
+        const options = actionBranchOptions(action);
+        return options.length ? options[0] : null;
+    }
+    function normalizeBranchForAction(action, branch) {
+        const options = actionBranchOptions(action);
+        if(!options.length) return null;
+        return options.indexOf(branch) !== -1 ? branch : options[0];
+    }
     function edgeLabel(tr) {
         if(tr.label && typeof tr.label === 'object' && (tr.label.zh_cn || tr.label.en)) return tr.label.zh_cn || tr.label.en;
         const al = actionLabel(tr.action);
         return tr.branch ? al + '/' + branchLabel(tr.branch) : al;
+    }
+    function actionKeyLabel(tr) {
+        return tr.branch ? tr.action + '/' + tr.branch : tr.action;
     }
     function mermaidLabel(text) {
         return String(text || '').replace(/\\/g, '\\\\').replace(/"/g, "'").replace(/[\r\n]/g, ' ');
@@ -87,6 +109,13 @@
     function transitionKey(tr) {
         return tr.fromStatus + '-to-' + tr.toStatus + '-via-' + tr.action + (tr.branch ? '-' + tr.branch : '');
     }
+    function transitionTriple(tr) {
+        return tr.fromStatus + '|' + String(tr.action || '').toLowerCase() + '|' + (tr.branch || '');
+    }
+    function sourceStatusOptions(action) {
+        if(String(action || '').toLowerCase() !== 'review') return state.statusList;
+        return state.statusList.filter(s => s.key === 'reviewing');
+    }
     function showToast(msg, kind) {
         kind = kind || 'loading';
         let t = document.getElementById('workflowToast');
@@ -109,6 +138,7 @@
         for(const entry of (def.entries || [])) lines.push('    [*] --> ' + entry);
         for(const tr of (def.transitions || [])) {
             if(!tr.enabled) continue;
+            if(tr.fromStatus === tr.toStatus) continue;
             const label = mermaidEdgeLabel(tr);
             lines.push('    ' + tr.fromStatus + ' --> ' + tr.toStatus + ' : ' + label);
         }
@@ -247,24 +277,30 @@
             const key = status.key;
             const label = statusLabel(key);
             const isEntry = entries().indexOf(key) !== -1;
-            const sys = isSystemStatus(key) || !empty(status.isSystem);
             const outs = outgoing[key] || [];
             const routes = outs.length === 0
                 ? '<div class="workflow-hint">' + (state.lang.flowEmpty || '暂无') + '</div>'
                 : outs.map(tr => {
                     const lbl = edgeLabel(tr);
+                    const actionKey = actionKeyLabel(tr);
                     const sel = tr.key === state.selectedEdgeKey ? ' is-selected' : '';
                     return '<button type="button" class="workflow-route' + sel + '" data-edge="' + esc(tr.key) + '">'
-                         +   '<span class="workflow-action-label">' + esc(lbl) + '</span>'
+                         +   '<span class="workflow-action-wrap">'
+                         +     '<span class="workflow-action-label">' + esc(lbl) + '</span>'
+                         +     '<span class="workflow-action-key">' + esc(actionKey) + '</span>'
+                         +   '</span>'
                          +   '<span class="workflow-arrow">→</span>'
                          +   '<span class="workflow-target">' + esc(statusLabel(tr.toStatus)) + '</span>'
                          + '</button>';
                 }).join('');
             const toggle = isEntry ? (state.lang.unsetEntry || '取消初始') : (state.lang.setAsEntry || '设为初始');
-            const delBtn = sys ? '' : '<button type="button" class="workflow-node-delete" data-delete-node="' + esc(key) + '" title="' + esc(state.lang.deleteNode || '删除') + '">×</button>';
+            const delBtn = '<button type="button" class="workflow-node-delete" data-delete-node="' + esc(key) + '" title="' + esc(state.lang.deleteNode || '删除') + '">×</button>';
             return '<section class="workflow-column" data-status="' + esc(key) + '">'
                  +   '<div class="workflow-node' + (isEntry ? ' is-entry' : '') + '" style="border-left-color:' + esc(status.color || '#999') + '">'
-                 +     '<span class="workflow-node-name">' + esc(label) + '</span>'
+                 +     '<span class="workflow-node-title">'
+                 +       '<input type="text" class="workflow-node-label-input" data-node-label="' + esc(key) + '" value="' + esc(label) + '" aria-label="' + esc(state.lang.nodeLabel || '显示名称') + '">'
+                 +       '<span class="workflow-node-key">' + esc(key) + '</span>'
+                 +     '</span>'
                  +     '<button type="button" class="workflow-entry-toggle' + (isEntry ? ' is-entry' : '') + '" data-toggle-entry="' + esc(key) + '">' + esc(toggle) + '</button>'
                  +     delBtn
                  +   '</div>'
@@ -284,6 +320,7 @@
         }
         list.innerHTML = trs.map(tr => {
             const lbl = edgeLabel(tr);
+            const actionKey = actionKeyLabel(tr);
             const cls = 'workflow-transition'
                 + (tr.enabled ? '' : ' disabled')
                 + (empty(tr.isCustom) ? '' : ' is-custom')
@@ -291,7 +328,10 @@
             return '<button type="button" class="' + cls + '" data-edge="' + esc(tr.key) + '">'
                  +   '<span class="workflow-state">' + esc(statusLabel(tr.fromStatus)) + '</span>'
                  +   '<span class="workflow-arrow">→</span>'
-                 +   '<span class="workflow-action-label">' + esc(lbl) + '</span>'
+                 +   '<span class="workflow-action-wrap">'
+                 +     '<span class="workflow-action-label">' + esc(lbl) + '</span>'
+                 +     '<span class="workflow-action-key">' + esc(actionKey) + '</span>'
+                 +   '</span>'
                  +   '<span class="workflow-arrow">→</span>'
                  +   '<span class="workflow-state">' + esc(statusLabel(tr.toStatus)) + '</span>'
                  + '</button>';
@@ -318,6 +358,8 @@
         editor.classList.remove('hidden');
         const labelStr = (tr.label && (tr.label.zh_cn || tr.label.en)) || '';
         setVal('edgeAction', tr.action || '');
+        renderBranchSelect('edgeBranch', tr.action, tr.branch || null);
+        document.getElementById('edgeBranchField')?.classList.toggle('hidden', actionBranchOptions(tr.action).length === 0);
         setVal('edgeLabel', labelStr);
         setCheckboxGroup('edgeRoles', tr.roles || []);
         setCheckboxGroup('edgeAccounts', tr.accounts || []);
@@ -351,18 +393,19 @@
         if(!/^[a-z][a-z0-9_]{1,29}$/.test(key)) { showToast('状态 key 必须以小写字母开头，仅含小写字母/数字/下划线（2-30 字符）', 'error'); return; }
         if(!label) { showToast('请填写显示名称', 'error'); return; }
         if((state.definition.statuses || []).some(s => s.key === key)) { showToast('状态 key 已存在: ' + key, 'error'); return; }
-        if(isSystemStatus(key)) { showToast('不能使用系统保留 key: ' + key, 'error'); return; }
+        const defaultStatus = defaultStatusDefinition(key);
+        const isSystem = isSystemStatus(key);
         state.definition.statuses = state.definition.statuses || [];
         state.definition.statuses.push({
             key: key,
             label: {zh_cn: label, en: label},
-            category: category,
-            color: color,
-            isSystem: false,
+            category: isSystem && defaultStatus ? defaultStatus.category : category,
+            color: isSystem && defaultStatus ? defaultStatus.color : color,
+            isSystem: isSystem,
             isEntry: false,
-            fieldRules: {}
+            fieldRules: isSystem && defaultStatus ? (defaultStatus.fieldRules || {}) : {}
         });
-        state.statusList.push({key: key, text: label, color: color});
+        state.statusList.push({key: key, text: label, color: isSystem && defaultStatus ? defaultStatus.color : color});
         $('#newNodeKey').value = '';
         $('#newNodeLabel').value = '';
         syncDataset();
@@ -393,12 +436,30 @@
         if(!sourceSel || !targetSel) return;
         const prevSource = sourceSel.value;
         const prevTarget = targetSel.value;
-        const options = state.statusList.map(s => '<option value="' + esc(s.key) + '">' + esc(s.text) + '</option>').join('');
-        sourceSel.innerHTML = options;
-        targetSel.innerHTML = options;
+        const action = $('#newAction') ? $('#newAction').value : '';
+        const sources = sourceStatusOptions(action);
+        const sourceOptions = sources.map(s => '<option value="' + esc(s.key) + '">' + esc(s.text) + '</option>').join('');
+        const targetOptions = state.statusList.map(s => '<option value="' + esc(s.key) + '">' + esc(s.text) + '</option>').join('');
+        sourceSel.innerHTML = sourceOptions;
+        targetSel.innerHTML = targetOptions;
         /* Preserve previous selection if still valid. */
-        if(state.statusList.some(s => s.key === prevSource)) sourceSel.value = prevSource;
+        if(sources.some(s => s.key === prevSource)) sourceSel.value = prevSource;
         if(state.statusList.some(s => s.key === prevTarget)) targetSel.value = prevTarget;
+    }
+    function renderBranchSelect(id, action, selectedBranch) {
+        const select = document.getElementById(id);
+        if(!select) return;
+        const options = actionBranchOptions(action);
+        select.innerHTML = options.map(branch => '<option value="' + esc(branch) + '">' + esc(branchLabel(branch)) + '</option>').join('');
+        if(options.length) select.value = normalizeBranchForAction(action, selectedBranch);
+    }
+    function refreshNewBranchField() {
+        const action = $('#newAction') ? $('#newAction').value : '';
+        const options = actionBranchOptions(action);
+        const field = $('#newBranchField');
+        if(field) field.classList.toggle('hidden', options.length === 0);
+        renderBranchSelect('newBranch', action, $('#newBranch') ? $('#newBranch').value : null);
+        renderDropdowns();
     }
     function toggleEntry(key) {
         const arr = entries().slice();
@@ -424,18 +485,22 @@
         const from = $('#newSource').value;
         const to   = $('#newTarget').value;
         const action = $('#newAction').value;
+        const branch = normalizeBranchForAction(action, $('#newBranch') ? $('#newBranch').value : null);
         const label = $('#newTransitionLabel').value.trim();
         /* Read roles + requireComment from the add form directly. */
         const roles = Array.from(document.querySelectorAll('input[name="newRoles"]:checked')).map(cb => cb.value);
         const requireComment = $('#newRequireComment')?.checked || false;
 
+        if(action === 'review' && from !== 'reviewing') { showToast('评审动作只能从评审中状态发起', 'error'); return; }
+        if(action === 'review' && !from) { showToast('当前流程没有评审中状态，不能添加评审动作', 'error'); return; }
         if(from === to) { showToast('起始状态和目标状态不能相同', 'error'); return; }
-        const trKey = from + '-to-' + to + '-via-' + action;
+        const trKey = from + '-to-' + to + '-via-' + action + (branch ? '-' + branch : '');
         if((state.definition.transitions || []).some(t => t.key === trKey)) { showToast('已存在相同的转移: ' + trKey, 'error'); return; }
-        const dupTriple = (state.definition.transitions || []).some(t => t.enabled && t.fromStatus === from && t.action === action && (t.branch || null) === null);
+        const dupTriple = (state.definition.transitions || []).some(t => t.enabled && t.fromStatus === from && String(t.action || '').toLowerCase() === String(action || '').toLowerCase() && (t.branch || null) === branch);
         if(dupTriple) { showToast('同一状态和动作只能配置一条启用的流转', 'error'); return; }
 
-        const labelObj = label ? {zh_cn: label, en: label} : {zh_cn: actionLabel(action), en: actionLabel(action)};
+        const defaultLabel = branch ? actionLabel(action) + '/' + branchLabel(branch) : actionLabel(action);
+        const labelObj = label ? {zh_cn: label, en: label} : {zh_cn: defaultLabel, en: defaultLabel};
         /* Save user-entered name as BOTH label (diagram) and buttonLabel (detail page button text).
            When buttonLabel is empty, the detail page falls back to the native action label,
            which is confusing when the user has explicitly customized the transition. */
@@ -446,7 +511,7 @@
             fromStatus: from,
             toStatus: to,
             action: action,
-            branch: null,
+            branch: branch,
             label: labelObj,
             roles: roles,
             accounts: [],
@@ -494,17 +559,47 @@
         const oldKey = tr.key;
         const oldAction = tr.action;
         const oldBranch = tr.branch;
+        if(String(value || '').toLowerCase() === 'review' && tr.fromStatus !== 'reviewing') {
+            setVal('edgeAction', oldAction || '');
+            showToast('评审动作只能从评审中状态发起', 'error');
+            return;
+        }
         tr.action = value;
-        tr.branch = null;
+        tr.branch = defaultBranchForAction(value);
         const newKey = transitionKey(tr);
 
-        const duplicate = (state.definition.transitions || []).some(t => t !== tr && (t.key === newKey || (t.enabled && t.fromStatus === tr.fromStatus && t.action === tr.action && (t.branch || null) === (tr.branch || null))));
+        const duplicate = (state.definition.transitions || []).some(t => t !== tr && (t.key === newKey || (t.enabled && transitionTriple(t) === transitionTriple(tr))));
         if(duplicate) {
             tr.action = oldAction;
             tr.branch = oldBranch;
             tr.key = oldKey;
             setVal('edgeAction', tr.action || '');
             showToast('同一状态和动作只能配置一条启用的流转', 'error');
+            return;
+        }
+
+        tr.key = newKey;
+        state.selectedEdgeKey = newKey;
+        renderBranchSelect('edgeBranch', tr.action, tr.branch || null);
+        document.getElementById('edgeBranchField')?.classList.toggle('hidden', actionBranchOptions(tr.action).length === 0);
+        syncDataset();
+        fullRender();
+    }
+    function updateSelectedTransitionBranch(value) {
+        if(!state.selectedEdgeKey) return;
+        const tr = (state.definition.transitions || []).find(t => t.key === state.selectedEdgeKey);
+        if(!tr) return;
+
+        const oldKey = tr.key;
+        const oldBranch = tr.branch;
+        tr.branch = normalizeBranchForAction(tr.action, value);
+        const newKey = transitionKey(tr);
+        const duplicate = (state.definition.transitions || []).some(t => t !== tr && (t.key === newKey || (t.enabled && transitionTriple(t) === transitionTriple(tr))));
+        if(duplicate) {
+            tr.branch = oldBranch;
+            tr.key = oldKey;
+            renderBranchSelect('edgeBranch', tr.action, tr.branch || null);
+            showToast('同一状态、动作和评审意见只能配置一条启用的流转', 'error');
             return;
         }
 
@@ -521,6 +616,20 @@
         syncDataset();
         renderMatrix();
         renderList();
+        renderMermaid();
+    }
+    function updateNodeLabel(key, value) {
+        const label = String(value || '').trim();
+        if(!label) return;
+        const status = (state.definition.statuses || []).find(s => s.key === key);
+        if(!status) return;
+        status.label = {zh_cn: label, en: label};
+        const statusItem = state.statusList.find(s => s.key === key);
+        if(statusItem) statusItem.text = label;
+        syncDataset();
+        renderMatrix();
+        renderList();
+        renderDropdowns();
         renderMermaid();
     }
     /* === Save === */
@@ -552,9 +661,26 @@
             showToast('网络错误: ' + e.message, 'error');
         }
     }
-    function reset() {
+    async function reset() {
         if(!confirm(state.lang.confirmReset || '确定恢复默认？')) return;
-        window.location.href = state.browseUrl;
+        showToast('恢复默认中...', 'loading');
+        try {
+            const body = new FormData();
+            body.append('reset', '1');
+            const resp = await fetch(state.resetUrl, {
+                method: 'POST',
+                body: body,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const result = await resp.json();
+            if(result.result === 'success') {
+                window.location.href = state.browseUrl;
+                return;
+            }
+            showToast(result.message || '恢复默认失败', 'error');
+        } catch(e) {
+            showToast('网络错误: ' + e.message, 'error');
+        }
     }
     /* === Full render (after any mutation that changes structure) === */
     function fullRender() {
@@ -581,6 +707,11 @@
         const addTrBtn = $('#addTransition');
         if(addNodeBtn) addNodeBtn.addEventListener('click', addNode);
         if(addTrBtn) addTrBtn.addEventListener('click', addTransition);
+        const newActionEl = $('#newAction');
+        if(newActionEl) {
+            newActionEl.addEventListener('change', refreshNewBranchField);
+            refreshNewBranchField();
+        }
         /* Color picker swatches */
         $$('#newNodeColorRow .workflow-color-swatch').forEach(sw => {
             sw.addEventListener('click', () => {
@@ -595,6 +726,8 @@
         if(deleteTrBtn) deleteTrBtn.addEventListener('click', deleteSelectedTransition);
         const edgeActionEl = $('#edgeAction');
         if(edgeActionEl) edgeActionEl.addEventListener('change', e => updateSelectedTransitionAction(e.target.value));
+        const edgeBranchEl = $('#edgeBranch');
+        if(edgeBranchEl) edgeBranchEl.addEventListener('change', e => updateSelectedTransitionBranch(e.target.value));
         const edgeLabelEl = $('#edgeLabel');
         if(edgeLabelEl) edgeLabelEl.addEventListener('input', e => updateSelectedTransitionLabel(e.target.value));
         /* Roles/accounts are now checkbox groups — listen on the container div for change events. */
@@ -637,7 +770,8 @@
         /* Delegated clicks for matrix & list (since they re-render).
            Note: use button[data-edge] not [data-edge] — Mermaid SVG paths also have
            data-edge attribute, which would shadow our matrix/list clicks. */
-        document.addEventListener('click', e => {
+        if(window.__statetransitionDocumentClickHandler) document.removeEventListener('click', window.__statetransitionDocumentClickHandler);
+        window.__statetransitionDocumentClickHandler = e => {
             const route = e.target.closest('button[data-edge], a[data-edge]');
             if(route) {
                 e.preventDefault();
@@ -648,7 +782,14 @@
             if(toggleBtn) { e.preventDefault(); toggleEntry(toggleBtn.getAttribute('data-toggle-entry')); return; }
             const delNode = e.target.closest('[data-delete-node]');
             if(delNode) { e.preventDefault(); deleteNode(delNode.getAttribute('data-delete-node')); return; }
-        });
+        };
+        document.addEventListener('click', window.__statetransitionDocumentClickHandler);
+        if(window.__statetransitionDocumentChangeHandler) document.removeEventListener('change', window.__statetransitionDocumentChangeHandler);
+        window.__statetransitionDocumentChangeHandler = e => {
+            const nodeInput = e.target.closest('input[data-node-label]');
+            if(nodeInput) updateNodeLabel(nodeInput.getAttribute('data-node-label'), nodeInput.value);
+        };
+        document.addEventListener('change', window.__statetransitionDocumentChangeHandler);
         /* Initial render. */
         renderMatrix();
         renderList();

@@ -573,9 +573,10 @@ class bug extends control
 
         if(!empty($_POST))
         {
-            /* 只有状态为解决或者关闭的bug才可以激活。 */
-            /* Only bugs whose status is resolved or closed can be activated. */
-            if($oldBug->status != 'resolved' && $oldBug->status != 'closed')
+            /* 状态流转工作流启用时，是否允许激活由流转图决定；未启用时保持原生规则（仅 resolved/closed 可激活）。 */
+            $stDefinition    = $this->loadModel('statetransition')->getDefinition('bug', (int)$oldBug->product);
+            $workflowEnabled = ($stDefinition !== null && $stDefinition['enabled']);
+            if(!$workflowEnabled && $oldBug->status != 'resolved' && $oldBug->status != 'closed')
             {
                 dao::$errors[] = $this->lang->bug->error->cannotActivate;
                 return $this->send(array('result' => 'fail', 'message' => dao::getError()));

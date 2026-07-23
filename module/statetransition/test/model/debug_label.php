@@ -15,6 +15,12 @@ foreach($overrides as $action => $label) {
 
 echo "\n=== Checking change action specifically ===\n";
 $row = $tester->statetransition->getDefinition('story', 4);
+if(empty($row))
+{
+    echo "No product 4 story workflow definition.\n";
+    return;
+}
+
 foreach($row['definition']['transitions'] as $tr) {
     if($tr['fromStatus'] == 'active' && $tr['action'] == 'change') {
         echo "Label zh_cn: '" . $tr['label']['zh_cn'] . "'\n";
@@ -22,4 +28,3 @@ foreach($row['definition']['transitions'] as $tr) {
         echo "Label zh_cn json: " . json_encode($tr['label']) . "\n";
     }
 }
-EOF

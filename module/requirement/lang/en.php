@@ -11,6 +11,16 @@ foreach($lang->requirement as $key => $value)
 
 $lang->requirement->common = $lang->URCommon;
 
+/* Independent status list (decoupled from story): requirement owns its own status labels
+   so changes to story's statusList never affect requirement. Content mirrors story for now. */
+$lang->requirement->statusList = array();
+$lang->requirement->statusList['']          = '';
+$lang->requirement->statusList['draft']     = 'Draft';
+$lang->requirement->statusList['reviewing'] = 'Reviewing';
+$lang->requirement->statusList['active']    = 'Active';
+$lang->requirement->statusList['changing']  = 'Changing';
+$lang->requirement->statusList['closed']    = 'Closed';
+
 $lang->requirement->stageList = array();
 $lang->requirement->stageList[''] = '';
 $lang->requirement->stageList['wait'] = 'Not Started';

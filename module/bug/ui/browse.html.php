@@ -258,6 +258,7 @@ if(isset($cols['task']))           $cols['task']['map']           = array('') + 
 if(isset($cols['toTask']))         $cols['toTask']['map']         = array('') + $tasks;
 if(isset($cols['story']))          $cols['story']['map']          = array('') + $stories;
 if(isset($cols['activatedCount'])) $cols['activatedCount']['map'] = array('');
+if(isset($cols['status']))         $cols['status']['statusMap']   = $this->loadModel('statetransition')->mergeStatusList('bug', (int)$product->id);
 if($product->type == 'normal') unset($cols['branch']);
 foreach($cols as $colName => $col)
 {

@@ -10,7 +10,7 @@ cid=0
 - 执行$result3Ok @0
 - 执行$result4Ok @1
 - 执行$result5Ok @1
-- 执行$result6Ok @1
+- 执行$result6Ok @0
 */
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/model.class.php';
@@ -144,7 +144,7 @@ $_POST['comment'] = 'workflow allows';
 $result5 = $tester->bug->resolve($bugUpdate);
 $result5Ok = $result5 === false ? '0' : '1';
 
-/* Case 6: bug resolve, workflow with resolve removed — still succeeds via auto-injection. */
+/* Case 6: bug resolve, workflow with resolve removed — must be blocked by the custom definition. */
 $resetState();
 $def6 = $bugDef;
 $def6['transitions'] = array_values(array_filter($def6['transitions'], fn($t) => $t['action'] !== 'resolve'));
@@ -159,7 +159,7 @@ $bugUpdate->resolvedBy = 'admin';
 $bugUpdate->resolvedDate = helper::now();
 $bugUpdate->assignedTo = $bugObj->assignedTo;
 $bugUpdate->product = $bugObj->product;
-$_POST['comment'] = 'workflow allows via auto-injection';
+$_POST['comment'] = 'workflow blocks resolve when transition removed';
 $result6 = $tester->bug->resolve($bugUpdate);
 $result6Ok = $result6 === false ? '0' : '1';
 
@@ -174,7 +174,7 @@ r($result2Ok) && p() && e('1');
 r($result3Ok) && p() && e('0');
 r($result4Ok) && p() && e('1');
 r($result5Ok) && p() && e('1');
-r($result6Ok) && p() && e('1');
+r($result6Ok) && p() && e('0');
 
 /* Debug any failures. */
 if($result2Ok !== '1' || $result4Ok !== '1' || $result5Ok !== '1')

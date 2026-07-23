@@ -39,7 +39,7 @@ $config->statetransition->actions = array(
     'epic'        => array('submitreview', 'review', 'change', 'recallreview', 'recallchange', 'assignTo', 'resolve', 'close', 'activate'),
     'requirement' => array('submitreview', 'review', 'change', 'recallreview', 'recallchange', 'assignTo', 'resolve', 'close', 'activate'),
     'story'       => array('submitreview', 'review', 'change', 'recallreview', 'recallchange', 'assignTo', 'resolve', 'close', 'activate'),
-    'bug'         => array('assignTo', 'resolve', 'close', 'activate'),
+    'bug'         => array('confirm', 'assignTo', 'resolve', 'close', 'activate'),
     'task'        => array('assignTo', 'start', 'restart', 'pause', 'finish', 'resolve', 'close', 'cancel', 'activate'),
 );
 
@@ -51,6 +51,7 @@ $config->statetransition->actionBranches = array(
     'recallreview'   => null,
     'recallchange'   => null,
     'close'          => array('done', 'rejected'),
+    'confirm'        => null,
     'assignTo'       => null,
     'activate'       => null,
     'resolve'        => null,

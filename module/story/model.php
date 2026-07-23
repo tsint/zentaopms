@@ -551,6 +551,11 @@ class storyModel extends model
         if(commonModel::isTutorialMode()) return false;
 
         if(isset($story->estimate)) $story->estimate = round((float)$story->estimate, 2);
+        if(isset($story->type) && isset($story->product) && isset($story->status))
+        {
+            $story->status = $this->loadModel('statetransition')->assertEntryState($story->type, (int)$story->product, $story->status);
+        }
+
         $storyID = $this->storyTao->doCreateStory($story);
         if(!$storyID) return false;
 
@@ -1289,6 +1294,12 @@ class storyModel extends model
             ->exec();
 
         $story = $this->updateStoryByReview($storyID, $oldStory, $story);
+        if(isset($story->finalResult))
+        {
+            $target = $this->loadModel('statetransition')->applyWorkflowTransition($oldStory->type, (int)$oldStory->product, $storyID, $oldStory->status, 'review', $story->finalResult, $comment, $story->status ?? $oldStory->status);
+            if($target === null) return false;
+            $story->status = $target;
+        }
 
         $skipFields      = 'finalResult,result';
         $isSuperReviewer = $this->storyTao->isSuperReviewer();
@@ -1391,6 +1402,12 @@ class storyModel extends model
             {
                 $reviewResult = $this->getReviewResult($reviewerPairs);
                 $story        = $this->setStatusByReviewResult($story, $oldStory, $reviewResult, $reason);
+            }
+            if(isset($story->finalResult))
+            {
+                $target = $this->loadModel('statetransition')->applyWorkflowTransition($oldStory->type, (int)$oldStory->product, $storyID, $oldStory->status, 'review', $story->finalResult, '', $story->status);
+                if($target === null) continue;
+                $story->status = $target;
             }
 
             $this->dao->update(TABLE_STORY)->data($story, 'finalResult')->autoCheck()->where('id')->eq($storyID)->exec();
@@ -5289,6 +5306,8 @@ class storyModel extends model
      */
     public function formatStoryForList(object $story, array $options = array(), string $storyType = 'story', array $maxGradeGroup = array()): object
     {
+        if(isset($story->type) && isset($story->product)) $this->loadModel('statetransition')->mergeStatusList($story->type, (int)$story->product);
+
         $story->actions  = $this->buildActionButtonList($story, 'browse', zget($options, 'execution', null), $storyType, $maxGradeGroup);
         $story->estimate = helper::formatHours($story->estimate) . $this->config->hourUnit;
 
@@ -5342,7 +5361,8 @@ class storyModel extends model
         else
         {
             $story->rawStatus = $story->status;
-            $story->status    = zget($this->lang->{$story->type}->statusList, $story->status);
+            $story->statusLabel = zget($this->lang->{$story->type}->statusList, $story->status, $story->status);
+            $story->status      = $story->statusLabel;
         }
 
         if(!common::hasPriv($story->type, 'assignTo')) $story->assignedToName = zget(zget($options, 'users', array()), $story->assignedTo, empty($story->assignedTo) ? $this->lang->noAssigned : $story->assignedTo);

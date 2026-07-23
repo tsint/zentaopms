@@ -21,6 +21,9 @@ $isRequirement = $story->type == 'requirement';
 $isStoryType   = $story->type == 'story';
 if(empty($executionID)) $executionID = 0;
 
+/* Patch lang statusList with workflow statuses so processStatus() resolves custom labels. */
+$this->loadModel('statetransition')->mergeStatusList($story->type, (int)$story->product);
+
 $story->estimate = helper::formatHours($story->estimate);
 
 /* 版本列表。Version list. */

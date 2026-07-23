@@ -32,7 +32,7 @@ $tester->statetransition->saveDefinition('story', 0, $storyDef, 0, true);
 $legal = $tester->statetransition->assertStatusChange('story', 0, 1, 'reviewing', 'active');
 
 /* Case 4: illegal direct change — try to go from 'closed' to 'changing' (no such transition
-   in default definition, and auto-injection doesn't add outgoing transitions from terminal). */
+   in default definition). */
 $illegal = $tester->statetransition->assertStatusChange('story', 0, 1, 'closed', 'changing');
 
 /* Case 5: transition with requireComment. */

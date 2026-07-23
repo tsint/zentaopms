@@ -52,6 +52,23 @@ class statetransitionModel extends model
     }
 
     /**
+     * Check whether a definition is equal to the object type's default definition.
+     *
+     * @param  string $objectType
+     * @param  array  $definition
+     * @access public
+     * @return bool
+     */
+    public function isDefaultDefinition(string $objectType, array $definition): bool
+    {
+        $current = $this->normalizeDefinition($definition, $objectType);
+        $default = $this->normalizeDefinition($this->getDefaultDefinition($objectType), $objectType);
+        if(!$current['ok'] || !$default['ok']) return false;
+
+        return $this->canonicalizeDefinition($current['definition']) === $this->canonicalizeDefinition($default['definition']);
+    }
+
+    /**
      * Validate a raw definition array.
      *
      * @param  array  $definition
@@ -108,11 +125,10 @@ class statetransitionModel extends model
     }
 
     /**
-     * Get definition with auto-injected lifecycle transitions (close/activate/resolve).
+     * Get the active definition for callers that still use the historical effective API.
      *
-     * Unlike getDefinition(), this appends default transitions at runtime so that
-     * every non-terminal node supports essential lifecycle actions. The stored
-     * definition is NOT modified — admins retain full control over what's persisted.
+     * Runtime lifecycle injection has been removed: deleted workflow actions must stay deleted.
+     * This method therefore currently returns the same definition as getDefinition().
      *
      * @param  string $objectType
      * @param  int    $productID
@@ -306,6 +322,23 @@ class statetransitionModel extends model
     }
 
     /**
+     * Canonicalize a normalized definition for equality checks.
+     *
+     * @param  mixed $value
+     * @access private
+     * @return mixed
+     */
+    private function canonicalizeDefinition(mixed $value): mixed
+    {
+        if(is_object($value)) $value = (array)$value;
+        if(!is_array($value)) return $value;
+
+        foreach($value as $key => $child) $value[$key] = $this->canonicalizeDefinition($child);
+        if(array_keys($value) !== range(0, count($value) - 1)) ksort($value);
+        return $value;
+    }
+
+    /**
      * Resolve and validate a transition. The primary runtime entry point.
      *
      * Returns transitionDecision. On ok=true, $decision->toStatus is the configured target (never
@@ -337,7 +370,7 @@ class statetransitionModel extends model
             return transitionDecision::fail('objectTypeInvalid', $this->lang->statetransition->errors['objectTypeInvalid']);
         }
 
-        $row = $this->getEffectiveDefinition($objectType, $productID);
+        $row = $this->getDefinition($objectType, $productID);
         if($row === null)
         {
             /* No definition → unrestricted. Caller must fall back to business default. */
@@ -463,7 +496,7 @@ class statetransitionModel extends model
             return transitionDecision::fail('objectTypeInvalid', $this->lang->statetransition->errors['objectTypeInvalid']);
         }
 
-        $row = $this->getEffectiveDefinition($objectType, $productID);
+        $row = $this->getDefinition($objectType, $productID);
         if($row === null || !$row['enabled'])
         {
             return $this->unrestricted($objectType, $fromStatus, '', null);
@@ -496,7 +529,9 @@ class statetransitionModel extends model
      */
     public function isActionAllowed(string $objectType, int $productID, string $fromStatus, string $action, ?object $actor = null): bool
     {
-        $row = $this->getEffectiveDefinition($objectType, $productID);
+        if($this->isAlwaysPreservedDetailAction($action)) return true;
+
+        $row = $this->getDefinition($objectType, $productID);
         if($row === null || !$row['enabled']) return true; /* Unrestricted → allow all. */
 
         $definition = $row['definition'];
@@ -546,7 +581,7 @@ class statetransitionModel extends model
     {
         if(!in_array($objectType, $this->config->statetransition->objectTypes, true)) return $status;
 
-        $row = $this->getEffectiveDefinition($objectType, $productID);
+        $row = $this->getDefinition($objectType, $productID);
         if($row === null || !$row['enabled']) return $status;
 
         $definition = $row['definition'];
@@ -568,7 +603,7 @@ class statetransitionModel extends model
      */
     public function getStatusList(string $objectType, int $productID): array
     {
-        $row = $this->getEffectiveDefinition($objectType, $productID);
+        $row = $this->getDefinition($objectType, $productID);
         if($row === null)
         {
             /* Fall back to system lang statusList. */
@@ -583,6 +618,40 @@ class statetransitionModel extends model
             $out[$status['key']] = $this->pickLabel($status['label'] ?? array(), $lang, $status['key']);
         }
         return $out;
+    }
+
+    /**
+     * Merge workflow statuses into the module's lang statusList and return the combined list.
+     *
+     * Custom workflow statuses (e.g. a bug entry status "pending") are absent from the system
+     * lang statusList, so dtable statusMap and processStatus() render the raw key instead of the
+     * label. This patches the module lang in-place — workflow statuses take precedence, the
+     * system list fills any gaps — so every consumer resolves the configured label. It is a
+     * no-op (returns the system list unchanged) when no workflow is enabled for the product.
+     *
+     * @param  string $objectType
+     * @param  int    $productID
+     * @access public
+     * @return array  merged [key => label]
+     */
+    public function mergeStatusList(string $objectType, int $productID): array
+    {
+        $module = $this->config->statetransition->objectModules[$objectType] ?? $objectType;
+        $this->app->loadLang($module);
+        $langObj = $this->app->lang->{$module};
+        $system  = isset($langObj->statusList) ? (array)$langObj->statusList : array();
+
+        /* Workflow statuses take precedence; product flows use global labels as a display fallback only. */
+        $workflow = $this->getStatusList($objectType, $productID);
+        if($productID > 0) $workflow += $this->getStatusList($objectType, 0);
+        $merged = $workflow + $system;
+        $langObj->statusList = $merged;
+        if($module !== $objectType)
+        {
+            $this->app->loadLang($objectType);
+            if(isset($this->app->lang->{$objectType})) $this->app->lang->{$objectType}->statusList = $merged;
+        }
+        return $merged;
     }
 
     /**
@@ -741,7 +810,7 @@ class statetransitionModel extends model
     {
         if(!$this->config->statetransition->globalEnabled) return array();
 
-        $row = $this->getEffectiveDefinition($objectType, $productID);
+        $row = $this->getDefinition($objectType, $productID);
         if($row === null || !$row['enabled']) return array();
 
         $definition   = $row['definition'];
@@ -757,6 +826,7 @@ class statetransitionModel extends model
             'recallreview'   => 'undo',
             'recallchange'   => 'undo',
             'assignto'       => 'hand-right',
+            'confirm'        => 'ok',
             'close'          => 'off',
             'activate'       => 'magic',
             'resolve'        => 'ok',
@@ -820,7 +890,7 @@ class statetransitionModel extends model
     {
         if(!$this->config->statetransition->globalEnabled) return $actions;
 
-        $row = $this->getEffectiveDefinition($objectType, $productID);
+        $row = $this->getDefinition($objectType, $productID);
         if($row === null || !$row['enabled']) return $actions;
 
         $workflowActions = array_flip(array_map('strtolower', array_map('strval', $this->config->statetransition->actions[$objectType] ?? array())));
@@ -836,7 +906,10 @@ class statetransitionModel extends model
             }
             if(isset($action['type']) && $action['type'] === 'divider') continue;
 
-            $candidateActions = $this->getWorkflowActionAliases($this->extractDetailActionName($action));
+            $actionName = $this->extractDetailActionName($action);
+            if($this->isAlwaysPreservedDetailAction($actionName)) continue;
+
+            $candidateActions = $this->getWorkflowActionAliases($actionName);
             if(empty($candidateActions)) continue;
 
             $isWorkflowAction = false;
@@ -924,6 +997,18 @@ class statetransitionModel extends model
     }
 
     /**
+     * Detail actions that must not be removed by workflow status-transition filtering.
+     *
+     * @param  string $actionName
+     * @access private
+     * @return bool
+     */
+    private function isAlwaysPreservedDetailAction(string $actionName): bool
+    {
+        return in_array(strtolower($actionName), array('assignto'), true);
+    }
+
+    /**
      * Convenience wrapper: checkActor using tao's protected method via public bridge.
      *
      * @param  array       $transition
@@ -958,7 +1043,7 @@ class statetransitionModel extends model
     {
         if(!$this->config->statetransition->globalEnabled) return array();
 
-        $row = $this->getEffectiveDefinition($objectType, $productID);
+        $row = $this->getDefinition($objectType, $productID);
         if($row === null || !$row['enabled']) return array();
 
         $definition = $row['definition'];
@@ -1033,6 +1118,7 @@ class statetransitionModel extends model
         foreach($definition['transitions'] ?? array() as $tr)
         {
             if(!$tr['enabled']) continue;
+            if(($tr['fromStatus'] ?? '') === ($tr['toStatus'] ?? '')) continue;
             $label = $this->getTransitionMermaidLabel($tr, $lang);
             $lines[] = "    {$tr['fromStatus']} --> {$tr['toStatus']} : {$label}";
         }

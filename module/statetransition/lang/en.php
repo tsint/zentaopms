@@ -51,6 +51,7 @@ $lang->statetransition->transitionFrom       = 'From';
 $lang->statetransition->transitionTo         = 'To';
 $lang->statetransition->transitionAction     = 'Action';
 $lang->statetransition->transitionBranch     = 'Branch';
+$lang->statetransition->reviewBranch         = 'Review result';
 $lang->statetransition->transitionLabel      = 'Label';
 $lang->statetransition->transitionRoles      = 'Roles';
 $lang->statetransition->transitionAccounts   = 'Accounts';
@@ -70,6 +71,7 @@ $lang->statetransition->actionList = array(
     'change'         => 'Change',
     'recallreview'   => 'Recall review',
     'recallchange'   => 'Recall change',
+    'confirm'        => 'Confirm',
     'assignTo'       => 'Assign',
     'close'          => 'Close',
     'activate'       => 'Activate',
@@ -88,6 +90,7 @@ $lang->statetransition->branchList = array(
     'done'    => 'Done',
     'rejected'=> 'Rejected',
 );
+$lang->statetransition->reviewBranchTip      = 'Review actions match workflow rules by review result branch, such as pass or reject.';
 
 $lang->statetransition->requireCommentTip    = 'A comment is required for this action';
 $lang->statetransition->customButtonTip      = 'Render as a custom button on detail pages';
@@ -114,5 +117,7 @@ $lang->statetransition->errors = array(
     'statusKeyInvalid'     => 'Status key must start with a letter and contain only lowercase letters/digits/underscore, 2-30 chars',
     'transitionRefInvalid' => 'Transition references a non-existent status',
     'actionInvalid'        => 'Action not in whitelist',
+    'branchInvalid'        => 'Invalid action branch',
+    'reviewSourceInvalid'  => 'Review action can only start from the reviewing status',
     'systemStatusLocked'   => 'System status key cannot be overridden',
 );

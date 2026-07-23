@@ -31,6 +31,7 @@ class statetransitionTao extends statetransitionModel
         $systemKeys   = $config->systemStatuses[$objectType] ?? array();
         $allowedActions   = $config->actions[$objectType] ?? array();
         $allowedActionSet = array_flip(array_map('strtolower', array_map('strval', $allowedActions)));
+        $actionBranches   = $config->actionBranches ?? array();
         $keyPattern   = $config->statusKeyPattern;
 
         /* schemaVersion must be present. */
@@ -122,6 +123,20 @@ class statetransitionTao extends statetransitionModel
             {
                 $errors[] = array('key' => 'actionInvalid', 'message' => $this->lang->statetransition->errors['actionInvalid'] . ": $action");
                 continue;
+            }
+            if($actionLower === 'review' && $fromStatus !== 'reviewing')
+            {
+                $errors[] = array('key' => 'reviewSourceInvalid', 'message' => $this->lang->statetransition->errors['reviewSourceInvalid'] . ": $transKey");
+                continue;
+            }
+            if($branch !== null && $branch !== '')
+            {
+                $validBranches = $actionBranches[$actionLower] ?? null;
+                if(!is_array($validBranches) || !in_array($branch, $validBranches, true))
+                {
+                    $errors[] = array('key' => 'branchInvalid', 'message' => $this->lang->statetransition->errors['branchInvalid'] . ": $transKey");
+                    continue;
+                }
             }
 
             /* Duplicate (fromStatus, action, branch) among enabled transitions is forbidden. */
@@ -269,6 +284,7 @@ class statetransitionTao extends statetransitionModel
             if(!isset($statusKeySet[$fromStatus]) || !isset($statusKeySet[$toStatus])) continue;
 
             $branch = array_key_exists('branch', $tr) ? $tr['branch'] : null;
+            if($branch === '') $branch = null;
             /* Generate a key if missing. */
             $key = $tr['key'] ?? '';
             if($key === '')
@@ -303,11 +319,11 @@ class statetransitionTao extends statetransitionModel
     }
 
     /**
-     * Inject default close/activate/resolve transitions for non-terminal statuses.
+     * Return persisted transitions without auto-injecting lifecycle rules.
      *
-     * Called at runtime (not during normalization) so the stored definition stays clean
-     * and admins can remove unwanted transitions. Auto-injected transitions are appended
-     * to the transitions array and marked with isAutoInjected=true.
+     * Older revisions filled missing close/activate/assignTo rules at runtime. That made custom
+     * workflows impossible to enforce because deleted default actions silently came back.
+     * Native non-status actions such as assignTo are preserved by detail-action filtering instead.
      *
      * @param  array  $def        normalized definition
      * @param  string $objectType bug|story|task|epic|requirement
@@ -316,98 +332,7 @@ class statetransitionTao extends statetransitionModel
      */
     protected function injectDefaultTransitions(array $def, string $objectType): array
     {
-        $transitions = $def['transitions'];
-
-        /* Determine which lifecycle actions apply to this object type. */
-        $lifecycleActions = array();
-        if(in_array($objectType, array('story', 'epic', 'requirement'), true))
-        {
-            $lifecycleActions = array(
-                'close'    => array('toStatus' => 'closed',   'label' => array('zh_cn' => '关闭', 'en' => 'Close'),    'icon' => 'off',   'branch' => null),
-                'activate' => array('toStatus' => 'active',   'label' => array('zh_cn' => '激活', 'en' => 'Activate'), 'icon' => 'play',  'branch' => null),
-                'assignTo' => array('toStatus' => null,       'label' => array('zh_cn' => '指派', 'en' => 'Assign'),   'icon' => 'hand-right', 'branch' => null),
-            );
-        }
-        elseif($objectType === 'bug')
-        {
-            $lifecycleActions = array(
-                'assignTo' => array('toStatus' => null,       'label' => array('zh_cn' => '指派', 'en' => 'Assign'),   'icon' => 'hand-right', 'branch' => null),
-                'resolve'  => array('toStatus' => 'resolved', 'label' => array('zh_cn' => '解决', 'en' => 'Resolve'),  'icon' => 'check', 'branch' => null),
-                'close'    => array('toStatus' => 'closed',   'label' => array('zh_cn' => '关闭', 'en' => 'Close'),    'icon' => 'off',   'branch' => null),
-                'activate' => array('toStatus' => 'active',   'label' => array('zh_cn' => '激活', 'en' => 'Activate'), 'icon' => 'play',  'branch' => null),
-            );
-        }
-        elseif($objectType === 'task')
-        {
-            $lifecycleActions = array(
-                'assignTo' => array('toStatus' => null,       'label' => array('zh_cn' => '指派', 'en' => 'Assign'),   'icon' => 'hand-right', 'branch' => null),
-                'close'    => array('toStatus' => 'closed',   'label' => array('zh_cn' => '关闭', 'en' => 'Close'),    'icon' => 'off',   'branch' => null),
-                'activate' => array('toStatus' => 'doing',    'label' => array('zh_cn' => '激活', 'en' => 'Activate'), 'icon' => 'play',  'branch' => null),
-            );
-        }
-
-        if(empty($lifecycleActions)) return $transitions;
-
-        /* Build a set of existing (fromStatus, action) pairs to avoid duplicates. */
-        $existingPairs = array();
-        foreach($transitions as $tr)
-        {
-            $pairKey = ($tr['fromStatus'] ?? '') . '|' . ($tr['action'] ?? '');
-            $existingPairs[$pairKey] = true;
-        }
-
-        /* Find terminal statuses (category='terminal') — skip injecting outgoing transitions for them. */
-        $terminalStatuses = array();
-        foreach($def['statuses'] as $s)
-        {
-            if(($s['category'] ?? 'normal') === 'terminal') $terminalStatuses[$s['key']] = true;
-        }
-
-        /* For each non-terminal status, inject missing lifecycle transitions. */
-        $maxOrder = 0;
-        foreach($transitions as $tr)
-        {
-            $order = (int)($tr['buttonOrder'] ?? 0);
-            if($order > $maxOrder) $maxOrder = $order;
-        }
-
-        foreach($def['statuses'] as $s)
-        {
-            $statusKey = $s['key'] ?? '';
-            if($statusKey === '' || isset($terminalStatuses[$statusKey])) continue;
-
-            foreach($lifecycleActions as $action => $config)
-            {
-                $pairKey = $statusKey . '|' . $action;
-                if(isset($existingPairs[$pairKey])) continue;
-
-                $maxOrder++;
-                $branchSuffix = $config['branch'] === null ? '' : '-' . $config['branch'];
-                $toStatus     = $config['toStatus'] ?? $statusKey;
-                $transitions[] = array(
-                    'key'             => $statusKey . '-to-' . $toStatus . '-via-' . $action . $branchSuffix,
-                    'fromStatus'      => $statusKey,
-                    'toStatus'        => $toStatus,
-                    'action'          => $action,
-                    'branch'          => $config['branch'],
-                    'label'           => $config['label'],
-                    'roles'           => array(),
-                    'accounts'        => array(),
-                    'requireComment'  => false,
-                    'enabled'         => true,
-                    'isCustom'        => false,
-                    'buttonLabel'     => $config['label'],
-                    'buttonIcon'      => $config['icon'],
-                    'buttonOrder'     => $maxOrder,
-                    'buttonGroup'     => 'primary',
-                    'sideEffects'     => array(),
-                    'condition'       => null,
-                );
-                $existingPairs[$pairKey] = true;
-            }
-        }
-
-        return $transitions;
+        return $def['transitions'];
     }
 
     /**

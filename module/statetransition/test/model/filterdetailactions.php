@@ -5,15 +5,23 @@ title=测试 statetransitionModel->filterDetailActions();
 timeout=0
 cid=0
 
-- 执行$storyFiltered @submitReview,close,activate,assignTo,subdivide,edit,createTask
+- 执行$storyFiltered @submitReview,assignTo,subdivide,edit,createTask
 
-- 执行$requirementFiltered @submitReview,close,activate,assignTo,subdivide,edit,createTask
+- 执行$requirementFiltered @submitReview,assignTo,subdivide,edit,createTask
 
-- 执行$epicFiltered @submitReview,close,activate,assignTo,subdivide,edit,createTask
+- 执行$epicFiltered @submitReview,assignTo,subdivide,edit,createTask
 
-- 执行$bugFiltered @resolve,close,activate,assignTo,edit
+- 执行$bugFiltered @resolve,assignTo,edit
 
-- 执行$taskFiltered @start,close,activate,assignTo,edit,recordWorkhour
+- 执行$taskFiltered @start,assignTo,edit,recordWorkhour
+
+- 执行$storyActivateAllowed @0
+
+- 执行$storyActivateDecision->ok @0
+
+- 执行$bugActivateAllowed @0
+
+- 执行$taskActivateAllowed @0
 */
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/model.class.php';
@@ -22,6 +30,10 @@ su('admin');
 
 global $tester, $config;
 $tester->loadModel('statetransition');
+$config->URAndSR  = 1;
+$config->enableER = 1;
+$tester->app->loadConfig('statetransition');
+$config->statetransition->objectTypes = array_values(array_unique(array_merge($config->statetransition->objectTypes, array('epic', 'requirement'))));
 
 $tester->dao->delete()->from(TABLE_WORKFLOW_DEFINITION)->where('scope')->eq('global')->exec();
 $tester->statetransition->clearCache();
@@ -40,6 +52,7 @@ $bugActions = array(
     array('name' => 'resolve'),
     array('name' => 'close'),
     array('name' => 'activate'),
+    array('name' => 'confirm'),
     array('name' => 'assignTo'),
     array('name' => 'edit')
 );
@@ -96,9 +109,17 @@ $requirementFiltered = in_array('requirement', $config->statetransition->objectT
 $epicFiltered = in_array('epic', $config->statetransition->objectTypes) ? $tester->statetransition->filterDetailActions('epic', 0, 'draft', $storyActions) : $storyFiltered;
 $bugFiltered = $tester->statetransition->filterDetailActions('bug', 0, 'active', $bugActions);
 $taskFiltered = $tester->statetransition->filterDetailActions('task', 0, 'wait', $taskActions);
+$storyActivateAllowed = $tester->statetransition->isActionAllowed('story', 0, 'draft', 'activate') ? '1' : '0';
+$storyActivateDecision = $tester->statetransition->transition('story', 0, 0, 'draft', 'activate');
+$bugActivateAllowed = $tester->statetransition->isActionAllowed('bug', 0, 'active', 'activate') ? '1' : '0';
+$taskActivateAllowed = $tester->statetransition->isActionAllowed('task', 0, 'wait', 'activate') ? '1' : '0';
 
-r(actionNames($storyFiltered)) && p() && e('submitReview,close,activate,assignTo,subdivide,edit,createTask');
-r(actionNames($requirementFiltered)) && p() && e('submitReview,close,activate,assignTo,subdivide,edit,createTask');
-r(actionNames($epicFiltered)) && p() && e('submitReview,close,activate,assignTo,subdivide,edit,createTask');
-r(actionNames($bugFiltered)) && p() && e('resolve,close,activate,assignTo,edit');
-r(actionNames($taskFiltered)) && p() && e('start,close,activate,assignTo,edit,recordWorkhour');
+r(actionNames($storyFiltered)) && p() && e('submitReview,assignTo,subdivide,edit,createTask');
+r(actionNames($requirementFiltered)) && p() && e('submitReview,assignTo,subdivide,edit,createTask');
+r(actionNames($epicFiltered)) && p() && e('submitReview,assignTo,subdivide,edit,createTask');
+r(actionNames($bugFiltered)) && p() && e('resolve,assignTo,edit');
+r(actionNames($taskFiltered)) && p() && e('start,assignTo,edit,recordWorkhour');
+r($storyActivateAllowed) && p() && e('0');
+r($storyActivateDecision) && p('ok') && e('0');
+r($bugActivateAllowed) && p() && e('0');
+r($taskActivateAllowed) && p() && e('0');

@@ -40,7 +40,7 @@ class statetransition extends control
 
         /* Get effective definition for the selected objectType+productID. */
         $effective = $this->statetransition->getDefinition($objectType, $productID);
-        $isDefault = ($effective === null);
+        $isDefault = ($effective === null || $this->statetransition->isDefaultDefinition($objectType, $effective['definition']));
         $definition = $isDefault ? $this->statetransition->getDefaultDefinition($objectType) : $effective['definition'];
         $enabled    = $isDefault ? false : $effective['enabled'];
         $version    = $isDefault ? 0 : $effective['version'];
@@ -100,7 +100,7 @@ class statetransition extends control
 
         /* Render the management UI. */
         $effective = $this->statetransition->getDefinition($objectType, $productID);
-        $isDefault = ($effective === null);
+        $isDefault = ($effective === null || $this->statetransition->isDefaultDefinition($objectType, $effective['definition']));
         $definition = $isDefault ? $this->statetransition->getDefaultDefinition($objectType) : $effective['definition'];
         $enabled    = $isDefault ? true : $effective['enabled'];
         $version    = $isDefault ? 0 : $effective['version'];
@@ -199,7 +199,7 @@ class statetransition extends control
         $fromStatus = $object->status;
 
         /* Find the transition by key (any transition, not only isCustom). */
-        $row = $this->statetransition->getEffectiveDefinition($objectType, $productID);
+        $row = $this->statetransition->getDefinition($objectType, $productID);
         if($row === null) return $this->send(array('result' => 'fail', 'message' => $this->lang->statetransition->errors['definitionNotFound']));
 
         $transition = null;

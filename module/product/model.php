@@ -676,7 +676,8 @@ class productModel extends model
 
         if($browseType == 'unclosed')
         {
-            $unclosedStatus = $this->lang->story->statusList;
+            $workflowProductID = is_array($productID) ? 0 : (int)$productID;
+            $unclosedStatus = $this->loadModel('statetransition')->mergeStatusList($type, $workflowProductID);
             unset($unclosedStatus['closed']);
             $stories = $this->story->getProductStories($productID, $branch, $modules, array_keys($unclosedStatus), $type, $sort, true, '', $pager);
             foreach($stories as $storyID => $story)

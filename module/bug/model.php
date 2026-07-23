@@ -25,6 +25,9 @@ class bugModel extends model
      */
     public function create(object $bug, string $from = ''): int|false
     {
+        /* 初始状态遵循流转图的入口状态配置；流转图未启用时保持原值（数据库默认 active）。 */
+        $bug->status = $this->loadModel('statetransition')->assertEntryState('bug', (int)$bug->product, $bug->status ?? 'active');
+
         $this->dao->insert(TABLE_BUG)->data($bug, 'laneID,uploadImage,imageFile')
             ->autoCheck()
             ->checkIF(!empty($bug->notifyEmail), 'notifyEmail', 'email')
@@ -74,6 +77,7 @@ class bugModel extends model
         $bug->pri          = 3;
         $bug->severity     = 3;
         $bug->project      = $this->dao->select('project')->from(TABLE_EXECUTION)->where('id')->eq($executionID)->fetch('project');
+        $bug->status       = $this->loadModel('statetransition')->assertEntryState('bug', (int)$bug->product, (string)($bug->status ?? 'active'));
 
         $this->dao->insert(TABLE_BUG)->data($bug, $skip = 'gitlab,gitlabProject')->autoCheck()->batchCheck($this->config->bug->create->requiredFields, 'notempty')->exec();
         if(!dao::isError()) return $this->dao->lastInsertID();
@@ -428,6 +432,13 @@ class bugModel extends model
     public function confirm(object $bug, array $kanbanData = array()): bool
     {
         $oldBug = $this->getByID($bug->id);
+
+        /* 在原有确认（confirmed=1）基础上，按状态流转图进行状态流转。
+           「确认」的下一个状态由流转图中 confirm 动作的转移规则决定（不一定是激活）。 */
+        $comment = isset($_POST['comment']) ? (string)$_POST['comment'] : '';
+        $target  = $this->loadModel('statetransition')->applyWorkflowTransition('bug', (int)$oldBug->product, (int)$bug->id, $oldBug->status, 'confirm', null, $comment, $oldBug->status);
+        if($target === null) return false;
+        $bug->status = $target;
 
         $this->dao->update(TABLE_BUG)->data($bug, 'comment')->autoCheck()->checkFlow()->where('id')->eq($bug->id)->exec();
         if(dao::isError()) return false;
@@ -1957,15 +1968,17 @@ class bugModel extends model
         $action = strtolower($action);
 
         /* Workflow guard FIRST — active workflow is authoritative (PRD §6.3). */
-        if(is_object($app) && $module == 'bug' && in_array($action, array('resolve', 'close', 'activate'), true))
+        if(is_object($app) && $module == 'bug' && in_array($action, array('confirm', 'resolve', 'close', 'activate'), true))
         {
             $productID = isset($object->product) ? (int)$object->product : 0;
             $model = $app->loadTarget('statetransition');
             $row = $model->getDefinition('bug', $productID);
             if($row !== null && $row['enabled'])
             {
-                if(!$model->isActionAllowed('bug', $productID, $object->status, $action)) return false;
-                return true;
+                /* 「确认」按钮由流转图中的 confirm 动作转移规则控制：配了才显示，下一个状态由流转图决定。 */
+                if($action == 'confirm') return $model->isActionAllowed('bug', $productID, $object->status, 'confirm');
+                /* 其余动作：仅在当前状态配置了该动作时才显示按钮。 */
+                return $model->isActionAllowed('bug', $productID, $object->status, $action);
             }
         }
 

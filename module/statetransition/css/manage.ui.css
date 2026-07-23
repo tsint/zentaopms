@@ -120,22 +120,44 @@
     display: flex; flex-direction: column; min-width: 0;
 }
 .workflow-node {
-    display: flex; align-items: center; gap: 8px;
-    padding: 9px 10px; border-bottom: 1px solid #e7ebf2;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px;
+    padding: 8px 10px; border-bottom: 1px solid #e7ebf2;
     border-left: 3px solid #999; font-weight: 600; color: #24364f;
     background: #fff;
 }
 .workflow-node.is-entry { background: #fff8e6; border-left-color: #f59e0b !important; }
 .workflow-node-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workflow-node-title {
+    display: flex; flex-direction: column; gap: 2px;
+    min-width: 0; overflow: hidden;
+}
+.workflow-node-label-input {
+    width: auto; min-width: 0; height: 28px;
+    border: 1px solid transparent; border-radius: 4px;
+    padding: 4px 6px; background: transparent;
+    color: #24364f; font-size: 13px; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.workflow-node-label-input:hover,
+.workflow-node-label-input:focus {
+    border-color: #cbd3df; background: #fff; outline: none;
+}
+.workflow-node-key {
+    padding-left: 6px; color: #758198;
+    font-size: 11px; font-weight: 500; line-height: 14px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .workflow-entry-toggle {
     padding: 2px 8px; border: 1px solid #cbd3df; border-radius: 10px;
     background: #fff; color: #5f6f86; font-size: 12px; cursor: pointer; font-weight: 500;
+    line-height: 20px; white-space: nowrap; writing-mode: horizontal-tb;
 }
 .workflow-entry-toggle:hover { border-color: #2468f2; color: #2468f2; }
 .workflow-entry-toggle.is-entry { background: #fbbf24; border-color: #f59e0b; color: #5d3a00; }
 .workflow-node-delete {
     background: transparent; border: 0; color: #c73535;
     cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px;
+    width: 18px; min-width: 18px; text-align: center;
 }
 .workflow-node-delete:hover { color: #ef4444; }
 
@@ -152,6 +174,14 @@
 .workflow-action-label {
     padding: 2px 7px; border-radius: 10px; background: #eef3ff; color: #2468f2;
     font-size: 12px; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+}
+.workflow-action-wrap {
+    display: inline-flex; flex-direction: column; align-items: flex-start;
+    gap: 2px; min-width: 0; overflow: hidden;
+}
+.workflow-action-key {
+    color: #758198; font-size: 11px; font-weight: 500; line-height: 14px;
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .workflow-arrow { color: #8795aa; }
 

@@ -25,6 +25,7 @@ $usersJSON      = json_encode($users);
 $colorJSON      = json_encode($colorPresets);
 $actionsJSON    = json_encode(array_combine($actions, array_map(fn($a) => $this->lang->statetransition->actionList[$a] ?? $a, $actions)));
 $branchesJSON   = json_encode($this->lang->statetransition->branchList ?? array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+$actionBranchesJSON = json_encode($this->config->statetransition->actionBranches ?? array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 $systemStatusJSON = json_encode($systemStatuses);
 $mermaidSource  = $this->statetransition->renderMermaid($definition);
 
@@ -62,10 +63,12 @@ ob_start();
      data-color-presets="<?php echo htmlspecialchars($colorJSON, ENT_QUOTES); ?>"
      data-actions="<?php echo htmlspecialchars($actionsJSON, ENT_QUOTES); ?>"
      data-branches="<?php echo htmlspecialchars($branchesJSON, ENT_QUOTES); ?>"
+     data-action-branches="<?php echo htmlspecialchars($actionBranchesJSON, ENT_QUOTES); ?>"
      data-system-statuses="<?php echo htmlspecialchars($systemStatusJSON, ENT_QUOTES); ?>"
      data-save-url="<?php echo $this->createLink('statetransition', 'manage', "objectType={$objectType}&productID={$productID}"); ?>"
+     data-reset-url="<?php echo $this->createLink('statetransition', 'reset', "objectType={$objectType}&productID={$productID}"); ?>"
      data-browse-url="<?php echo $this->createLink('statetransition', 'browse', "objectType={$objectType}&productID={$productID}"); ?>"
-     data-lang='{"enabledTip":"<?php echo htmlspecialchars($this->lang->statetransition->enabledTip); ?>","selectEdge":"<?php echo htmlspecialchars($this->lang->statetransition->selectEdge); ?>","allActors":"<?php echo htmlspecialchars($this->lang->statetransition->allActors); ?>","saveSuccess":"<?php echo htmlspecialchars($this->lang->saveSuccess); ?>","confirmReset":"<?php echo htmlspecialchars($this->lang->statetransition->confirmReset); ?>","confirmDeleteEdge":"确定删除这条流转吗？","confirmDeleteNode":"确定删除此状态吗？关联的所有流转也会被删除。","entryNodeTitle":"<?php echo htmlspecialchars($this->lang->statetransition->entryNodeTitle); ?>"}'
+     data-lang='{"enabledTip":"<?php echo htmlspecialchars($this->lang->statetransition->enabledTip); ?>","selectEdge":"<?php echo htmlspecialchars($this->lang->statetransition->selectEdge); ?>","allActors":"<?php echo htmlspecialchars($this->lang->statetransition->allActors); ?>","saveSuccess":"<?php echo htmlspecialchars($this->lang->saveSuccess); ?>","confirmReset":"<?php echo htmlspecialchars($this->lang->statetransition->confirmReset); ?>","confirmDeleteEdge":"确定删除这条流转吗？","confirmDeleteNode":"确定删除此状态吗？关联的所有流转也会被删除。","entryNodeTitle":"<?php echo htmlspecialchars($this->lang->statetransition->entryNodeTitle); ?>","setAsEntry":"<?php echo htmlspecialchars($this->lang->statetransition->setAsEntry); ?>","unsetEntry":"<?php echo htmlspecialchars($this->lang->statetransition->unsetEntry); ?>","deleteNode":"<?php echo htmlspecialchars($this->lang->statetransition->deleteNode); ?>","nodeLabel":"<?php echo htmlspecialchars($this->lang->statetransition->nodeLabel); ?>","reviewBranch":"<?php echo htmlspecialchars($this->lang->statetransition->reviewBranch); ?>","reviewBranchTip":"<?php echo htmlspecialchars($this->lang->statetransition->reviewBranchTip); ?>","branchInvalid":"<?php echo htmlspecialchars($this->lang->statetransition->errors['branchInvalid']); ?>"}'
 >
 
 <!-- Header: feature tabs + actions -->
@@ -116,15 +119,16 @@ ob_start();
                 <section class="workflow-column" data-status="<?php echo htmlspecialchars($key); ?>">
                     <div class="workflow-node <?php if($isEntry) echo 'is-entry'; ?>"
                          style="border-left-color: <?php echo htmlspecialchars($status['color'] ?? '#999'); ?>">
-                        <span class="workflow-node-name"><?php echo htmlspecialchars($label); ?></span>
+                        <span class="workflow-node-title">
+                            <input type="text" class="workflow-node-label-input" data-node-label="<?php echo htmlspecialchars($key); ?>" value="<?php echo htmlspecialchars($label); ?>" aria-label="<?php echo htmlspecialchars($this->lang->statetransition->nodeLabel); ?>">
+                            <span class="workflow-node-key"><?php echo htmlspecialchars($key); ?></span>
+                        </span>
                         <button type="button" class="workflow-entry-toggle <?php if($isEntry) echo 'is-entry'; ?>"
                                 data-toggle-entry="<?php echo htmlspecialchars($key); ?>"
                                 title="<?php echo htmlspecialchars($this->lang->statetransition->entryNodeTitle); ?>">
                             <?php echo $isEntry ? $this->lang->statetransition->unsetEntry : $this->lang->statetransition->setAsEntry; ?>
                         </button>
-                        <?php if(!$isSystem): ?>
                         <button type="button" class="workflow-node-delete" data-delete-node="<?php echo htmlspecialchars($key); ?>" title="<?php echo htmlspecialchars($this->lang->statetransition->deleteNode); ?>">×</button>
-                        <?php endif; ?>
                     </div>
                     <?php if(empty($outgoing)): ?>
                         <div class="workflow-hint"><?php echo htmlspecialchars($this->lang->statetransition->flowEmpty); ?></div>
@@ -132,7 +136,10 @@ ob_start();
                         $edgeLabel = $edge['label']['zh_cn'] ?? ($this->lang->statetransition->actionList[$edge['action']] ?? $edge['action']);
                     ?>
                         <button type="button" class="workflow-route" data-edge="<?php echo htmlspecialchars($edge['key']); ?>">
-                            <span class="workflow-action-label"><?php echo htmlspecialchars($edgeLabel); ?></span>
+                            <span class="workflow-action-wrap">
+                                <span class="workflow-action-label"><?php echo htmlspecialchars($edgeLabel); ?></span>
+                                <span class="workflow-action-key"><?php echo htmlspecialchars($edge['action'] . (!empty($edge['branch']) ? '/' . $edge['branch'] : '')); ?></span>
+                            </span>
                             <span class="workflow-arrow">→</span>
                             <span class="workflow-target"><?php echo htmlspecialchars($statusLabels[$edge['toStatus']] ?? $edge['toStatus']); ?></span>
                         </button>
@@ -154,7 +161,10 @@ ob_start();
                         data-edge="<?php echo htmlspecialchars($edge['key']); ?>">
                     <span class="workflow-state"><?php echo htmlspecialchars($statusLabels[$edge['fromStatus']] ?? $edge['fromStatus']); ?></span>
                     <span class="workflow-arrow">→</span>
-                    <span class="workflow-action-label"><?php echo htmlspecialchars($edgeLabel); ?></span>
+                    <span class="workflow-action-wrap">
+                        <span class="workflow-action-label"><?php echo htmlspecialchars($edgeLabel); ?></span>
+                        <span class="workflow-action-key"><?php echo htmlspecialchars($edge['action'] . (!empty($edge['branch']) ? '/' . $edge['branch'] : '')); ?></span>
+                    </span>
                     <span class="workflow-arrow">→</span>
                     <span class="workflow-state"><?php echo htmlspecialchars($statusLabels[$edge['toStatus']] ?? $edge['toStatus']); ?></span>
                 </button>
@@ -230,6 +240,11 @@ ob_start();
                     <?php endforeach; ?>
                 </select>
             </div>
+            <div class="workflow-field hidden" id="newBranchField">
+                <label><?php echo htmlspecialchars($this->lang->statetransition->reviewBranch); ?></label>
+                <select id="newBranch"></select>
+                <div class="workflow-hint"><?php echo htmlspecialchars($this->lang->statetransition->reviewBranchTip); ?></div>
+            </div>
             <div class="workflow-field">
                 <input type="text" id="newTransitionLabel" placeholder="<?php echo htmlspecialchars($this->lang->statetransition->transitionName); ?>">
             </div>
@@ -261,6 +276,11 @@ ob_start();
                     <option value="<?php echo htmlspecialchars($a); ?>"><?php echo htmlspecialchars($this->lang->statetransition->actionList[$a] ?? $a); ?></option>
                     <?php endforeach; ?>
                 </select>
+            </div>
+            <div class="workflow-field hidden" id="edgeBranchField">
+                <label><?php echo htmlspecialchars($this->lang->statetransition->reviewBranch); ?></label>
+                <select id="edgeBranch"></select>
+                <div class="workflow-hint"><?php echo htmlspecialchars($this->lang->statetransition->reviewBranchTip); ?></div>
             </div>
             <div class="workflow-field">
                 <label><?php echo htmlspecialchars($this->lang->statetransition->transitionName); ?></label>

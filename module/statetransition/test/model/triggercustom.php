@@ -68,6 +68,25 @@ try
         'sideEffects'    => array(),
         'condition'      => null,
     );
+    $definition['transitions'][] = array(
+        'key'            => 'active-to-active-via-assignTo',
+        'fromStatus'     => 'active',
+        'toStatus'       => 'active',
+        'action'         => 'assignTo',
+        'branch'         => null,
+        'label'          => array('zh_cn' => '指派', 'en' => 'Assign'),
+        'roles'          => array(),
+        'accounts'       => array(),
+        'requireComment' => false,
+        'enabled'        => true,
+        'isCustom'       => false,
+        'buttonLabel'    => array('zh_cn' => '指派', 'en' => 'Assign'),
+        'buttonIcon'     => null,
+        'buttonOrder'    => 0,
+        'buttonGroup'    => 'primary',
+        'sideEffects'    => array(),
+        'condition'      => null,
+    );
 
     $tester->dao->delete()->from(TABLE_WORKFLOW_DEFINITION)
         ->where('scope')->eq('product')

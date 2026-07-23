@@ -330,6 +330,12 @@ class model extends baseModel
     public function processStatus($module, $record)
     {
         if($module == 'story') $module = $record->type;
+        if(in_array($module, array('epic', 'requirement', 'story', 'bug', 'task'), true))
+        {
+            $productID = isset($record->product) ? (int)$record->product : 0;
+            $this->loadModel('statetransition')->mergeStatusList($module, $productID);
+        }
+
         if($this->config->edition == 'open' or empty($record->subStatus)) return zget($this->lang->$module->statusList, $record->status);
 
         return $this->loadModel('workflowfield')->processSubStatus($module, $record);

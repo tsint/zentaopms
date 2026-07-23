@@ -6,10 +6,10 @@ timeout=0
 cid=0
 
 - 执行$noDefButtons @0
-- 执行$noExistingButtons @4
+- 执行$noExistingButtons @1
 - 执行$noExistingButtons[0]['url'], 'triggerCustom') !== false @1
-- 执行$withExistingButtons @3
-- 执行$roleDeniedButtons @4
+- 执行$withExistingButtons @0
+- 执行$roleDeniedButtons @0
 */
 include dirname(__FILE__, 5) . '/test/lib/init.php';
 include dirname(__FILE__, 2) . '/lib/model.class.php';
@@ -26,7 +26,7 @@ $tester->statetransition->clearCache();
 /* Case 1: no definition → empty result. */
 $noDefButtons = $tester->statetransition->getDetailActionButtons('story', 0, 1, 'active');
 
-/* Set up a story definition with a custom status 'testing' and a transition testing→active via review. */
+/* Set up a story definition with a custom status 'testing' and a transition testing→active via resolve. */
 $storyDef = $tester->statetransition->getDefaultDefinition('story');
 $storyDef['statuses'][] = array(
     'key' => 'testing',
@@ -38,18 +38,18 @@ $storyDef['statuses'][] = array(
     'fieldRules' => new stdClass(),
 );
 $storyDef['transitions'][] = array(
-    'key' => 'testing-to-active-via-review',
+    'key' => 'testing-to-active-via-resolve',
     'fromStatus' => 'testing',
     'toStatus' => 'active',
-    'action' => 'review',
+    'action' => 'resolve',
     'branch' => null,
-    'label' => array('zh_cn' => '评审', 'en' => 'Review'),
+    'label' => array('zh_cn' => '解决', 'en' => 'Resolve'),
     'roles' => array(),
     'accounts' => array(),
     'requireComment' => false,
     'enabled' => true,
     'isCustom' => false,
-    'buttonLabel' => array('zh_cn' => '评审', 'en' => 'Review'),
+    'buttonLabel' => array('zh_cn' => '解决', 'en' => 'Resolve'),
     'buttonIcon' => null,
     'buttonOrder' => 0,
     'buttonGroup' => 'primary',
@@ -58,15 +58,14 @@ $storyDef['transitions'][] = array(
 );
 $tester->statetransition->saveDefinition('story', 0, $storyDef, 0, true);
 
-/* Case 2-4: testing→active via review button is injected when no existing 'review' action. */
+/* Case 2-4: testing→active via resolve button is injected when no existing 'resolve' action. */
 $noExistingButtons = $tester->statetransition->getDetailActionButtons('story', 0, 1, 'testing', array());
 
-/* Case 5: existing 'review' action → button is NOT injected (avoid duplicate). */
-$withExistingButtons = $tester->statetransition->getDetailActionButtons('story', 0, 1, 'testing', array('review'));
+/* Case 5: existing 'resolve' action → button is NOT injected (avoid duplicate). */
+$withExistingButtons = $tester->statetransition->getDetailActionButtons('story', 0, 1, 'testing', array('resolve'));
 
-/* Case 6: role restriction denies access for non-admin user.
-   Switch to worker (dev role) and verify a pm-only transition yields no buttons. */
-su('worker');
+/* Case 6: account restriction denies access for non-admin user. */
+su('admin');
 $storyDef2 = $tester->statetransition->getDefaultDefinition('story');
 $storyDef2['statuses'][] = array(
     'key' => 'testing',
@@ -78,18 +77,18 @@ $storyDef2['statuses'][] = array(
     'fieldRules' => new stdClass(),
 );
 $storyDef2['transitions'][] = array(
-    'key' => 'testing-to-active-via-review',
+    'key' => 'testing-to-active-via-resolve',
     'fromStatus' => 'testing',
     'toStatus' => 'active',
-    'action' => 'review',
+    'action' => 'resolve',
     'branch' => null,
-    'label' => array('zh_cn' => '评审', 'en' => 'Review'),
-    'roles' => array('pm'),
-    'accounts' => array(),
+    'label' => array('zh_cn' => '解决', 'en' => 'Resolve'),
+    'roles' => array(),
+    'accounts' => array('admin'),
     'requireComment' => false,
     'enabled' => true,
     'isCustom' => false,
-    'buttonLabel' => array('zh_cn' => '评审', 'en' => 'Review'),
+    'buttonLabel' => array('zh_cn' => '解决', 'en' => 'Resolve'),
     'buttonIcon' => null,
     'buttonOrder' => 0,
     'buttonGroup' => 'primary',
@@ -99,11 +98,12 @@ $storyDef2['transitions'][] = array(
 $tester->statetransition->saveDefinition('story', 0, $storyDef2, 0, true);
 $tester->statetransition->clearCache();
 
+su('worker');
 $roleDeniedButtons = $tester->statetransition->getDetailActionButtons('story', 0, 1, 'testing', array());
 su('admin'); /* restore */
 
 r(count($noDefButtons)) && p() && e('0');
-r(count($noExistingButtons)) && p() && e('4');
-r(strpos($noExistingButtons[0]['url'], 'triggerCustom') !== false) && p() && e('1');
-r(count($withExistingButtons)) && p() && e('3');
-r(count($roleDeniedButtons)) && p() && e('4');
+r(count($noExistingButtons)) && p() && e('1');
+r(!empty($noExistingButtons) && strpos($noExistingButtons[0]['url'], 'triggerCustom') !== false) && p() && e('1');
+r(count($withExistingButtons)) && p() && e('0');
+r(count($roleDeniedButtons)) && p() && e('0');

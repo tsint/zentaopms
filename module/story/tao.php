@@ -518,7 +518,7 @@ class storyTao extends storyModel
         if(strpos($orderBy, 'id_')      !== false) $orderBy = str_replace('id_', 't2.id_', $orderBy);
 
         $browseType     = $this->session->executionStoryBrowseType;
-        $unclosedStatus = $this->getUnclosedStatusKeys();
+        $unclosedStatus = $this->getUnclosedStatusKeys($productID);
         return $storyDAO->beginIF(!empty($productID))->andWhere('t1.product')->eq($productID)->fi()
             ->beginIF($type == 'bybranch' && $branch !== '')->andWhere('t2.branch')->in("0,$branch")->fi()
             ->beginIF(!empty($browseType) && strpos('draft|reviewing|changing|closed', $browseType) !== false)->andWhere('t2.status')->eq($browseType)->fi()
@@ -548,7 +548,7 @@ class storyTao extends storyModel
         if(strpos($orderBy, 'version_') !== false) $orderBy = str_replace('version_', 't2.version_', $orderBy);
         if(strpos($orderBy, 'id_')      !== false) $orderBy = str_replace('id_', 't2.id_', $orderBy);
 
-        $unclosedStatus = $this->getUnclosedStatusKeys();
+        $unclosedStatus = $this->getUnclosedStatusKeys($productID);
         $assignProduct  = false;
         if(!empty($productID) && !empty($project))
         {
@@ -611,12 +611,12 @@ class storyTao extends storyModel
      * @access protected
      * @return array
      */
-    protected function getUnclosedStatusKeys(): array
+    protected function getUnclosedStatusKeys(int $productID = 0): array
     {
         $moduleName = $this->app->rawModule;
         if(!in_array($moduleName, array('story', 'epic', 'requirement'))) $moduleName = 'story';
 
-        $unclosedStatus = $this->lang->{$moduleName}->statusList;
+        $unclosedStatus = $this->loadModel('statetransition')->mergeStatusList($moduleName, $productID);
         unset($unclosedStatus['closed']);
         return array_keys($unclosedStatus);
     }

@@ -40,6 +40,9 @@ $canViewRepo  = hasPriv('repo', 'revision');
 $canViewMR    = hasPriv('mr', 'view');
 $canViewBug   = hasPriv('bug', 'view');
 
+/* Patch lang statusList with workflow statuses so processStatus() resolves custom labels (e.g. pending). */
+$this->loadModel('statetransition')->mergeStatusList('bug', (int)$bug->product);
+
 /* Apply workflow label overrides BEFORE buildOperateMenu (see story/ui/view.html.php for rationale). */
 if(!$bug->deleted && $canModify)
 {

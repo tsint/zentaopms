@@ -25,6 +25,7 @@ $lang->statetransition->scope                = 'Scope';
 $lang->statetransition->scopeList            = array('global' => 'Global', 'product' => 'Product');
 $lang->statetransition->product              = 'Product';
 $lang->statetransition->copyFromGlobal       = 'Copy from global';
+$lang->statetransition->syncFromGlobal       = 'Sync global';
 $lang->statetransition->resetToDefault       = 'Reset to default';
 
 $lang->statetransition->enabled              = 'Enable this workflow';
@@ -97,10 +98,15 @@ $lang->statetransition->customButtonTip      = 'Render as a custom button on det
 $lang->statetransition->currentStatus        = 'Current';
 $lang->statetransition->configureWorkflow    = 'Configure workflow';
 $lang->statetransition->flowDiagram          = 'State flow diagram';
+$lang->statetransition->globalScope          = 'Global default';
+$lang->statetransition->confirmReset         = 'Reset this definition to the built-in default? All custom changes will be lost.';
+$lang->statetransition->confirmSyncFromGlobal = 'Sync from the global definition? Current product-level changes will be overwritten.';
+$lang->statetransition->reset                = 'Reset to default';
 
 $lang->statetransition->errors = array(
     'objectTypeInvalid'    => 'Invalid object type',
     'definitionNotFound'   => 'No workflow definition (unrestricted)',
+    'productRequired'      => 'Select a product before syncing the global definition',
     'definitionDisabled'   => 'Workflow disabled (unrestricted)',
     'transitionNotFound'   => 'No matching transition',
     'transitionDisabled'   => 'Transition disabled',

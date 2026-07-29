@@ -67,8 +67,9 @@ ob_start();
      data-system-statuses="<?php echo htmlspecialchars($systemStatusJSON, ENT_QUOTES); ?>"
      data-save-url="<?php echo $this->createLink('statetransition', 'manage', "objectType={$objectType}&productID={$productID}"); ?>"
      data-reset-url="<?php echo $this->createLink('statetransition', 'reset', "objectType={$objectType}&productID={$productID}"); ?>"
+     data-sync-global-url="<?php echo $this->createLink('statetransition', 'syncGlobal', "objectType={$objectType}&productID={$productID}"); ?>"
      data-browse-url="<?php echo $this->createLink('statetransition', 'browse', "objectType={$objectType}&productID={$productID}"); ?>"
-     data-lang='{"enabledTip":"<?php echo htmlspecialchars($this->lang->statetransition->enabledTip); ?>","selectEdge":"<?php echo htmlspecialchars($this->lang->statetransition->selectEdge); ?>","allActors":"<?php echo htmlspecialchars($this->lang->statetransition->allActors); ?>","saveSuccess":"<?php echo htmlspecialchars($this->lang->saveSuccess); ?>","confirmReset":"<?php echo htmlspecialchars($this->lang->statetransition->confirmReset); ?>","confirmDeleteEdge":"确定删除这条流转吗？","confirmDeleteNode":"确定删除此状态吗？关联的所有流转也会被删除。","entryNodeTitle":"<?php echo htmlspecialchars($this->lang->statetransition->entryNodeTitle); ?>","setAsEntry":"<?php echo htmlspecialchars($this->lang->statetransition->setAsEntry); ?>","unsetEntry":"<?php echo htmlspecialchars($this->lang->statetransition->unsetEntry); ?>","deleteNode":"<?php echo htmlspecialchars($this->lang->statetransition->deleteNode); ?>","nodeLabel":"<?php echo htmlspecialchars($this->lang->statetransition->nodeLabel); ?>","reviewBranch":"<?php echo htmlspecialchars($this->lang->statetransition->reviewBranch); ?>","reviewBranchTip":"<?php echo htmlspecialchars($this->lang->statetransition->reviewBranchTip); ?>","branchInvalid":"<?php echo htmlspecialchars($this->lang->statetransition->errors['branchInvalid']); ?>"}'
+     data-lang='{"enabledTip":"<?php echo htmlspecialchars($this->lang->statetransition->enabledTip); ?>","selectEdge":"<?php echo htmlspecialchars($this->lang->statetransition->selectEdge); ?>","allActors":"<?php echo htmlspecialchars($this->lang->statetransition->allActors); ?>","saveSuccess":"<?php echo htmlspecialchars($this->lang->saveSuccess); ?>","confirmReset":"<?php echo htmlspecialchars($this->lang->statetransition->confirmReset); ?>","confirmSyncFromGlobal":"<?php echo htmlspecialchars($this->lang->statetransition->confirmSyncFromGlobal); ?>","confirmDeleteEdge":"确定删除这条流转吗？","confirmDeleteNode":"确定删除此状态吗？关联的所有流转也会被删除。","entryNodeTitle":"<?php echo htmlspecialchars($this->lang->statetransition->entryNodeTitle); ?>","setAsEntry":"<?php echo htmlspecialchars($this->lang->statetransition->setAsEntry); ?>","unsetEntry":"<?php echo htmlspecialchars($this->lang->statetransition->unsetEntry); ?>","deleteNode":"<?php echo htmlspecialchars($this->lang->statetransition->deleteNode); ?>","nodeLabel":"<?php echo htmlspecialchars($this->lang->statetransition->nodeLabel); ?>","reviewBranch":"<?php echo htmlspecialchars($this->lang->statetransition->reviewBranch); ?>","reviewBranchTip":"<?php echo htmlspecialchars($this->lang->statetransition->reviewBranchTip); ?>","branchInvalid":"<?php echo htmlspecialchars($this->lang->statetransition->errors['branchInvalid']); ?>"}'
 >
 
 <!-- Header: feature tabs + actions -->
@@ -89,6 +90,11 @@ ob_start();
         <button type="button" class="btn" id="resetWorkflow">
             <i class="icon icon-refresh"></i> <?php echo htmlspecialchars($this->lang->statetransition->reset); ?>
         </button>
+        <?php if($productID > 0): ?>
+        <button type="button" class="btn" id="syncGlobalWorkflow">
+            <i class="icon icon-copy"></i> <?php echo htmlspecialchars($this->lang->statetransition->syncFromGlobal); ?>
+        </button>
+        <?php endif; ?>
         <button type="button" class="btn primary" id="saveWorkflow">
             <i class="icon icon-save"></i> <?php echo htmlspecialchars($this->lang->statetransition->saveWorkflow); ?>
         </button>

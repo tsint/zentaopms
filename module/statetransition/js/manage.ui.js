@@ -40,6 +40,7 @@
             systemStatuses: JSON.parse(root.dataset.systemStatuses || '[]'),
             saveUrl:    root.dataset.saveUrl,
             resetUrl:   root.dataset.resetUrl,
+            syncGlobalUrl: root.dataset.syncGlobalUrl,
             browseUrl:  root.dataset.browseUrl,
             lang:       JSON.parse(root.dataset.lang || '{}'),
             selectedEdgeKey: null,
@@ -682,6 +683,27 @@
             showToast('网络错误: ' + e.message, 'error');
         }
     }
+    async function syncGlobal() {
+        if(!confirm(state.lang.confirmSyncFromGlobal || '确定同步全局定义？')) return;
+        showToast('同步全局中...', 'loading');
+        try {
+            const body = new FormData();
+            body.append('sync', '1');
+            const resp = await fetch(state.syncGlobalUrl, {
+                method: 'POST',
+                body: body,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const result = await resp.json();
+            if(result.result === 'success') {
+                window.location.href = state.browseUrl;
+                return;
+            }
+            showToast(result.message || '同步全局失败', 'error');
+        } catch(e) {
+            showToast('网络错误: ' + e.message, 'error');
+        }
+    }
     /* === Full render (after any mutation that changes structure) === */
     function fullRender() {
         syncDataset();
@@ -698,9 +720,11 @@
         /* Header actions */
         const saveBtn = $('#saveWorkflow');
         const resetBtn = $('#resetWorkflow');
+        const syncGlobalBtn = $('#syncGlobalWorkflow');
         const enabledChk = $('#workflowEnabled');
         if(saveBtn) saveBtn.addEventListener('click', save);
         if(resetBtn) resetBtn.addEventListener('click', reset);
+        if(syncGlobalBtn) syncGlobalBtn.addEventListener('click', syncGlobal);
         if(enabledChk) enabledChk.addEventListener('change', e => { state.enabled = e.target.checked; });
         /* Add node / transition */
         const addNodeBtn = $('#addNode');

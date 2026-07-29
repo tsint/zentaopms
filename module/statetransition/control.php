@@ -6,6 +6,7 @@ declare(strict_types=1);
  * Admin UI:
  *  - browse: list all 5 objectTypes, show their global/product definition state
  *  - manage: edit a single objectType's statuses + transitions (save via saveDefinition)
+ *  - syncGlobal: copy global definition to a product override
  *  - reset:  reset a definition to the default for its objectType
  *  - disable:toggle enabled flag
  *
@@ -150,6 +151,25 @@ class statetransition extends control
         /* GET fallback — perform reset for testing/curl convenience. */
         $result = $this->statetransition->resetToDefault($objectType, $productID);
         return $this->send(array('result' => $result['ok'] ? 'success' : 'fail', 'message' => $result['ok'] ? $this->lang->saveSuccess : $result['error']));
+    }
+
+    /**
+     * Sync a product definition from the global definition.
+     *
+     * @param  string $objectType
+     * @param  int    $productID
+     * @access public
+     * @return void
+     */
+    public function syncGlobal(string $objectType, int $productID = 0)
+    {
+        $result = $this->statetransition->syncFromGlobal($objectType, $productID);
+        if(!$result['ok'])
+        {
+            $message = $this->lang->statetransition->errors[$result['error']] ?? $result['error'];
+            return $this->send(array('result' => 'fail', 'message' => $message));
+        }
+        return $this->send(array('result' => 'success', 'message' => $this->lang->saveSuccess, 'id' => $result['id'], 'version' => $result['version']));
     }
 
     /**

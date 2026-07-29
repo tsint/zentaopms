@@ -13,12 +13,8 @@ declare(strict_types=1);
 
 $config->statetransition = new stdClass();
 
-/* The 5 object types covered by Phase 1.
-   Epic and requirement are filtered out when the corresponding feature is disabled
-   by admin (admin → 功能配置 → 业务需求/用户需求). */
-$config->statetransition->objectTypes = array('story', 'bug', 'task');
-if(isset($config->enableER) && $config->enableER) $config->statetransition->objectTypes[] = 'epic';
-if(isset($config->URAndSR) && $config->URAndSR) $config->statetransition->objectTypes[] = 'requirement';
+/* The 5 object types covered by the lightweight state transition workflow. */
+$config->statetransition->objectTypes = array('epic', 'requirement', 'story', 'bug', 'task');
 /* Re-order to epic → requirement → story → bug → task for consistent display. */
 $objectTypeOrder = array('epic' => 1, 'requirement' => 2, 'story' => 3, 'bug' => 4, 'task' => 5);
 usort($config->statetransition->objectTypes, function($a, $b) use ($objectTypeOrder) {

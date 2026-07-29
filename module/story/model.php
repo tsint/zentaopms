@@ -316,6 +316,7 @@ class storyModel extends model
 
             /* 设置查询需求的公共 DAO 变量。 */
             $browseType = (!empty($browseType) and strpos('bymodule|byproduct', $browseType) !== false and $this->session->storyBrowseType) ? $this->session->storyBrowseType : $browseType;
+            $unclosedStatus = $this->storyTao->getUnclosedStatusKeys((int)$productParam);
             $storyDAO = $this->dao->select("DISTINCT t1.*, t2.*, t2.`path`, t2.`plan`, IF(t2.`pri` = 0, {$this->config->maxPriValue}, t2.`pri`) as priOrder, t3.type as productType, t2.version as version")->from(TABLE_PROJECTSTORY)->alias('t1')
                 ->leftJoin(TABLE_STORY)->alias('t2')->on('t1.story = t2.id')
                 ->leftJoin(TABLE_PRODUCT)->alias('t3')->on('t2.product = t3.id')
@@ -326,12 +327,12 @@ class storyModel extends model
                 ->beginIF($storyType != 'all')->andWhere('t2.type')->in($storyType)->fi()
                 ->beginIF($sqlCondition)->andWhere($sqlCondition)->fi()
                 ->beginIF($excludeStories)->andWhere('t2.id')->notIN($excludeStories)->fi()
-                ->beginIF($this->session->storyBrowseType and strpos('changing|', $this->session->storyBrowseType) !== false)->andWhere('t2.status')->in($this->storyTao->getUnclosedStatusKeys())->fi()
+                ->beginIF($this->session->storyBrowseType and strpos('changing|', $this->session->storyBrowseType) !== false)->andWhere('t2.status')->in($unclosedStatus)->fi()
                 ->beginIF($modules)->andWhere('t2.module')->in($modules)->fi();
 
             /* 根据传入的 ID 是项目还是执行分别查询需求。 */
-            if($module == 'project') $stories = $this->storyTao->fetchProjectStories($storyDAO, $productID, $browseType, $branchParam, $storyIdList, $orderBy, $pager, $execution);
-            if($module != 'project') $stories = $this->storyTao->fetchExecutionStories($storyDAO, (int)$productParam, $browseType, $branchParam, $orderBy, $pager);
+            if($module == 'project') $stories = $this->storyTao->fetchProjectStories($storyDAO, $productID, $browseType, $branchParam, $storyIdList, $orderBy, $pager, $execution, $unclosedStatus);
+            if($module != 'project') $stories = $this->storyTao->fetchExecutionStories($storyDAO, (int)$productParam, $browseType, $branchParam, $orderBy, $pager, $unclosedStatus);
         }
 
         $stories = $this->storyTao->fixBranchStoryStage($stories);

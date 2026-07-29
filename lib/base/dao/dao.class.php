@@ -1354,7 +1354,8 @@ class baseDAO
         foreach($aliasList as $selectStr => $tableAlias)
         {
             /* Get fields for selectStr. */
-            $tableName = $this->sqlobj->tableAlias[$tableAlias];
+            $tableName = $this->sqlobj->tableAlias[$tableAlias] ?? $this->table;
+            if(empty($tableName)) continue;
             $fields    = $this->descTable($tableName);
 
             /* 使用具体的字段替换星号。 Replace selectStr with fields. */

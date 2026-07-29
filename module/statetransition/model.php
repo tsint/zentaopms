@@ -5,7 +5,7 @@ declare(strict_types=1);
  *
  * Implements:
  *  - Admin API: getDefaultDefinition, validateDefinition, normalizeDefinition, getDefinition, saveDefinition,
- *               copyDefinition, resetToDefault
+ *               copyDefinition, syncFromGlobal, resetToDefault
  *  - Runtime API: transition, assertStatusChange, isActionAllowed, assertEntryState
  *  - UI/helper API: getStatusList, getEntryStatusOptions, getDefinitionStatusOptions, getDefaultToStatus,
  *                   getCustomButtons, renderFlowHtml, renderMermaid
@@ -279,6 +279,27 @@ class statetransitionModel extends model
         $source = $this->getDefinition($fromObjectType, $fromProductID);
         if($source === null) return array('ok' => false, 'error' => 'definitionNotFound', 'id' => null, 'version' => null);
         return $this->saveDefinition($toObjectType, $toProductID, $source['definition'], 0, true);
+    }
+
+    /**
+     * Sync a product-scope definition from the global definition of the same objectType.
+     *
+     * If global has not been customized yet, use the built-in default definition, matching
+     * the effective global workflow shown by the admin UI.
+     *
+     * @param  string $objectType
+     * @param  int    $productID
+     * @access public
+     * @return array
+     */
+    public function syncFromGlobal(string $objectType, int $productID): array
+    {
+        if($productID <= 0) return array('ok' => false, 'error' => 'productRequired', 'id' => null, 'version' => null);
+
+        $global = $this->fetchDefinitionRow('global', 0, $objectType);
+        if($global !== null) return $this->saveDefinition($objectType, $productID, $global['definition'], 0, $global['enabled']);
+
+        return $this->saveDefinition($objectType, $productID, $this->getDefaultDefinition($objectType), 0, true);
     }
 
     /**

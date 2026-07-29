@@ -512,13 +512,14 @@ class storyTao extends storyModel
      * @access protected
      * @return int[]
      */
-    protected function fetchExecutionStories(dao $storyDAO, int $productID, string $type, string $branch, string $orderBy, ?object $pager = null): array
+    protected function fetchExecutionStories(dao $storyDAO, int $productID, string $type, string $branch, string $orderBy, ?object $pager = null, ?array $unclosedStatus = null): array
     {
         if(strpos($orderBy, 'version_') !== false) $orderBy = str_replace('version_', 't2.version_', $orderBy);
         if(strpos($orderBy, 'id_')      !== false) $orderBy = str_replace('id_', 't2.id_', $orderBy);
 
-        $browseType     = $this->session->executionStoryBrowseType;
-        $unclosedStatus = $this->getUnclosedStatusKeys($productID);
+        $browseType = $this->session->executionStoryBrowseType;
+        if($unclosedStatus === null && $browseType == 'unclosed') $unclosedStatus = $this->getUnclosedStatusKeys($productID);
+        if($unclosedStatus === null) $unclosedStatus = array();
         return $storyDAO->beginIF(!empty($productID))->andWhere('t1.product')->eq($productID)->fi()
             ->beginIF($type == 'bybranch' && $branch !== '')->andWhere('t2.branch')->in("0,$branch")->fi()
             ->beginIF(!empty($browseType) && strpos('draft|reviewing|changing|closed', $browseType) !== false)->andWhere('t2.status')->eq($browseType)->fi()
@@ -543,12 +544,13 @@ class storyTao extends storyModel
      * @access protected
      * @return int[]
      */
-    protected function fetchProjectStories(dao $storyDAO, int $productID, string $type, string $branch, array $executionStoryIdList, string $orderBy, ?object $pager = null, ?object $project = null): array
+    protected function fetchProjectStories(dao $storyDAO, int $productID, string $type, string $branch, array $executionStoryIdList, string $orderBy, ?object $pager = null, ?object $project = null, ?array $unclosedStatus = null): array
     {
         if(strpos($orderBy, 'version_') !== false) $orderBy = str_replace('version_', 't2.version_', $orderBy);
         if(strpos($orderBy, 'id_')      !== false) $orderBy = str_replace('id_', 't2.id_', $orderBy);
 
-        $unclosedStatus = $this->getUnclosedStatusKeys($productID);
+        if($unclosedStatus === null && $type == 'unclosed') $unclosedStatus = $this->getUnclosedStatusKeys($productID);
+        if($unclosedStatus === null) $unclosedStatus = array();
         $assignProduct  = false;
         if(!empty($productID) && !empty($project))
         {

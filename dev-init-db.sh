@@ -127,6 +127,17 @@ ensure_global_effort_privilege()
 REPLACE INTO \`${DB_PREFIX}grouppriv\` (\`group\`, module, method)
 SELECT id, 'report', 'globalEffort' FROM \`${DB_PREFIX}group\`;
 SQL
+    if table_exists workflow_definition; then
+        "${app_mysql[@]}" <<SQL
+REPLACE INTO \`${DB_PREFIX}grouppriv\` (\`group\`, module, method) VALUES
+(1, 'statetransition', 'browse'),
+(1, 'statetransition', 'manage'),
+(1, 'statetransition', 'reset'),
+(1, 'statetransition', 'syncGlobal'),
+(1, 'statetransition', 'toggle'),
+(1, 'statetransition', 'triggerCustom');
+SQL
+    fi
     echo "✓ 全局工时默认查看权限已就绪"
 }
 
@@ -198,7 +209,7 @@ fast_ready()
 
     local data_counts
     data_counts="$("${app_mysql[@]}" -Nse "SELECT (SELECT COUNT(*) FROM \`${DB_PREFIX}user\` WHERE account='${ADMIN_ACCOUNT}'), (SELECT COUNT(*) FROM \`${DB_PREFIX}grouppriv\` WHERE module='statetransition')" 2>/dev/null || true)"
-    [[ "$data_counts" == $'1\t5' ]]
+    [[ "$data_counts" == $'1\t6' ]]
 }
 
 app_can_connect()

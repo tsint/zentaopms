@@ -27,6 +27,7 @@ $lang->statetransition->scope                = '作用域';
 $lang->statetransition->scopeList            = array('global' => '系统默认', 'product' => '产品级');
 $lang->statetransition->product              = '产品';
 $lang->statetransition->copyFromGlobal       = '从系统默认复制';
+$lang->statetransition->syncFromGlobal       = '同步全局';
 $lang->statetransition->resetToDefault       = '恢复默认';
 
 /* Form labels */
@@ -103,6 +104,7 @@ $lang->statetransition->flowDiagram          = '状态流转图';
 $lang->statetransition->globalScope          = '系统默认（全局）';
 $lang->statetransition->manageTitle          = '管理状态流转定义';
 $lang->statetransition->confirmReset         = '确定要恢复默认定义吗？所有自定义修改将丢失。';
+$lang->statetransition->confirmSyncFromGlobal = '确定要同步系统默认（全局）定义吗？当前产品的自定义修改将被覆盖。';
 $lang->statetransition->reset                = '恢复默认';
 $lang->statetransition->fieldObjectType      = '对象类型';
 $lang->statetransition->fieldScope           = '作用域';
@@ -173,6 +175,7 @@ $lang->statetransition->backToBrowse         = '返回列表';
 $lang->statetransition->errors = array(
     'objectTypeInvalid'    => '对象类型无效',
     'definitionNotFound'   => '未配置工作流定义（无约束）',
+    'productRequired'      => '请选择一个具体产品后再同步全局定义',
     'definitionDisabled'   => '工作流未启用（无约束）',
     'transitionNotFound'   => '当前状态没有匹配的转移规则',
     'transitionDisabled'   => '该转移已被禁用',

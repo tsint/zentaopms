@@ -20,5 +20,6 @@ REPLACE INTO `zt_grouppriv` (`group`, `module`, `method`) VALUES
 (1, 'statetransition', 'browse'),
 (1, 'statetransition', 'manage'),
 (1, 'statetransition', 'reset'),
+(1, 'statetransition', 'syncGlobal'),
 (1, 'statetransition', 'toggle'),
 (1, 'statetransition', 'triggerCustom');

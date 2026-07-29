@@ -1,9 +1,8 @@
 #!/usr/bin/env php
 <?php
-
 /**
-
 title=测试 storyModel->getUnclosedStatusKeys();
+timeout=0
 cid=18649
 
 - 获取草稿状态属性1 @draft
@@ -11,7 +10,7 @@ cid=18649
 - 获取激活状态属性3 @active
 - 获取变更中状态属性4 @changing
 - 获取空值 @~~
-
+- 存在工作流定义时获取未关闭状态 @draft
 */
 include dirname(__FILE__, 5) . "/test/lib/init.php";
 
@@ -23,3 +22,10 @@ r($storyModel->getUnclosedStatusKeys()) && p('2') && e('reviewing'); //获取评
 r($storyModel->getUnclosedStatusKeys()) && p('3') && e('active');    //获取激活状态
 r($storyModel->getUnclosedStatusKeys()) && p('4') && e('changing');  //获取变更中状态
 r($storyModel->getUnclosedStatusKeys()) && p('0') && e('~~');        //获取空值
+
+$statetransition = $tester->loadModel('statetransition');
+$tester->dao->delete()->from(TABLE_WORKFLOW_DEFINITION)->where('scope')->eq('global')->andWhere('objectType')->eq('story')->exec();
+$statetransition->clearCache();
+$statetransition->saveDefinition('story', 0, $statetransition->getDefaultDefinition('story'), 0, true);
+
+r($storyModel->getUnclosedStatusKeys()) && p('0') && e('draft');      //存在工作流定义时获取未关闭状态

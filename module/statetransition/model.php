@@ -660,7 +660,7 @@ class statetransitionModel extends model
         $module = $this->config->statetransition->objectModules[$objectType] ?? $objectType;
         $this->app->loadLang($module);
         $langObj = $this->app->lang->{$module};
-        $system  = isset($langObj->statusList) ? (array)$langObj->statusList : array();
+        $system  = $this->getSystemStatusList($objectType);
 
         /* Workflow statuses take precedence; product flows use global labels as a display fallback only. */
         $workflow = $this->getStatusList($objectType, $productID);
@@ -684,6 +684,15 @@ class statetransitionModel extends model
      */
     public function getSystemStatusList(string $objectType): array
     {
+        $definition = $this->getDefaultDefinition($objectType);
+        if(!empty($definition['statuses']))
+        {
+            $lang = $this->getLangCode();
+            $out  = array();
+            foreach($definition['statuses'] as $status) $out[$status['key']] = $this->pickLabel($status['label'] ?? array(), $lang, $status['key']);
+            return $out;
+        }
+
         /* epic/requirement/story share the story lang. */
         $module = $this->config->statetransition->objectModules[$objectType] ?? $objectType;
         $this->app->loadLang($module);

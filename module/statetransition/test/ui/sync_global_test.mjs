@@ -4,6 +4,7 @@
  * Run:
  *   E2E_BASE_URL=http://127.0.0.1:8080 node module/statetransition/test/ui/sync_global_test.mjs
  */
+import {execFileSync} from 'child_process';
 import {loadPlaywright} from './playwright-loader.mjs';
 
 const {chromium} = await loadPlaywright();
@@ -12,10 +13,47 @@ const BASE = process.env.E2E_BASE_URL || 'http://127.0.0.1:8080';
 const PASSWORDS = (process.env.E2E_PASSWORDS || 'Admin1234!,123456').split(',').filter(Boolean);
 const PRODUCT_ID = Number(process.env.E2E_PRODUCT_ID || 910001);
 const OBJECT_TYPES = ['epic', 'requirement', 'story', 'bug', 'task'];
+const DB = {
+  host: process.env.DB_HOST || '127.0.0.1',
+  port: process.env.DB_PORT || '3306',
+  user: process.env.DB_USER || 'zentao',
+  password: process.env.DB_PASSWORD || 'zentao123456',
+  name: process.env.DB_NAME || 'zentao',
+};
 
 function assert(ok, message) {
   if(!ok) throw new Error(message);
   console.log(`✓ ${message}`);
+}
+
+function runSql(sql) {
+  return execFileSync('mysql', [
+    '--protocol=TCP',
+    '--ssl-mode=DISABLED',
+    `-h${DB.host}`,
+    `-P${DB.port}`,
+    `-u${DB.user}`,
+    `-p${DB.password}`,
+    DB.name,
+  ], {input: sql, encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore']});
+}
+
+function getConfigValue(key, module = 'custom', owner = 'system') {
+  const out = runSql(`SELECT value FROM zt_config WHERE owner='${owner}' AND module='${module}' AND \`key\`='${key}' LIMIT 1`);
+  const lines = out.trim().split('\n');
+  return lines.length > 1 ? lines[1].trim() : '';
+}
+
+function setConfigValue(key, value, module = 'custom', owner = 'system') {
+  runSql(`UPDATE zt_config SET value='${value}' WHERE owner='${owner}' AND module='${module}' AND \`key\`='${key}'`);
+}
+
+function updateClosedFeatures(addCodes, removeCodes) {
+  const current = getConfigValue('closedFeatures', 'common');
+  const set = new Set(current.split(',').map(item => item.trim()).filter(Boolean));
+  for(const code of addCodes) set.add(code);
+  for(const code of removeCodes) set.delete(code);
+  setConfigValue('closedFeatures', Array.from(set).join(','), 'common');
 }
 
 async function login(page) {
@@ -119,6 +157,15 @@ async function verifyProductMatchesGlobal(page, objectType) {
   assert(!(product.definition.entries || []).includes('p_e2e'), `${objectType} product override was replaced`);
 }
 
+const original = {
+  enableER: getConfigValue('enableER'),
+  URAndSR: getConfigValue('URAndSR'),
+  closedFeatures: getConfigValue('closedFeatures', 'common'),
+};
+setConfigValue('enableER', '1');
+setConfigValue('URAndSR', '1');
+updateClosedFeatures([], ['productER', 'productUR']);
+
 const browser = await chromium.launch({headless: true, args: ['--no-sandbox']});
 try {
   const page = await (await browser.newContext()).newPage();
@@ -150,4 +197,7 @@ try {
   console.log('✓ restored E2E workflow definitions');
 } finally {
   await browser.close();
+  setConfigValue('enableER', original.enableER || '0');
+  setConfigValue('URAndSR', original.URAndSR || '0');
+  setConfigValue('closedFeatures', original.closedFeatures || '', 'common');
 }

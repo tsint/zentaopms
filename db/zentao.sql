@@ -1067,6 +1067,27 @@ CREATE INDEX `objectType` ON `zt_file`(`objectType`);
 CREATE INDEX `objectID`   ON `zt_file`(`objectID`);
 CREATE INDEX `gid`        ON `zt_file`(`gid`);
 
+-- DROP TABLE IF EXISTS `zt_weekreport`;
+CREATE TABLE IF NOT EXISTS `zt_weekreport` (
+  `id`          int unsigned NOT NULL AUTO_INCREMENT,
+  `name`        varchar(255) NOT NULL DEFAULT '',
+  `pathname`    varchar(255) NOT NULL DEFAULT '',
+  `extension`   varchar(30)  NOT NULL DEFAULT '',
+  `size`        int unsigned NOT NULL DEFAULT 0,
+  `year`        smallint     NOT NULL DEFAULT 0,
+  `beginDate`   date         DEFAULT NULL,
+  `endDate`     date         DEFAULT NULL,
+  `recordCount` int unsigned NOT NULL DEFAULT 0,
+  `createdBy`   varchar(30)  NOT NULL DEFAULT '',
+  `createdDate` datetime     DEFAULT NULL,
+  `editedBy`    varchar(30)  NOT NULL DEFAULT '',
+  `editedDate`  datetime     DEFAULT NULL,
+  `deleted`     tinyint unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB;
+CREATE INDEX `year`        ON `zt_weekreport`(`year`);
+CREATE INDEX `createdDate` ON `zt_weekreport`(`createdDate`);
+
 -- DROP TABLE IF EXISTS `zt_group`;
 CREATE TABLE IF NOT EXISTS `zt_group` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
@@ -2909,6 +2930,20 @@ CREATE TABLE IF NOT EXISTS `zt_serverroom` (
   `deleted` tinyint unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
+
+-- DROP TABLE IF EXISTS `zt_gitlabuser`;
+CREATE TABLE IF NOT EXISTS `zt_gitlabuser` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `gitlabAccount` varchar(128) NOT NULL DEFAULT '',
+  `zentaoAccount` varchar(128) NOT NULL DEFAULT '',
+  `createdBy` varchar(30) NOT NULL DEFAULT '',
+  `createdDate` datetime DEFAULT NULL,
+  `editedBy` varchar(30) NOT NULL DEFAULT '',
+  `editedDate` datetime DEFAULT NULL,
+  `deleted` tinyint unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `gitlabAccount` (`gitlabAccount`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- DROP TABLE IF EXISTS `zt_host`;
 CREATE TABLE IF NOT EXISTS `zt_host` (

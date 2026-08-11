@@ -47,6 +47,7 @@ $lang->screen      = new stdclass();
 $lang->pivot       = new stdclass();
 $lang->chart       = new stdclass();
 $lang->report      = new stdclass();
+$lang->weekreport  = new stdclass();
 $lang->repo        = new stdclass();
 $lang->jenkins     = new stdclass();
 $lang->gitlab      = new stdclass();

@@ -172,6 +172,7 @@ $lang->repo->common       = '代碼';
 $lang->repo->commit       = '提交';
 $lang->repo->codeRepo     = '代碼庫';
 $lang->report->common     = '统计';
+$lang->weekreport->common = '週報';
 $lang->system->common     = '組織';
 $lang->admin->common      = '後台';
 $lang->task->common       = '任務';

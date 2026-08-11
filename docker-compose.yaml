@@ -3,11 +3,11 @@ services:
     image: mysql:8.0
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: "${ZT_DB_ROOT_PASSWORD:-zentao123456}"
+      MYSQL_ROOT_PASSWORD: "${ZT_DB_ROOT_PASSWORD:-zenT@1234561}"
       MYSQL_ROOT_HOST: "%"
       MYSQL_DATABASE: "${ZT_DB_NAME:-zentao}"
       MYSQL_USER: "${ZT_DB_USER:-zentao}"
-      MYSQL_PASSWORD: "${ZT_DB_PASSWORD:-zentao123456}"
+      MYSQL_PASSWORD: "${ZT_DB_PASSWORD:-zenT@1234561}"
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
@@ -18,8 +18,7 @@ services:
       - --wait-timeout=28800
     volumes:
       # MySQL refuses to initialize if a bind-mounted datadir contains stray or partial files.
-      - /opt/zentao-db:/var/lib/mysql
-      #- zentao-db:/var/lib/mysql
+      - /home/daizengtao/zentao/zentao-db:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
       interval: 10s
@@ -30,29 +29,27 @@ services:
     #build:
     #  context: .
     #  dockerfile: Dockerfile
-    image: zentao:v1.10
+    image: dzentao:v1.10
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     ports:
-      - "0.0.0.0:80:80"
+      - "0.0.0.0:8082:80"
     environment:
       # false: use install.php and optional demo data. true: run custom dev/CI database init.
-      ZT_AUTO_INIT: "${ZT_AUTO_INIT:-false}"
+      ZT_AUTO_INIT: "false"
       ZT_DB_HOST: db
       ZT_DB_NAME: "${ZT_DB_NAME:-zentao}"
       ZT_DB_USER: "${ZT_DB_USER:-zentao}"
-      ZT_DB_PASSWORD: "${ZT_DB_PASSWORD:-zentao123456}"
-      ZT_DB_ROOT_PASSWORD: "${ZT_DB_ROOT_PASSWORD:-zentao123456}"
+      ZT_DB_PASSWORD: "${ZT_DB_PASSWORD:-zenT@1234561}"
+      ZT_DB_ROOT_PASSWORD: "${ZT_DB_ROOT_PASSWORD:-zenT@1234561}"
       ZT_ADMIN_ACCOUNT: admin
-      ZT_ADMIN_PASSWORD: Admin1234!
-      ZT_COMPANY_NAME: My Company
+      ZT_ADMIN_PASSWORD: Admin@1234!
+      ZT_COMPANY_NAME: 星耀宇航
+      PHP_MAX_INPUT_VARS: "5000"
+      PHP_POST_MAX_SIZE: "100M"
+      PHP_MEMORY_LIMIT: "256M"
     volumes:
-      - zentao-data:/var/www/html/www/data
-      - zentao-tmp:/var/www/html/tmp
-
-volumes:
-  zentao-data:
-  zentao-tmp:
-  #zentao-db:
+      - /home/daizengtao/zentao/zentao-data:/var/www/html/www/data
+      - /home/daizengtao/zentao/zentao-tmp:/var/www/html/tmp

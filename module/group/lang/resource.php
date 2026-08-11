@@ -49,6 +49,7 @@ $lang->moduleOrder[111] = 'screen';
 $lang->moduleOrder[112] = 'pivot';
 $lang->moduleOrder[113] = 'chart';
 $lang->moduleOrder[117] = 'metric';
+$lang->moduleOrder[118] = 'weekreport';
 $lang->moduleOrder[119] = 'report';
 
 $lang->moduleOrder[120] = 'company';
@@ -1485,6 +1486,18 @@ $lang->serverroom->methodOrder[10] = 'edit';
 $lang->serverroom->methodOrder[15] = 'delete';
 $lang->serverroom->methodOrder[20] = 'view';
 
+$lang->resource->gitlabuser = new stdclass();
+$lang->resource->gitlabuser->browse = 'browse';
+$lang->resource->gitlabuser->create = 'create';
+$lang->resource->gitlabuser->edit   = 'editAction';
+$lang->resource->gitlabuser->delete = 'delete';
+
+if(!isset($lang->gitlabuser)) $lang->gitlabuser = new stdclass();
+$lang->gitlabuser->methodOrder[0]  = 'browse';
+$lang->gitlabuser->methodOrder[5]  = 'create';
+$lang->gitlabuser->methodOrder[10] = 'edit';
+$lang->gitlabuser->methodOrder[15] = 'delete';
+
 $lang->resource->instance = new stdclass();
 $lang->resource->instance->manage = 'manage';
 
@@ -1874,6 +1887,18 @@ $lang->resource->report->exportGlobalEffortCSV = 'exportGlobalEffortCSVAction';
 
 $lang->report->methodOrder[5]  = 'globalEffort';
 $lang->report->methodOrder[10] = 'exportGlobalEffortCSV';
+
+/* Weekreport. */
+$lang->resource->weekreport = new stdclass();
+$lang->resource->weekreport->browse = 'browseAction';
+$lang->resource->weekreport->import = 'importAction';
+$lang->resource->weekreport->view   = 'viewAction';
+$lang->resource->weekreport->delete = 'deleteAction';
+
+$lang->weekreport->methodOrder[5]  = 'browse';
+$lang->weekreport->methodOrder[10] = 'import';
+$lang->weekreport->methodOrder[15] = 'view';
+$lang->weekreport->methodOrder[20] = 'delete';
 
 /* Search. */
 $lang->resource->search = new stdclass();

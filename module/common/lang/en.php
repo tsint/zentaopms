@@ -253,6 +253,7 @@ $lang->screen->common       = 'Screen';
 $lang->pivot->common        = 'Pivot Table';
 $lang->chart->common        = 'Chart';
 $lang->metric->common       = 'Metric';
+$lang->weekreport->common   = 'Weekly Report';
 $lang->report->common       = 'Report';
 $lang->system->common       = 'Company';
 $lang->admin->common        = 'Admin';

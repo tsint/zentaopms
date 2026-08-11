@@ -27,9 +27,9 @@ $totalLeft = $this->dao->select('ROUND(SUM(t1.`left`), 1) AS totalLeft')->from(T
 $objectHours = $this->loadModel('objecteffort')->getSummaryByProject(array($projectID));
 if(isset($objectHours[$projectID]))
 {
-    $totalEstimate += $objectHours[$projectID]->estimate;
-    $totalConsumed += $objectHours[$projectID]->consumed;
-    $totalLeft     += $objectHours[$projectID]->left;
+    $totalEstimate = (float)$totalEstimate + (float)$objectHours[$projectID]->estimate;
+    $totalConsumed = (float)$totalConsumed + (float)$objectHours[$projectID]->consumed;
+    $totalLeft     = (float)$totalLeft     + (float)$objectHours[$projectID]->left;
 }
 
 $workhour = new stdclass();

@@ -850,3 +850,8 @@ $lang->changelog['21.7.1'][] = 'project-template';
 $lang->changelog['21.7.1'][] = 'project-createTemplate';
 
 $lang->changelog['21.7.3'][] = 'reporttemplate-index';
+
+$lang->changelog['22.2'][] = 'weekreport-browse';
+$lang->changelog['22.2'][] = 'weekreport-import';
+$lang->changelog['22.2'][] = 'weekreport-view';
+$lang->changelog['22.2'][] = 'weekreport-delete';

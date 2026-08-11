@@ -6,7 +6,8 @@ $geLang     = $lang->report->globalEffort;
 $colors     = $geLang->objectTypeColors;
 $canExport  = common::hasPriv('report', 'exportGlobalEffortCSV');
 $exportArgs = array('export' => 'csv', 'onlybody' => 'yes') + $detailFilters;
-$exportURL  = $this->createLink('report', 'globalEffort') . '&' . http_build_query($exportArgs);
+$baseURL    = $this->createLink('report', 'globalEffort');
+$exportURL  = $baseURL . (str_contains($baseURL, '?') ? '&' : '?') . http_build_query($exportArgs);
 $dateRange  = zget($filters, 'dateRange', (!empty($filters['begin']) || !empty($filters['end']) ? 'custom' : 'all'));
 $maxStale   = 0;
 $maxAccount = 0;
@@ -114,7 +115,8 @@ ob_start();
     <div class='actions'>
       <button type='submit' class='btn btn-primary'><?php echo $geLang->filter;?></button>
       <?php if($canExport):?>
-      <?php echo \html::a($exportURL, $geLang->exportCSV, '', "id='exportGlobalEffortCSV' class='btn btn-secondary'");?>
+      <?php $exportOnClick = "event.preventDefault();var i=document.createElement('iframe');i.style.display='none';i.src=this.href;document.body.appendChild(i);setTimeout(function(){if(i.parentNode)i.parentNode.removeChild(i)},30000)";?>
+      <?php echo \html::a($exportURL, $geLang->exportCSV, '', "id='exportGlobalEffortCSV' class='btn btn-secondary' onclick=\"" . $exportOnClick . "\"");?>
       <?php endif;?>
     </div>
   </form>
@@ -124,8 +126,7 @@ ob_start();
     <div class='panel-body'>
       <div class='stat-grid'>
         <div class='stat-card'><span class='label'><?php echo $geLang->totalConsumed;?></span><span class='value'><?php echo $management->totalConsumed;?>h</span></div>
-        <div class='stat-card'><span class='label'><?php echo $geLang->estimatedRatio;?></span><span class='value'><?php echo $management->estimatedTotal > 0 ? round($management->estimatedPercent * 100, 1) . '%' : $geLang->notEstimated;?></span></div>
-        <div class='stat-card'><span class='label'><?php echo $geLang->estimatedConsumed;?></span><span class='value'><?php echo $management->estimatedConsumed;?>h</span></div>
+        <div class='stat-card'><span class='label'><?php echo $geLang->estimatedRatio;?></span><span class='value'><?php echo $management->estimatedTotal > 0 ? round($management->totalConsumed / $management->estimatedTotal * 100, 1) . '%' : $geLang->notEstimated;?></span></div>
         <div class='stat-card'><span class='label'><?php echo $geLang->estimatedTotal;?></span><span class='value'><?php echo $management->estimatedTotal;?>h</span></div>
       </div>
     </div>
@@ -218,36 +219,13 @@ ob_start();
     </div>
   </div>
 </div>
+<?php
+html(ob_get_clean());
+?>
 <script>
 document.addEventListener('DOMContentLoaded', function()
 {
     const dimensionDropmenu = document.querySelector('#heading #dropmenu[data-fetcher*="m=dimension"], #heading #dropmenu[data-fetcher*="module=report"][data-fetcher*="method=globaleffort"]');
     if(dimensionDropmenu) dimensionDropmenu.remove();
-
-    const exportButton = document.getElementById('exportGlobalEffortCSV');
-    if(!exportButton) return;
-
-    exportButton.addEventListener('click', function(e)
-    {
-        e.preventDefault();
-        fetch(this.href, {credentials: 'include', headers: {'X-Requested-With': 'XMLHttpRequest'}})
-            .then(response => response.blob().then(blob => ({response, blob})))
-            .then(({response, blob}) =>
-            {
-                const disposition = response.headers.get('Content-Disposition') || '';
-                const matched = disposition.match(/filename="?([^";]+)"?/);
-                const fileName = matched ? decodeURIComponent(matched[1]) : 'global_effort.csv';
-                const downloadURL = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = downloadURL;
-                link.download = fileName;
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                URL.revokeObjectURL(downloadURL);
-            });
-    });
 });
 </script>
-<?php
-html(ob_get_clean());

@@ -61,11 +61,13 @@ $lang->admin->menuList->system['dividerMenu'] = ',safe,';
 
 $lang->admin->menuList->company['subMenu']['dept']       = array('link' => "{$lang->dept->common}|dept|browse|", 'subModule' => 'dept');
 $lang->admin->menuList->company['subMenu']['browseUser'] = array('link' => "{$lang->user->common}|company|browse|", 'subModule' => 'user,tutorial');
+$lang->admin->menuList->company['subMenu']['gitlabuser'] = array('link' => "GitLab用户|gitlabuser|browse|", 'subModule' => 'gitlabuser');
 $lang->admin->menuList->company['subMenu']['group']      = array('link' => "{$lang->priv}|group|browse|", 'subModule' => 'group');
 
 $lang->admin->menuList->company['menuOrder']['5']  = 'dept';
 $lang->admin->menuList->company['menuOrder']['10'] = 'browseUser';
-$lang->admin->menuList->company['menuOrder']['15'] = 'group';
+$lang->admin->menuList->company['menuOrder']['15'] = 'gitlabuser';
+$lang->admin->menuList->company['menuOrder']['20'] = 'group';
 
 $lang->admin->menuList->feature['subMenu']['my']          = array('link' => "{$lang->my->common}|custom|set|module=todo&field=priList", 'exclude' => 'set,required');
 $lang->admin->menuList->feature['subMenu']['product']     = array('link' => "{$lang->productCommon}|custom|required|module=product", 'exclude' => 'set,required', 'alias' => 'browsestoryconcept,product');

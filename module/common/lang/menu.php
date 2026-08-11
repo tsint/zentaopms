@@ -593,6 +593,7 @@ $lang->bi->menu->pivot  = array('link' => "{$lang->pivot->common}|pivot|preview"
 $lang->bi->menu->chart  = array('link' => "{$lang->chart->common}|chart|preview");
 $lang->bi->menu->metric = array('link' => "{$lang->metric->common}|metric|preview");
 $lang->bi->menu->globalEffort = array('link' => "全局工时|report|globalEffort");
+$lang->bi->menu->weekReport   = array('link' => "{$lang->weekreport->common}|weekreport|browse");
 
 $lang->bi->dividerMenu = ',metric,';
 
@@ -602,6 +603,7 @@ $lang->bi->menuOrder[10] = 'pivot';
 $lang->bi->menuOrder[15] = 'chart';
 $lang->bi->menuOrder[20] = 'metric';
 $lang->bi->menuOrder[25] = 'globalEffort';
+$lang->bi->menuOrder[30] = 'weekReport';
 
 /* Company menu.*/
 $lang->company->menu              = new stdclass();
@@ -733,6 +735,7 @@ $lang->navGroup->chart    = 'bi';
 $lang->navGroup->bidesign = 'bi';
 $lang->navGroup->report   = 'bi';
 $lang->navGroup->metric   = 'bi';
+$lang->navGroup->weekreport = 'bi';
 
 $lang->navGroup->qa            = 'qa';
 $lang->navGroup->bug           = 'qa';
@@ -788,6 +791,7 @@ $lang->navGroup->admin         = 'admin';
 $lang->navGroup->dept          = 'admin';
 $lang->navGroup->user          = 'admin';
 $lang->navGroup->group         = 'admin';
+$lang->navGroup->gitlabuser    = 'admin';
 $lang->navGroup->dept          = 'admin';
 $lang->navGroup->webhook       = 'admin';
 $lang->navGroup->sms           = 'admin';

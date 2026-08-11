@@ -927,9 +927,19 @@ class reportModel extends model
         fwrite($handle, "\xEF\xBB\xBF");
         fputcsv($handle, $fields);
 
+        /* 加载 ID→名称、账号→姓名的映射。 */
+        $products    = $this->dao->select('id,name')->from(TABLE_PRODUCT)->where('deleted')->eq('0')->fetchPairs();
+        $projects    = $this->dao->select('id,name')->from(TABLE_PROJECT)->where('type')->eq('project')->andWhere('deleted')->eq('0')->fetchPairs();
+        $executions  = $this->dao->select('id,name')->from(TABLE_EXECUTION)->where('type')->in('sprint,stage,kanban')->andWhere('deleted')->eq('0')->fetchPairs();
+        $users       = $this->loadModel('user')->getPairs('noletter|nodeleted');
+        $objectTypes = zget(zget($this->lang->report, 'globalEffort', new stdclass()), 'objectTypeList', array());
+
         foreach($this->getGlobalEffortRecords($filters) as $row)
         {
-            fputcsv($handle, array($row->source, $row->date, $row->product, $row->project, $row->execution, $row->objectType, $row->objectID, $row->account, $row->consumed, $row->left, str_replace(array("\r", "\n"), ' ', (string)$row->work)));
+            $productNames = array();
+            foreach($row->productList as $productID) $productNames[] = zget($products, $productID, $productID);
+
+            fputcsv($handle, array($row->source, $row->date, implode(',', $productNames), zget($projects, $row->project, $row->project), zget($executions, $row->execution, $row->execution), zget($objectTypes, $row->objectType, $row->objectType), $row->objectID, zget($users, $row->account, $row->account), $row->consumed, $row->left, str_replace(array("\r", "\n"), ' ', (string)$row->work)));
         }
 
         rewind($handle);

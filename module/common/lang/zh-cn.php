@@ -251,6 +251,7 @@ $lang->screen->common       = '大屏';
 $lang->pivot->common        = '透视表';
 $lang->chart->common        = '图表';
 $lang->metric->common       = '度量项';
+$lang->weekreport->common   = '周报';
 $lang->report->common       = '统计';
 $lang->system->common       = '组织';
 $lang->admin->common        = '后台';

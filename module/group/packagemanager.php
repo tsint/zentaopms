@@ -315,6 +315,10 @@ $config->group->subset->metric = new stdclass();
 $config->group->subset->metric->order = 890;
 $config->group->subset->metric->nav   = 'bi';
 
+$config->group->subset->weekreport = new stdclass();
+$config->group->subset->weekreport->order = 895;
+$config->group->subset->weekreport->nav   = 'bi';
+
 $config->group->subset->reporttemplate = new stdclass();
 $config->group->subset->reporttemplate->order = 900;
 $config->group->subset->reporttemplate->nav   = 'bi';
@@ -2802,6 +2806,15 @@ $config->group->package->group->privs['group-manageMember']       = array('editi
 $config->group->package->group->privs['group-manageProjectAdmin'] = array('edition' => 'open,biz,max,ipd', 'vision' => 'rnd,lite,or', 'order' => 8, 'depend' => array('admin-index', 'admin-register', 'group-browse'), 'recommend' => array('group-copy', 'group-create', 'group-delete', 'group-edit', 'group-manageMember', 'group-manageView'));
 $config->group->package->group->privs['group-manageView']         = array('edition' => 'open,biz,max,ipd', 'vision' => 'rnd,lite,or', 'order' => 5, 'depend' => array('admin-index', 'admin-register', 'group-browse'), 'recommend' => array('group-copy', 'group-create', 'group-delete', 'group-edit', 'group-manageMember', 'group-manageProjectAdmin'));
 
+$config->group->package->gitlabuser = new stdclass();
+$config->group->package->gitlabuser->order  = 16;
+$config->group->package->gitlabuser->subset = 'staffmanage';
+$config->group->package->gitlabuser->privs  = array();
+$config->group->package->gitlabuser->privs['gitlabuser-browse'] = array('edition' => 'open,biz,max,ipd', 'vision' => 'rnd', 'order' => 0, 'depend' => array('admin-index', 'admin-register'), 'recommend' => array('gitlabuser-create', 'gitlabuser-edit'));
+$config->group->package->gitlabuser->privs['gitlabuser-create'] = array('edition' => 'open,biz,max,ipd', 'vision' => 'rnd', 'order' => 2, 'depend' => array('admin-index', 'admin-register', 'gitlabuser-browse'), 'recommend' => array('gitlabuser-edit'));
+$config->group->package->gitlabuser->privs['gitlabuser-edit']   = array('edition' => 'open,biz,max,ipd', 'vision' => 'rnd', 'order' => 3, 'depend' => array('admin-index', 'admin-register', 'gitlabuser-browse'), 'recommend' => array('gitlabuser-create'));
+$config->group->package->gitlabuser->privs['gitlabuser-delete'] = array('edition' => 'open,biz,max,ipd', 'vision' => 'rnd', 'order' => 4, 'depend' => array('admin-index', 'admin-register', 'gitlabuser-browse'), 'recommend' => array('gitlabuser-create', 'gitlabuser-edit'));
+
 $config->group->package->user = new stdclass();
 $config->group->package->user->order  = 10;
 $config->group->package->user->subset = 'staffmanage';
@@ -3651,6 +3664,20 @@ $config->group->package->manageMetric->privs['metric-implement']   = array('edit
 $config->group->package->manageMetric->privs['metric-delist']      = array('edition' => 'biz,max,ipd', 'vision' => 'rnd', 'order' => 40, 'depend' => array('metric-browse'), 'recommend' => array());
 $config->group->package->manageMetric->privs['metric-delete']      = array('edition' => 'biz,max,ipd', 'vision' => 'rnd', 'order' => 45, 'depend' => array('metric-browse'), 'recommend' => array());
 $config->group->package->manageMetric->privs['metric-recalculate'] = array('edition' => 'open,biz,max,ipd', 'vision' => 'rnd', 'order' => 5, 'depend' => array(), 'recommend' => array());
+
+$config->group->package->browseWeekreport = new stdclass();
+$config->group->package->browseWeekreport->order  = 5;
+$config->group->package->browseWeekreport->subset = 'weekreport';
+$config->group->package->browseWeekreport->privs  = array();
+$config->group->package->browseWeekreport->privs['weekreport-browse'] = array('edition' => 'open,biz,max,ipd', 'vision' => 'rnd', 'order' => 5, 'depend' => array(), 'recommend' => array('weekreport-view'));
+$config->group->package->browseWeekreport->privs['weekreport-view']   = array('edition' => 'open,biz,max,ipd', 'vision' => 'rnd', 'order' => 10, 'depend' => array('weekreport-browse'), 'recommend' => array());
+
+$config->group->package->manageWeekreport = new stdclass();
+$config->group->package->manageWeekreport->order  = 10;
+$config->group->package->manageWeekreport->subset = 'weekreport';
+$config->group->package->manageWeekreport->privs  = array();
+$config->group->package->manageWeekreport->privs['weekreport-import'] = array('edition' => 'open,biz,max,ipd', 'vision' => 'rnd', 'order' => 5, 'depend' => array('weekreport-browse'), 'recommend' => array());
+$config->group->package->manageWeekreport->privs['weekreport-delete'] = array('edition' => 'open,biz,max,ipd', 'vision' => 'rnd', 'order' => 10, 'depend' => array('weekreport-browse'), 'recommend' => array());
 
 $config->group->package->browseReportTemplate = new stdclass();
 $config->group->package->browseReportTemplate->order  = 10;

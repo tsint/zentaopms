@@ -251,6 +251,7 @@ $lang->screen->common       = 'Screen';
 $lang->pivot->common        = 'Pivot Table';
 $lang->chart->common        = 'Chart';
 $lang->metric->common       = 'Metric';
+$lang->weekreport->common   = 'Rapport hebdomadaire';
 $lang->report->common       = 'Report';
 $lang->system->common       = 'System';
 $lang->admin->common        = 'Admin';

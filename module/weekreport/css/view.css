@@ -1,0 +1,33 @@
+/* ===== 周报详情（header.lite 全屏，SheetJS 渲染 xls）===== */
+html, body {margin: 0; padding: 0; background: #fff;}
+#weekreportScreen {min-height: 100vh; padding: 16px; box-sizing: border-box; color: #333;}
+
+/* 标题栏 */
+#weekreportScreen .detail-head {display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 16px;}
+#weekreportScreen .detail-head h2 {margin: 0; font-size: 18px; font-weight: 700; word-break: break-all;}
+#weekreportScreen .download-btn {flex-shrink: 0; padding: 6px 16px; background: #3883fa; color: #fff; border-radius: 4px; text-decoration: none; font-size: 13px; white-space: nowrap;}
+#weekreportScreen .download-btn:hover {background: #2978f0;}
+
+/* 表格容器（全屏内滚动） */
+#weekreportScreen .excel-wrap {overflow: auto; max-height: calc(100vh - 100px); border: 1px solid #d0d3d9; background: #fff;}
+#weekreportScreen .excel-loading, #weekreportScreen .excel-error {padding: 60px 20px; text-align: center; color: #888;}
+#weekreportScreen .excel-error a {color: #3883fa;}
+
+/* SheetJS 生成的表格（Excel 风格）。用 separate 避免 sticky 单元格边框消失。 */
+#weekreportScreen #xlsTable {border-collapse: separate; border-spacing: 0; font-size: 13px;}
+#weekreportScreen #xlsTable td {border-right: 1px solid #d0d3d9; border-bottom: 1px solid #d0d3d9; padding: 4px 8px; white-space: nowrap; min-width: 80px; vertical-align: middle; font-family: 'Microsoft YaHei', Arial, sans-serif !important; font-size: 13px !important; font-weight: normal !important; color: #333 !important; line-height: 1.5 !important;}
+#weekreportScreen #xlsTable td:first-child {border-left: 1px solid #d0d3d9;}
+#weekreportScreen #xlsTable tr:first-child td {border-top: 1px solid #d0d3d9; background: #f0f1f3; font-weight: 600; position: sticky; top: 0; z-index: 1;}
+#weekreportScreen #xlsTable tr:nth-child(even) td {background: #fafbfc;}
+
+/* 前两列冻结（横向滚动时固定在左侧，第二列 left 由 JS 动态设置） */
+#weekreportScreen #xlsTable td:first-child,
+#weekreportScreen #xlsTable td:nth-child(2) {position: sticky; z-index: 2; background: #fff;}
+#weekreportScreen #xlsTable td:first-child {left: 0; box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08);}
+#weekreportScreen #xlsTable td:nth-child(2) {box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08);}
+#weekreportScreen #xlsTable tr:nth-child(even) td:first-child,
+#weekreportScreen #xlsTable tr:nth-child(even) td:nth-child(2) {background: #fafbfc;}
+#weekreportScreen #xlsTable tr:first-child td:first-child,
+#weekreportScreen #xlsTable tr:first-child td:nth-child(2) {z-index: 3; background: #f0f1f3;}
+
+#weekreportScreen #xlsTable td:empty::before {content: '-'; color: #ccc;}
